@@ -1,0 +1,63 @@
+/* ======================================================================
+   BANCO DE PREGUNTAS - TRIVIA FUTBOLERA
+   Cada pregunta lleva su texto en español (q, options) y su traducción
+   al portugués brasileño (pt, optPt). Si optPt falta, se usan las mismas
+   opciones (ej: opciones numéricas).
+   ====================================================================== */
+
+const TRIVIA_QUESTIONS = [
+  // --- Fácil / mundial general ---
+  { q: '¿Cuántos jugadores tiene un equipo de fútbol en cancha (sin contar suplentes)?', pt: 'Quantos jogadores um time de futebol tem em campo (sem contar os reservas)?', options: ['9', '10', '11', '12'], correct: 2, dificultad: 'facil' },
+  { q: '¿Cada cuántos años se juega el Mundial de fútbol?', pt: 'De quantos em quantos anos é disputada a Copa do Mundo de futebol?', options: ['2', '3', '4', '5'], correct: 2, dificultad: 'facil' },
+  { q: '¿De qué color es la tarjeta que expulsa a un jugador?', pt: 'De que cor é o cartão que expulsa um jogador?', options: ['Amarilla', 'Roja', 'Azul', 'Verde'], optPt: ['Amarelo', 'Vermelho', 'Azul', 'Verde'], correct: 1, dificultad: 'facil' },
+  { q: '¿Cuánto dura un partido de fútbol (tiempo reglamentario)?', pt: 'Quanto dura uma partida de futebol (tempo regulamentar)?', options: ['80 minutos', '90 minutos', '100 minutos', '120 minutos'], correct: 1, dificultad: 'facil' },
+  { q: '¿Qué selección ganó el Mundial de Qatar 2022?', pt: 'Qual seleção venceu a Copa do Mundo do Catar 2022?', options: ['Francia', 'Brasil', 'Argentina', 'Croacia'], optPt: ['França', 'Brasil', 'Argentina', 'Croácia'], correct: 2, dificultad: 'facil' },
+  { q: '¿Cómo se llama la falta máxima que se cobra dentro del área?', pt: 'Como se chama a falta máxima cobrada dentro da área?', options: ['Tiro libre', 'Penal', 'Saque de meta', 'Córner'], optPt: ['Tiro livre', 'Pênalti', 'Tiro de meta', 'Escanteio'], correct: 1, dificultad: 'facil' },
+  { q: '¿Cuántos árbitros principales dirigen un partido oficial en la cancha (sin contar el VAR)?', pt: 'Quantos árbitros principais apitam uma partida oficial em campo (sem contar o VAR)?', options: ['1', '2', '3', '4'], correct: 0, dificultad: 'facil' },
+  { q: '¿Qué país organizó el Mundial de 2014?', pt: 'Qual país sediou a Copa do Mundo de 2014?', options: ['Argentina', 'Brasil', 'Chile', 'Uruguay'], optPt: ['Argentina', 'Brasil', 'Chile', 'Uruguai'], correct: 1, dificultad: 'facil' },
+  { q: '¿Cómo se le dice al gol convertido con la cabeza?', pt: 'Como se chama o gol marcado de cabeça?', options: ['Cabezazo', 'Testarazo', 'Palomita', 'Chilena'], optPt: ['Cabeçada', 'Testaço', 'Testada', 'Martelada'], correct: 1, dificultad: 'facil' },
+  { q: '¿Qué jugador es conocido como "el Bicho" o "CR7"?', pt: 'Qual jogador é conhecido como "a Fera" ou "CR7"?', options: ['Lionel Messi', 'Cristiano Ronaldo', 'Neymar', 'Kylian Mbappé'], correct: 1, dificultad: 'facil' },
+
+  // --- Fácil / uruguayo ---
+  { q: '¿En qué año Uruguay ganó su primer Mundial de fútbol?', pt: 'Em que ano o Uruguai venceu sua primeira Copa do Mundo de futebol?', options: ['1924', '1930', '1950', '1970'], correct: 1, dificultad: 'facil' },
+  { q: '¿Cómo se conoce a la selección uruguaya de fútbol?', pt: 'Como é conhecida a seleção uruguaia de futebol?', options: ['La Albiceleste', 'La Celeste', 'La Roja', 'La Verde'], correct: 1, dificultad: 'facil' },
+  { q: '¿Cuáles son los dos clubes más grandes e históricos de Uruguay?', pt: 'Quais são os dois clubes mais grandes e históricos do Uruguai?', options: ['Danubio y Wanderers', 'Peñarol y Nacional', 'Cerro y Rampla Juniors', 'Defensor y Liverpool'], correct: 1, dificultad: 'facil' },
+  { q: '¿Cómo se llama el estadio donde Uruguay ganó el Mundial de 1930?', pt: 'Como se chama o estádio onde o Uruguai venceu a Copa do Mundo de 1930?', options: ['Estadio Centenario', 'Estadio Campeón del Siglo', 'Parque Central', 'Estadio Franzini'], correct: 0, dificultad: 'facil' },
+  { q: '¿En qué ciudad de Uruguay se disputó el Mundial de 1930?', pt: 'Em qual cidade do Uruguai foi disputada a Copa do Mundo de 1930?', options: ['Punta del Este', 'Salto', 'Montevideo', 'Colonia'], optPt: ['Punta del Este', 'Salto', 'Montevidéu', 'Colônia'], correct: 2, dificultad: 'facil' },
+
+  // --- Media / mundial ---
+  { q: '¿Qué país ha ganado más Copas del Mundo?', pt: 'Qual país venceu mais Copas do Mundo?', options: ['Alemania', 'Argentina', 'Brasil', 'Italia'], optPt: ['Alemanha', 'Argentina', 'Brasil', 'Itália'], correct: 2, dificultad: 'media' },
+  { q: '¿Cuántos Balones de Oro ganó Lionel Messi (hasta 2024)?', pt: 'Quantas Bolas de Ouro Lionel Messi ganhou (até 2024)?', options: ['5', '6', '7', '8'], correct: 3, dificultad: 'media' },
+  { q: '¿Qué jugador anotó el famoso gol "de tijera" o "chilena" más recordado en un Mundial?', pt: 'Qual jogador marcou o famoso gol "de bicicleta" mais lembrado em uma Copa do Mundo?', options: ['Pelé', 'Diego Maradona', 'Zinedine Zidane', 'Ronaldo Nazário'], correct: 0, dificultad: 'media' },
+  { q: '¿Cuál es el club con más Champions League ganadas?', pt: 'Qual é o clube com mais Champions League vencidas?', options: ['FC Barcelona', 'AC Milan', 'Real Madrid', 'Bayern Múnich'], optPt: ['FC Barcelona', 'AC Milan', 'Real Madrid', 'Bayern de Munique'], correct: 2, dificultad: 'media' },
+  { q: '¿En qué país se jugó el primer Mundial de fútbol (1930)?', pt: 'Em qual país foi disputada a primeira Copa do Mundo de futebol (1930)?', options: ['Brasil', 'Uruguay', 'Italia', 'Francia'], optPt: ['Brasil', 'Uruguai', 'Itália', 'França'], correct: 1, dificultad: 'media' },
+  { q: '¿Cómo se llama la regla que sanciona a un jugador adelantado respecto a la defensa rival?', pt: 'Como se chama a regra que pune um jogador adiantado em relação à defesa adversária?', options: ['Fuera de lugar (offside)', 'Fuera de banda', 'Obstrucción', 'Antijuego'], optPt: ['Impedimento (offside)', 'Lateral', 'Obstrução', 'Anti-jogo'], correct: 0, dificultad: 'media' },
+  { q: '¿Qué selección quedó eliminada como campeona defensora en primera ronda del Mundial 2002?', pt: 'Qual seleção foi eliminada como campeã defensora na primeira fase da Copa do Mundo de 2002?', options: ['Brasil', 'Francia', 'Alemania', 'Italia'], optPt: ['Brasil', 'França', 'Alemanha', 'Itália'], correct: 1, dificultad: 'media' },
+  { q: '¿Qué jugador alemán fue máximo goleador histórico de los Mundiales con 16 goles entre 2002 y 2014?', pt: 'Qual jogador alemão foi o maior artilheiro da história das Copas, com 16 gols entre 2002 e 2014?', options: ['Thomas Müller', 'Miroslav Klose', 'Lukas Podolski', 'Mario Götze'], correct: 1, dificultad: 'media' },
+  { q: '¿Qué significa la sigla VAR?', pt: 'O que significa a sigla VAR?', options: ['Video Asistente del Referí', 'Verificación Automática de Reglas', 'Videoarbitraje Rápido', 'Validación Arbitral'], optPt: ['Vídeo Assistente do Árbitro', 'Verificação Automática de Regras', 'Videoarbitragem Rápida', 'Validação Arbitral'], correct: 0, dificultad: 'media' },
+  { q: '¿Cuántos jugadores como máximo puede cambiar un equipo en un partido oficial de FIFA actualmente?', pt: 'Quantos jogadores, no máximo, um time pode trocar em uma partida oficial da FIFA atualmente?', options: ['3', '4', '5', '6'], correct: 2, dificultad: 'media' },
+
+  // --- Media / uruguaya ---
+  { q: '¿Cómo se conoce popularmente al Mundial de 1950 donde Uruguay salió campeón en Brasil?', pt: 'Como é conhecida popularmente a Copa de 1950, em que o Uruguai foi campeão no Brasil?', options: ['El Maracanazo', 'La Hazaña Celeste', 'El Milagro de Río', 'La Gesta del 50'], optPt: ['O Maracanazo', 'A Façanha Celeste', 'O Milagre do Rio', 'A Gesta de 50'], correct: 0, dificultad: 'media' },
+  { q: '¿Cuántas Copas América ganó Uruguay en su historia (hasta 2024, la segunda mayor cantidad tras Argentina)?', pt: 'Quantas Copas América o Uruguai venceu em sua história (até 2024, a segunda maior quantidade depois da Argentina)?', options: ['13', '14', '15', '16'], correct: 2, dificultad: 'media' },
+  { q: '¿Qué jugador uruguayo protagonizó un mordisco a un rival en el Mundial 2014?', pt: 'Qual jogador uruguaio protagonizou uma mordida em um rival na Copa do Mundo de 2014?', options: ['Diego Godín', 'Luis Suárez', 'Edinson Cavani', 'Diego Forlán'], correct: 1, dificultad: 'media' },
+  { q: '¿En qué década debutó Diego Forlán como referente de la selección uruguaya en Mundiales?', pt: 'Em qual década Diego Forlán estreou como referência da seleção uruguaia em Copas do Mundo?', options: ['1990', '2000', '2010', '2020'], correct: 1, dificultad: 'media' },
+  { q: '¿Qué apodo recibe Edinson Cavani?', pt: 'Qual apelido Edinson Cavani recebe?', options: ['El Pistolero', 'El Matador', 'El Ratón', 'El Loco'], correct: 1, dificultad: 'media' },
+  { q: '¿Cuál es el club uruguayo con más títulos de Copa Libertadores?', pt: 'Qual é o clube uruguaio com mais títulos de Copa Libertadores?', options: ['Nacional', 'Peñarol', 'Danubio', 'Defensor Sporting'], correct: 1, dificultad: 'media' },
+
+  // --- Difícil / mundial ---
+  { q: '¿Quién fue el arquero campeón del mundo con Argentina en 2022, destacado en la definición por penales?', pt: 'Quem foi o goleiro campeão do mundo com a Argentina em 2022, destaque na decisão por pênaltis?', options: ['Franco Armani', 'Emiliano Martínez', 'Gerónimo Rulli', 'Agustín Marchesín'], correct: 1, dificultad: 'dificil' },
+  { q: '¿En qué año se disputó el primer Mundial con la tecnología del VAR?', pt: 'Em que ano foi disputada a primeira Copa do Mundo com a tecnologia do VAR?', options: ['2014', '2018', '2010', '2022'], correct: 1, dificultad: 'dificil' },
+  { q: '¿Qué país, campeón defensor, decidió no presentarse al Mundial de 1934 y así no defendió su corona?', pt: 'Qual país, campeão defensor, decidiu não se apresentar na Copa de 1934 e assim não defendeu sua coroa?', options: ['Uruguay', 'Argentina', 'Austria', 'España'], optPt: ['Uruguai', 'Argentina', 'Áustria', 'Espanha'], correct: 0, dificultad: 'dificil' },
+  { q: '¿Cuál es el resultado más abultado registrado en la historia de los Mundiales?', pt: 'Qual é o resultado mais elástico registrado na história das Copas do Mundo?', options: ['Hungría 10-1 El Salvador', 'Alemania 8-0 Arabia Saudita', 'Hungría 9-0 Corea del Sur', 'Yugoslavia 9-0 Zaire'], optPt: ['Hungria 10-1 El Salvador', 'Alemanha 8-0 Arábia Saudita', 'Hungria 9-0 Coreia do Sul', 'Iugoslávia 9-0 Zaire'], correct: 0, dificultad: 'dificil' },
+  { q: '¿Qué jugador ostenta el récord de más partidos jugados en la historia de los Mundiales?', pt: 'Qual jogador detém o recorde de mais partidas disputadas na história das Copas do Mundo?', options: ['Diego Maradona', 'Lionel Messi', 'Lothar Matthäus', 'Cafu'], correct: 1, dificultad: 'dificil' },
+  { q: '¿En qué Mundial se estrenaron los penales para definir un partido eliminado?', pt: 'Em qual Copa estrearam os pênaltis para decidir uma partida eliminatória?', options: ['1974', '1978', '1982', '1986'], correct: 2, dificultad: 'dificil' },
+
+  // --- Difícil / uruguaya ---
+  { q: '¿Quién anotó el gol decisivo de Uruguay en la final del Mundial de 1950 ante Brasil?', pt: 'Quem marcou o gol decisivo do Uruguai na final da Copa do Mundo de 1950 contra o Brasil?', options: ['Obdulio Varela', 'Alcides Ghiggia', 'Juan Schiaffino', 'Óscar Míguez'], correct: 1, dificultad: 'dificil' },
+  { q: '¿Quién fue el capitán de la selección uruguaya en la final del Mundial de 1950?', pt: 'Quem foi o capitão da seleção uruguaia na final da Copa do Mundo de 1950?', options: ['Obdulio Varela', 'Alcides Ghiggia', 'Juan Schiaffino', 'Óscar Míguez'], correct: 0, dificultad: 'dificil' },
+  { q: '¿Cómo se apodaba a Obdulio Varela, capitán de la Celeste en 1950?', pt: 'Como era apelidado Obdulio Varela, capitão da Celeste em 1950?', options: ['El Negro Jefe', 'El Maestro', 'El Capo', 'El Patrón'], correct: 0, dificultad: 'dificil' },
+  { q: '¿En qué año se inauguró el Estadio Campeón del Siglo de Peñarol?', pt: 'Em que ano foi inaugurado o Estádio Campeón del Siglo do Peñarol?', options: ['2014', '2016', '2018', '2020'], correct: 1, dificultad: 'dificil' },
+  { q: '¿Qué jugador uruguayo ganó el Balón de Oro al mejor jugador del Mundial 2010?', pt: 'Qual jogador uruguaio ganhou a Bola de Ouro de melhor jogador da Copa do Mundo de 2010?', options: ['Luis Suárez', 'Diego Forlán', 'Diego Lugano', 'Sebastián Abreu'], correct: 1, dificultad: 'dificil' },
+  { q: '¿Cómo se llama el estadio de Nacional de Montevideo?', pt: 'Como se chama o estádio do Nacional de Montevidéu?', options: ['Gran Parque Central', 'Campeón del Siglo', 'Belvedere', 'Parque Capurro'], correct: 0, dificultad: 'dificil' },
+];
