@@ -201,8 +201,8 @@ const I18N_SERVER_ERR = {
   'Signups not allowed for this instance': { es: 'El registro está deshabilitado en el servidor.', pt: 'O registro está desativado no servidor.' },
   'Unable to validate email address: invalid format': { es: 'El nombre de usuario no es válido.', pt: 'O nome de usuário não é válido.' },
   'email rate limit exceeded': {
-    es: 'El servidor superó el límite de correos de confirmación (el registro pide verificar el email y no debería). Avisá al administrador de la liga.',
-    pt: 'O servidor excedeu o limite de e-mails de confirmação (o registro pede verificar o e-mail e não deveria). Avise o administrador da liga.'
+    es: 'El servidor de correos está saturado: el servicio de prueba solo deja mandar 2 correos por hora. Esperá una hora y reintentá, o pedile al administrador que configure un servidor de correo propio (SMTP).',
+    pt: 'O servidor de e-mails está saturado: o serviço de teste só permite 2 e-mails por hora. Espere uma hora e tente novamente, ou peça ao administrador que configure um servidor de e-mail próprio (SMTP).'
   }
 };
 
