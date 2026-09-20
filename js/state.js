@@ -211,6 +211,10 @@ const I18N_SERVER_ERR = {
   'Email link is invalid or has expired': {
     es: 'El link del correo ya venció o se usó antes. Entrá con tu email y contraseña, o pedí un correo nuevo.',
     pt: 'O link do e-mail expirou ou já foi usado. Entre com seu e-mail e senha, ou peça um novo e-mail.'
+  },
+  'Error sending confirmation email': {
+    es: 'No se pudo enviar el correo de confirmación: el servicio de correos del sitio está mal configurado. Avisá al administrador de la liga.',
+    pt: 'Não foi possível enviar o e-mail de confirmação: o serviço de e-mails do site está mal configurado. Avise o administrador da liga.'
   }
 };
 
