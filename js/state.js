@@ -276,6 +276,7 @@ async function supaUpsertUser(token, extra) {
     };
     await supaFetch('/rest/v1/users', {
       method: 'POST',
+      token: token,
       headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
       body: [row]
     });
