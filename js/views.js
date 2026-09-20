@@ -101,53 +101,59 @@ function matchCard(m) {
 
 function viewFixture() {
   const competitions = State.data.competitions || [];
-  const hasCompetitions = competitions.length > 0;
 
-  // Si hay competencia seleccionada, mostrar solo esa
-  if (hasCompetitions && State.currentStatsCompetition) {
-    const comp = competitions.find(c => c.id === State.currentStatsCompetition);
-    if (comp) return renderFixtureByCompetition(comp);
+  // Validar selección actual
+  let sel = State.currentStatsCompetition || 'todas';
+  if (sel !== 'todas' && !competitions.find(c => c.id === sel)) {
+    sel = 'todas';
+    State.currentStatsCompetition = 'todas';
   }
 
-  if (!State.data.matches.length) {
-    return `<div class="view active">
-      <div class="section-head"><h2 class="section-title">${tr('fixture_title')}</h2></div>
-      ${emptyState('ti-calendar-off', tr('fixture_empty'))}
-    </div>`;
-  }
-
-  // Selector de competencia si hay varias
-  const compSelector = hasCompetitions && competitions.length > 1 ? `
-    <div style="margin-bottom:1rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
-      <button class="btn btn-sm ${!State.currentStatsCompetition ? 'btn-primary' : ''}" data-comp-filter="todas">${tr('filtro_todas_comp')}</button>
-      ${competitions.map(c => `
-        <button class="btn btn-sm ${State.currentStatsCompetition === c.id ? 'btn-primary' : ''}" data-comp-filter="${c.id}">${escapeHtml(c.name)}</button>
-      `).join('')}
+  // Combo desplegable para elegir competencia
+  const compSelector = `
+    <div style="margin-bottom:1.4rem; max-width:360px;">
+      <label for="fixture-comp-select" style="display:block; font-size:0.78rem; color:var(--text-muted); font-weight:600; margin-bottom:0.35rem;">${tr('fixture_elegir_comp')}</label>
+      <select id="fixture-comp-select" class="fixture-comp-select">
+        <option value="todas" ${sel === 'todas' ? 'selected' : ''}>${tr('filtro_todas_comp')}</option>
+        ${competitions.map(c => `<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${escapeHtml(c.name)} · ${c.type === 'copa' ? tr('stats_copa') : tr('stats_liga')}</option>`).join('')}
+      </select>
     </div>
-  ` : '';
+  `;
 
-  const rounds = {};
-  State.data.matches.forEach(m => {
-    const r = m.round || 1;
-    if (!rounds[r]) rounds[r] = [];
-    rounds[r].push(m);
-  });
-  const roundKeys = Object.keys(rounds).sort((a, b) => a - b);
-
-  return `<div class="view active">
-    <div class="section-head">
-      <h2 class="section-title">${hasCompetitions ? tr('competencia_lista') : tr('fixture_title')}</h2>
-      <span class="section-sub">${roundKeys.length} fechas · ${State.data.matches.length} partidos</span>
-    </div>
-    ${compSelector}
-    ${roundKeys.map(r => {
+  let body = '';
+  if (sel !== 'todas') {
+    body = renderFixtureByCompetition(competitions.find(c => c.id === sel));
+  } else if (competitions.length) {
+    // Cada competencia con su formato propio: liga = fechas, copa = llaves
+    body = competitions.map(renderFixtureByCompetition).join('');
+  } else if (State.data.settings.competitionFormat === 'copa') {
+    // Legacy: copa sin competencias múltiples → llaves
+    body = viewFixtureCopa();
+  } else {
+    // Legacy: liga sin competencias múltiples → fechas
+    const rounds = {};
+    State.data.matches.forEach(m => {
+      const r = m.round || 1;
+      if (!rounds[r]) rounds[r] = [];
+      rounds[r].push(m);
+    });
+    const roundKeys = Object.keys(rounds).sort((a, b) => a - b);
+    body = State.data.matches.length ? roundKeys.map(r => {
       const matches = rounds[r];
       const allPlayed = matches.every(m => m.played);
       return `<div class="fixture-round" style="margin-top:1rem;">
         <div class="fixture-round-title">${tr('fixture_fecha', { n: r })} ${allPlayed ? '<span class="badge-live">' + tr('fixture_finalizada') + '</span>' : ''}</div>
         <div class="match-grid">${matches.map(matchCard).join('')}</div>
       </div>`;
-    }).join('')}
+    }).join('') : emptyState('ti-calendar-off', tr('fixture_empty'));
+  }
+
+  return `<div class="view active">
+    <div class="section-head">
+      <h2 class="section-title">${tr('fixture_title')}</h2>
+    </div>
+    ${competitions.length ? compSelector : ''}
+    ${body}
   </div>`;
 }
 
@@ -156,7 +162,7 @@ function renderFixtureByCompetition(comp) {
   const matches = State.data.matches.filter(m => m.competitionId === comp.id);
 
   if (!matches.length) {
-    return `<div class="view active">
+    return `<div class="fixture-comp-block">
       <div class="section-head">
         <h2 class="section-title">${escapeHtml(comp.name)}</h2>
       </div>
@@ -165,18 +171,23 @@ function renderFixtureByCompetition(comp) {
   }
 
   if (isLiga) {
+    // Liga nunca mezcla partidos de copa (llaves)
+    const ligaMatches = matches.filter(m => !m.bracket);
+    if (!ligaMatches.length) {
+      return renderFixtureCopaByCompetition(comp);
+    }
     const rounds = {};
-    matches.forEach(m => {
+    ligaMatches.forEach(m => {
       const r = m.round || 1;
       if (!rounds[r]) rounds[r] = [];
       rounds[r].push(m);
     });
     const roundKeys = Object.keys(rounds).sort((a, b) => a - b);
 
-    return `<div class="view active">
+    return `<div class="fixture-comp-block">
       <div class="section-head">
         <h2 class="section-title">${escapeHtml(comp.name)} (Liga)</h2>
-        <span class="section-sub">${roundKeys.length} fechas · ${matches.length} partidos</span>
+        <span class="section-sub">${roundKeys.length} fechas · ${ligaMatches.length} partidos</span>
       </div>
       ${roundKeys.map(r => {
         const matches = rounds[r];
@@ -188,16 +199,20 @@ function renderFixtureByCompetition(comp) {
       }).join('')}
     </div>`;
   } else {
-    // Copa
+    // Copa → SIEMPRE llaves
     return renderFixtureCopaByCompetition(comp);
   }
 }
 
 function renderFixtureCopaByCompetition(comp) {
-  const bracketMatches = State.data.matches.filter(m => m.bracket && m.competitionId === comp.id);
+  // Copa SIEMPRE en llaves, con fallbacks para datos viejos
+  let bracketMatches = State.data.matches.filter(m => m.competitionId === comp.id);
+  if (!bracketMatches.length) {
+    bracketMatches = State.data.matches.filter(m => m.bracket);
+  }
   const rounds = {};
   bracketMatches.forEach(m => {
-    const r = m.bracketRound || 1;
+    const r = m.bracketRound || m.round || 1;
     if (!rounds[r]) rounds[r] = [];
     rounds[r].push(m);
   });
@@ -207,7 +222,7 @@ function renderFixtureCopaByCompetition(comp) {
   const teamsInComp = (comp.teamIds || []).map(id => getTeamById(id)).filter(Boolean);
   const champion = teamsInComp.find(t => (t.titles || []).some(ti => ti.competitionName === comp.name && ti.year === comp.season));
 
-  return `<div class="view active">
+  return `<div class="fixture-comp-block">
     <div class="section-head">
       <h2 class="section-title">${escapeHtml(comp.name)} (Copa)</h2>
       <span class="section-sub">${roundKeys.length} rondas · ${bracketMatches.length} partidos</span>
@@ -331,126 +346,98 @@ function bracketMatchCard(m) {
   </div>`;
 }
 
-function attachFixtureEvents() {}
+function attachFixtureEvents() {
+  const sel = document.getElementById('fixture-comp-select');
+  if (sel) {
+    sel.onchange = () => {
+      State.currentStatsCompetition = sel.value;
+      renderMainContent();
+    };
+  }
+}
+
+function attachTablaEvents() {
+  const sel = document.getElementById('tabla-comp-select');
+  if (sel) {
+    sel.onchange = () => {
+      State.currentStatsCompetition = sel.value;
+      renderMainContent();
+    };
+  }
+}
 
 /* ---------------- VIEW: TABLA DE POSICIONES ---------------- */
 
 function viewTabla() {
   const competitions = State.data.competitions || [];
-  const hasCompetitions = competitions.length > 0;
 
-  // Si hay competencia seleccionada, mostrar solo esa
-  if (hasCompetitions && State.currentStatsCompetition) {
-    const comp = competitions.find(c => c.id === State.currentStatsCompetition);
-    if (comp) return renderTablaByCompetition(comp);
+  // Validar selección actual
+  let sel = State.currentStatsCompetition || 'todas';
+  if (sel !== 'todas' && !competitions.find(c => c.id === sel)) {
+    sel = 'todas';
+    State.currentStatsCompetition = 'todas';
   }
 
-  // Si hay competencias, mostrar selector
-  if (hasCompetitions) {
-    const compSelector = competitions.length > 1 ? `
-      <div style="margin-bottom:1rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
-        <button class="btn btn-sm btn-primary" data-comp-filter="todas">${tr('filtro_todas_comp')}</button>
-        ${competitions.map(c => `
-          <button class="btn btn-sm ${State.currentStatsCompetition === c.id ? 'btn-primary' : ''}" data-comp-filter="${c.id}">${escapeHtml(c.name)}</button>
-        `).join('')}
-      </div>
-    ` : '';
+  // Combo desplegable para elegir competencia
+  const compSelector = `
+    <div style="margin-bottom:1.4rem; max-width:360px;">
+      <label for="tabla-comp-select" style="display:block; font-size:0.78rem; color:var(--text-muted); font-weight:600; margin-bottom:0.35rem;">${tr('fixture_elegir_comp')}</label>
+      <select id="tabla-comp-select" class="fixture-comp-select">
+        <option value="todas" ${sel === 'todas' ? 'selected' : ''}>${tr('filtro_todas_comp')}</option>
+        ${competitions.map(c => `<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${escapeHtml(c.name)} · ${c.type === 'copa' ? tr('stats_copa') : tr('stats_liga')}</option>`).join('')}
+      </select>
+    </div>
+  `;
 
-    const standings = computeStandings();
-    if (!standings.length) {
-      return `<div class="view active">
-        <div class="section-head"><h2 class="section-title">${tr('tabla_title')}</h2></div>
-        ${compSelector}
-        ${emptyState('ti-table-off', tr('tabla_empty'))}
-      </div>`;
-    }
-
-    const n = standings.length;
-    return `<div class="view active">
-      <div class="section-head">
-        <h2 class="section-title">${tr('tabla_title')}</h2>
-        <span class="section-sub">${tr('tabla_sub')}</span>
-      </div>
-      ${compSelector}
-      <div class="card table-wrap">
-        <table class="pso-table">
-          <thead><tr>
-            <th>#</th><th>${tr('th_equipo')}</th><th>${tr('th_pj')}</th><th>PG</th><th>PE</th><th>PP</th><th>GF</th><th>GC</th><th>DG</th><th>Pts</th>
-          </tr></thead>
-          <tbody>
-            ${standings.map((t, i) => {
-              let zoneClass = '';
-              if (n >= 3) {
-                if (i === 0) zoneClass = 'zone-top';
-                else if (i === n - 1) zoneClass = 'zone-bottom';
-              }
-              return `<tr class="${zoneClass}">
-                <td>${i + 1}</td>
-                <td><div class="team-cell">${teamDotHtml(getTeamById(t.id))}${escapeHtml(t.name)}</div></td>
-                <td>${t.pj}</td><td>${t.pg}</td><td>${t.pe}</td><td>${t.pp}</td>
-                <td>${t.gf}</td><td>${t.gc}</td><td>${t.dg > 0 ? '+' : ''}${t.dg}</td>
-                <td class="pts">${t.pts}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-      <div class="legend-row">
-        <div class="legend-item"><span class="legend-dot" style="background:var(--win)"></span>${tr('legend_lider')}</div>
-        <div class="legend-item"><span class="legend-dot" style="background:var(--loss)"></span>${tr('legend_ultimo')}</div>
-      </div>
-    </div>`;
+  let body = '';
+  if (sel !== 'todas') {
+    body = renderTablaByCompetition(competitions.find(c => c.id === sel));
+  } else {
+    body = renderTablaGeneral();
   }
 
-  // Compatibilidad con modo legacy (sin competencias múltiples)
-  if (State.data.settings.competitionFormat === 'copa') {
-    return `<div class="view active">
-      <div class="section-head"><h2 class="section-title">${tr('tabla_title')}</h2></div>
-      ${emptyState('ti-trophy', tr('tabla_copa_msg'))}
-    </div>`;
-  }
-
-  const standings = computeStandings();
-  if (!standings.length) {
-    return `<div class="view active">
-      <div class="section-head"><h2 class="section-title">${tr('tabla_title')}</h2></div>
-      ${emptyState('ti-table-off', tr('tabla_empty'))}
-    </div>`;
-  }
-
-  const n = standings.length;
   return `<div class="view active">
     <div class="section-head">
       <h2 class="section-title">${tr('tabla_title')}</h2>
-      <span class="section-sub">${tr('tabla_sub')}</span>
     </div>
-    <div class="card table-wrap">
-      <table class="pso-table">
-        <thead><tr>
-          <th>#</th><th>${tr('th_equipo')}</th><th>${tr('th_pj')}</th><th>PG</th><th>PE</th><th>PP</th><th>GF</th><th>GC</th><th>DG</th><th>Pts</th>
-        </tr></thead>
-        <tbody>
-          ${standings.map((t, i) => {
-            let zoneClass = '';
-            if (n >= 3) {
-              if (i === 0) zoneClass = 'zone-top';
-              else if (i === n - 1) zoneClass = 'zone-bottom';
-            }
-            return `<tr class="${zoneClass}">
-              <td>${i + 1}</td>
-              <td><div class="team-cell">${teamDotHtml(getTeamById(t.id))}${escapeHtml(t.name)}</div></td>
-              <td>${t.pj}</td><td>${t.pg}</td><td>${t.pe}</td><td>${t.pp}</td>
-              <td>${t.gf}</td><td>${t.gc}</td><td>${t.dg > 0 ? '+' : ''}${t.dg}</td>
-              <td class="pts">${t.pts}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-    <div class="legend-row">
-      <div class="legend-item"><span class="legend-dot" style="background:var(--win)"></span>${tr('legend_lider')}</div>
-      <div class="legend-item"><span class="legend-dot" style="background:var(--loss)"></span>${tr('legend_ultimo')}</div>
-    </div>
+    ${competitions.length ? compSelector : ''}
+    ${body}
+  </div>`;
+}
+
+function renderTablaGeneral() {
+  const standings = computeStandings();
+  if (!standings.length) {
+    return emptyState('ti-table-off', tr('tabla_empty'));
+  }
+
+  const n = standings.length;
+  return `<div class="card table-wrap">
+    <table class="pso-table">
+      <thead><tr>
+        <th>#</th><th>${tr('th_equipo')}</th><th>${tr('th_pj')}</th><th>PG</th><th>PE</th><th>PP</th><th>GF</th><th>GC</th><th>DG</th><th>Pts</th>
+      </tr></thead>
+      <tbody>
+        ${standings.map((t, i) => {
+          let zoneClass = '';
+          if (n >= 3) {
+            if (i === 0) zoneClass = 'zone-top';
+            else if (i === n - 1) zoneClass = 'zone-bottom';
+          }
+          return `<tr class="${zoneClass}">
+            <td>${i + 1}</td>
+            <td><div class="team-cell">${teamDotHtml(getTeamById(t.id))}${escapeHtml(t.name)}</div></td>
+            <td>${t.pj}</td><td>${t.pg}</td><td>${t.pe}</td><td>${t.pp}</td>
+            <td>${t.gf}</td><td>${t.gc}</td><td>${t.dg > 0 ? '+' : ''}${t.dg}</td>
+            <td class="pts">${t.pts}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="legend-row">
+    <div class="legend-item"><span class="legend-dot" style="background:var(--win)"></span>${tr('legend_lider')}</div>
+    <div class="legend-item"><span class="legend-dot" style="background:var(--loss)"></span>${tr('legend_ultimo')}</div>
   </div>`;
 }
 

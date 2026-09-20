@@ -623,6 +623,7 @@ const I18N = {
     /* ------- Filtros por competencia ------- */
     filtro_todas_comp: { es: 'Todas', pt: 'Todas' },
     filtro_competencia: { es: '{nombre}', pt: '{nome}' },
+    fixture_elegir_comp: { es: 'Elegir competencia', pt: 'Escolher competição' },
   }
 };
 

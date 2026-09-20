@@ -587,6 +587,50 @@ table.pso-table td.pts { font-weight: 700; color: var(--accent-dark); }
 .fixture-round {
   margin-bottom: 1.75rem;
 }
+/* Selector de competencia (combo desplegable) en Fixture y Posiciones */
+.fixture-comp-select {
+  width: 100%;
+  padding: 0.6rem 2.2rem 0.6rem 0.8rem;
+  font-size: 0.9rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 0.5px solid var(--border-strong);
+  border-radius: 8px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+}
+.fixture-comp-select:focus {
+  outline: none;
+  border-color: var(--uy-sky);
+  box-shadow: 0 0 0 2px rgba(112, 157, 255, 0.2);
+}
+
+/* Bloque por competencia dentro del Fixture (vista "Todas") */
+.fixture-comp-block {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.fixture-comp-block:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+/* Mobile: separador entre competencias en vista "Todas" del fixture */
+@media (max-width: 640px) {
+  .fixture-comp-select {
+    font-size: 0.85rem;
+    padding: 0.55rem 2rem 0.55rem 0.7rem;
+  }
+}
+
+.fixture-round-title {
 .fixture-round-title {
   font-family: var(--font-display);
   font-weight: 700;

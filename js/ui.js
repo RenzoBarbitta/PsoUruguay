@@ -162,7 +162,7 @@ function renderMainContent() {
   switch (State.currentTab) {
     case 'inicio': main.innerHTML = viewInicio(); break;
     case 'fixture': main.innerHTML = viewFixture(); attachFixtureEvents(); break;
-    case 'tabla': main.innerHTML = viewTabla(); break;
+    case 'tabla': main.innerHTML = viewTabla(); attachTablaEvents(); break;
     case 'estadisticas': main.innerHTML = viewEstadisticas(); attachEstadisticasEvents(); break;
     case 'palmares': main.innerHTML = viewPalmares(); break;
     case 'trivia': main.innerHTML = viewTrivia(); attachTriviaEvents(); break;
