@@ -418,7 +418,17 @@ async function initDB() {
   } catch (e) {
     online = false;
   }
-  if (!online) await loadLocalFallback();
+  if (!online) {
+    await loadLocalFallback();
+  } else {
+    // cargar desde Supabase al iniciar cuando hay conexión
+    try {
+      await refreshFromStorage();
+    } catch (e) {
+      // si falla, quedarse con lo que haya en memoria (puede ser vacío)
+      console.warn('initDB: refreshFromStorage falló al iniciar', e);
+    }
+  }
   dbReady = true;
   return detected;
 }
