@@ -46,11 +46,12 @@ async function initApp() {
   if (online) {
     setInterval(async () => {
       if (document.getElementById('active-modal')) return; // no interrumpir edición en curso
+      if (State.isAdmin) return; // el panel admin ya maneja sus propios datos: no pisarlo con el auto-refresco
       if (TriviaState.jugando) return; // no interrumpir una partida de trivia en curso
       if (PasapalabraState.jugando) return; // no interrumpir la rosca en curso
       if (PenalesState.jugando) return; // no interrumpir la tanda de penales
       await refreshFromStorage();
-    }, 8000);
+    }, 25000);
   }
 }
 

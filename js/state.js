@@ -126,7 +126,7 @@ async function safeGet(key) {
   }
   try {
     const rows = await supaFetch('/rest/v1/kv', {
-      query: { select: 'value', key: 'eq.' + encodeURIComponent(key) }
+      query: { select: 'value', key: 'eq.' + key }
     });
     return Array.isArray(rows) && rows.length ? rows[0].value : null;
   } catch (e) {
@@ -141,7 +141,7 @@ async function safeDelete(key) {
   try {
     await supaFetch('/rest/v1/kv', {
       method: 'DELETE',
-      query: { key: 'eq.' + encodeURIComponent(key) },
+      query: { key: 'eq.' + key },
       headers: { Prefer: 'count=exact' }
     });
     return true;
@@ -163,7 +163,7 @@ async function safeList(prefix) {
   }
   try {
     const rows = await supaFetch('/rest/v1/kv', {
-      query: { select: 'key', key: 'like.' + encodeURIComponent(prefix) + '%' }
+      query: { select: 'key', key: 'like.' + prefix + '%' }
     });
     return Array.isArray(rows) ? rows.map(r => r.key) : [];
   } catch (e) {
