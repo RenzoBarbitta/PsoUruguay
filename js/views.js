@@ -349,15 +349,36 @@ function attachTablaEvents() {
 function viewTabla() {
   // SOLO competencias tipo LIGA: las copas no tienen tabla de posiciones
   const competitions = (State.data.competitions || []).filter(c => c.type === 'liga');
+  const header = `<div class="section-head">
+      <h2 class="section-title">${tr('tabla_title')}</h2>
+    </div>`;
 
-  // Validar selección actual (si era una copa, volver a "Todas")
+  // Sin ligas activas → no existe tabla de posiciones (solo copas = mensaje)
+  if (!competitions.length) {
+    const compsCount = (State.data.competitions || []).length;
+    // Compatibilidad: datos legacy sin competencias creadas y formato liga
+    const legacyLiga = !compsCount && State.data.matches.length > 0 && State.data.settings.competitionFormat !== 'copa';
+    return `<div class="view active">
+      ${header}
+      ${legacyLiga ? renderTablaGeneral() : emptyState('ti-trophy', tr('tabla_solo_ligas'))}
+    </div>`;
+  }
+
+  // Una sola liga activa → tabla directa, sin combo
+  if (competitions.length === 1) {
+    return `<div class="view active">
+      ${header}
+      ${renderTablaByCompetition(competitions[0])}
+    </div>`;
+  }
+
+  // Dos o más ligas activas → combo para diferenciarlas
   let sel = State.currentStatsCompetition || 'todas';
   if (sel !== 'todas' && !competitions.find(c => c.id === sel)) {
     sel = 'todas';
     State.currentStatsCompetition = 'todas';
   }
 
-  // Combo desplegable para elegir competencia (solo ligas)
   const compSelector = `
     <div style="margin-bottom:1.4rem; max-width:360px;">
       <label for="tabla-comp-select" style="display:block; font-size:0.78rem; color:var(--text-muted); font-weight:600; margin-bottom:0.35rem;">${tr('fixture_elegir_comp')}</label>
@@ -368,21 +389,13 @@ function viewTabla() {
     </div>
   `;
 
-  let body = '';
-  if (sel !== 'todas') {
-    body = renderTablaByCompetition(competitions.find(c => c.id === sel));
-  } else if (competitions.length) {
-    // Tablas apiladas de cada liga (una debajo de la otra)
-    body = competitions.map(renderTablaByCompetition).join('');
-  } else {
-    body = renderTablaGeneral();
-  }
+  const body = sel !== 'todas'
+    ? renderTablaByCompetition(competitions.find(c => c.id === sel))
+    : competitions.map(renderTablaByCompetition).join('');
 
   return `<div class="view active">
-    <div class="section-head">
-      <h2 class="section-title">${tr('tabla_title')}</h2>
-    </div>
-    ${competitions.length ? compSelector : ''}
+    ${header}
+    ${compSelector}
     ${body}
   </div>`;
 }

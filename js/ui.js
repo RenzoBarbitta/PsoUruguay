@@ -84,7 +84,7 @@ function renderShell() {
         <div class="tabs-nav-inner" id="tabs-nav-inner">
           ${tabButton('inicio', 'ti-home', tr('tab_inicio'))}
           ${tabButton('fixture', 'ti-calendar-event', tr('tab_fixture'))}
-          ${tabButton('tabla', 'ti-table', tr('tab_tabla'))}
+          ${hasActiveLigas() ? tabButton('tabla', 'ti-table', tr('tab_tabla')) : ''}
           ${tabButton('estadisticas', 'ti-chart-bar', tr('tab_estadisticas'))}
           ${tabButton('palmares', 'ti-trophy', tr('tab_palmares'))}
           ${tabButton('trivia', 'ti-brain', tr('tab_trivia'))}

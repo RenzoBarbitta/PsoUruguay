@@ -624,6 +624,10 @@ const I18N = {
     filtro_todas_comp: { es: 'Todas', pt: 'Todas' },
     filtro_competencia: { es: '{nombre}', pt: '{nome}' },
     fixture_elegir_comp: { es: 'Elegir competencia', pt: 'Escolher competição' },
+    resultados_grupo_general: { es: 'Otros partidos', pt: 'Outros jogos' },
+    resultados_tipo_liga: { es: 'LIGA', pt: 'LIGA' },
+    resultados_tipo_copa: { es: 'COPA', pt: 'COPA' },
+    tabla_solo_ligas: { es: 'La tabla de posiciones solo existe para competencias de tipo Liga. Las copas se siguen por llaves en el Fixture.', pt: 'A tabela de classificação existe apenas para competições do tipo Liga. As copas são acompanhadas pelas chaves nos Confrontos.' },
     stats_pj_short: { es: 'PJ', pt: 'J' },
     err_campo_requerido: { es: 'campo requerido', pt: 'campo obrigatório' },
   }

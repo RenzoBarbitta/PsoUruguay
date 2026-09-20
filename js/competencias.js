@@ -173,3 +173,11 @@ function renderTablaByCompetition(comp) {
     </div>
   </div>`;
 }
+
+/* ¿Hay al menos una liga activa? (define si existe la pestaña/vista de Posiciones) */
+function hasActiveLigas() {
+  const comps = State.data.competitions || [];
+  if (comps.length) return comps.some(c => c.type === 'liga');
+  // Modo legacy sin competencias creadas: la liga única de settings
+  return (State.data.matches || []).length > 0 && State.data.settings.competitionFormat !== 'copa';
+}

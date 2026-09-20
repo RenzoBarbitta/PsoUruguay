@@ -15,7 +15,6 @@ function viewAdmin() {
       ${adminSubtab('equipos', 'ti-users-group', tr('admin_sub_equipos'))}
       ${adminSubtab('resultados', 'ti-clipboard-check', tr('admin_sub_resultados'))}
       ${adminSubtab('competencias', 'ti-trophy', tr('admin_sub_competencias'))}
-      ${adminSubtab('sorteo', 'ti-arrows-shuffle', tr('admin_sub_sorteo'))}
       ${adminSubtab('config', 'ti-adjustments', tr('admin_sub_config'))}
     </div>
     <div id="admin-panel-content"></div>
@@ -40,13 +39,21 @@ function attachAdminEvents() {
 function renderAdminPanel() {
   const el = document.getElementById('admin-panel-content');
   if (!el) return;
+  // El subtab "Sortear fixture" fue retirado: el sorteo vive dentro de cada competencia
+  if (State.currentAdminTab === 'sorteo') State.currentAdminTab = 'equipos';
   switch (State.currentAdminTab) {
     case 'equipos': el.innerHTML = adminPanelEquipos(); attachEquiposEvents(); break;
     case 'resultados': el.innerHTML = adminPanelResultados(); attachResultadosEvents(); break;
     case 'competencias': el.innerHTML = adminPanelCompetencias(); attachCompetenciasEvents(); break;
-    case 'sorteo': sorteoFormatoElegido = null; el.innerHTML = adminPanelSorteo(); attachSorteoEvents(); break;
     case 'config': el.innerHTML = adminPanelConfig(); attachConfigEvents(); break;
+    default: el.innerHTML = adminPanelEquipos(); attachEquiposEvents(); break;
   }
+}
+
+/* Re-renderiza shell + contenido: la pestaña "Posiciones" aparece/desaparece según haya ligas */
+function refreshAfterCompetitionChange() {
+  if (typeof renderShell === 'function') renderShell();
+  renderMainContent();
 }
 
 /* -------------------- ADMIN: EQUIPOS -------------------- */
@@ -324,38 +331,78 @@ function adminPanelResultados() {
     return emptyState('ti-clipboard-off', tr('resultados_no_comp'));
   }
 
-  const isCopa = State.data.settings.competitionFormat === 'copa';
-  const pending = State.data.matches.filter(m => !m.played && !m.isBye);
-  const played = State.data.matches.filter(m => m.played).sort((a, b) => (b.playedAt || 0) - (a.playedAt || 0));
+  // Agrupar partidos por competencia; los que no tienen competencia van a "Otros partidos"
+  const comps = State.data.competitions || [];
+  const usedIds = new Set();
+  const groups = [];
+  for (const c of comps) {
+    const ms = State.data.matches.filter(m => m.competitionId === c.id);
+    if (ms.length) {
+      ms.forEach(m => usedIds.add(m.id));
+      groups.push({ comp: c, matches: ms });
+    }
+  }
+  const legacy = State.data.matches.filter(m => !usedIds.has(m.id));
+  if (legacy.length) groups.push({ comp: null, matches: legacy });
+
+  // El alta manual de partidos solo tiene sentido sin competencias creadas
+  const showNewMatchBtn = !comps.length;
 
   return `
-    ${!isCopa ? `
+    ${showNewMatchBtn ? `
       <div style="display:flex; justify-content:flex-end; margin-bottom:1rem;">
         <button class="btn btn-primary" id="btn-new-match"><i class="ti ti-plus"></i> ${tr('btn_cargar_partido')}</button>
       </div>
-    ` : `<div class="mini-note" style="margin-bottom:1rem;"><i class="ti ti-info-circle"></i> ${tr('copa_note')}</div>`}
+    ` : ''}
+    ${groups.map(g => competitionResultsGroup(g.comp, g.matches)).join('')}
+  `;
+}
 
+/* Sección de resultados de una competencia: distingue LIGA (fechas) de COPA (fases) */
+function competitionResultsGroup(comp, matches) {
+  const pending = matches.filter(m => !m.played && !m.isBye);
+  const played = matches.filter(m => m.played && !m.isBye).sort((a, b) => (b.playedAt || 0) - (a.playedAt || 0));
+  const head = comp
+    ? `<div style="display:flex; align-items:center; gap:0.5rem; margin:1.4rem 0 0.8rem; flex-wrap:wrap;">
+        <i class="ti ${comp.type === 'copa' ? 'ti-trophy' : 'ti-table'}" style="color:${comp.type === 'copa' ? 'var(--gold)' : 'var(--uy-sky)'};"></i>
+        <h3 style="font-family:var(--font-display); font-size:1rem; margin:0;">${escapeHtml(comp.name)}</h3>
+        <span style="font-size:0.68rem; font-weight:700; padding:0.15rem 0.55rem; border-radius:999px; ${comp.type === 'copa' ? 'background:rgba(240,197,66,0.15); color:var(--gold);' : 'background:rgba(112,157,255,0.15); color:var(--uy-sky);'}">${comp.type === 'copa' ? tr('resultados_tipo_copa') : tr('resultados_tipo_liga')}</span>
+      </div>`
+    : `<h3 style="font-family:var(--font-display); font-size:1rem; margin:1.4rem 0 0.8rem;"><i class="ti ti-list"></i> ${tr('resultados_grupo_general')}</h3>`;
+  return `${head}
     ${pending.length ? `
-      <h3 style="font-family:var(--font-display); font-size:1rem; margin-bottom:0.6rem;">${tr('resultados_pendientes')}</h3>
-      <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1.5rem;">
+      <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:0.45rem;">${tr('resultados_pendientes')}</div>
+      <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1.2rem;">
         ${pending.map(m => pendingMatchRow(m)).join('')}
       </div>
     ` : ''}
-
     ${played.length ? `
-      <h3 style="font-family:var(--font-display); font-size:1rem; margin-bottom:0.6rem;">${tr('resultados_finalizados')}</h3>
+      <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:0.45rem;">${tr('resultados_finalizados')}</div>
       <div style="display:flex; flex-direction:column; gap:0.6rem;">
-        ${played.filter(m => !m.isBye).map(m => playedMatchRow(m)).join('')}
+        ${played.map(m => playedMatchRow(m)).join('')}
       </div>
     ` : (!pending.length ? emptyState('ti-clipboard-off', tr('no_pendientes')) : '')}
   `;
+}
+
+/* Badge de cada partido: LIGA → "NOMBRE · FECHA n" | COPA → "NOMBRE · OCTAVOS/CUARTOS/SEMIFINAL/FINAL" */
+function matchRoundBadge(m) {
+  const comp = m.competitionId ? getCompetitionById(m.competitionId) : null;
+  const prefix = comp ? escapeHtml(comp.name).toUpperCase() + ' · ' : '';
+  if (m.bracket) {
+    const fase = m.totalBracketRounds
+      ? bracketRoundName(m.bracketRound || 1, m.totalBracketRounds).toUpperCase()
+      : tr('bracket_ronda', { n: m.bracketRound || 1 }).toUpperCase();
+    return prefix + fase;
+  }
+  return prefix + tr('fecha_badge', { n: m.round || 1 });
 }
 
 function pendingMatchRow(m) {
   const home = getTeamById(m.homeId), away = getTeamById(m.awayId);
   if (!home || !away) return '';
   return `<div class="card" style="padding:0.8rem 1rem; display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
-    <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; background:var(--bg-surface-2); padding:0.2rem 0.5rem; border-radius:6px;">${tr('fecha_badge', { n: (m.round || 1) })}</span>
+    <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; background:var(--bg-surface-2); padding:0.2rem 0.5rem; border-radius:6px;">${matchRoundBadge(m)}</span>
     <span style="flex:1; font-weight:600; min-width:160px;">${escapeHtml(home.name)} vs ${escapeHtml(away.name)}</span>
     <button class="btn btn-sm btn-primary btn-load-result" data-match="${m.id}"><i class="ti ti-clipboard-check"></i> ${tr('btn_cargar_resultado')}</button>
     <button class="btn btn-icon btn-danger btn-delete-match" data-match="${m.id}"><i class="ti ti-trash"></i></button>
@@ -366,7 +413,7 @@ function playedMatchRow(m) {
   const home = getTeamById(m.homeId), away = getTeamById(m.awayId);
   if (!home || !away) return '';
   return `<div class="card" style="padding:0.8rem 1rem; display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
-    <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; background:var(--bg-surface-2); padding:0.2rem 0.5rem; border-radius:6px;">${tr('fecha_badge', { n: (m.round || 1) })}</span>
+    <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; background:var(--bg-surface-2); padding:0.2rem 0.5rem; border-radius:6px;">${matchRoundBadge(m)}</span>
     <span style="flex:1; font-weight:600; min-width:160px;">${escapeHtml(home.name)} <strong style="color:var(--accent-dark)">${m.homeScore} - ${m.awayScore}</strong> ${escapeHtml(away.name)}</span>
     <button class="btn btn-sm btn-load-result" data-match="${m.id}"><i class="ti ti-edit"></i> ${tr('btn_editar')}</button>
     <button class="btn btn-icon btn-danger btn-delete-match" data-match="${m.id}"><i class="ti ti-trash"></i></button>
@@ -1066,10 +1113,9 @@ function attachConfigEvents() {
       State.data.settings.season = '2026';
       State.data.competitions = [];
       await persistSettings();
-      renderAdminPanel();
       closeModal();
       toast(tr('toast_liga_reiniciada'));
-      renderAdminPanel();
+      refreshAfterCompetitionChange();
     };
   };
 }
@@ -1268,7 +1314,7 @@ function openCompetitionFormModal(comp) {
       toast(tr('toast_competencia_creada'));
     }
     closeModal();
-    renderAdminPanel();
+    refreshAfterCompetitionChange();
   };
 }
 
@@ -1344,7 +1390,7 @@ function openSortearCompetitionModal(comp) {
 
       closeModal();
       toast(tr('toast_competencia_sorteada', { nombre: comp.name, rounds: rounds.length, matches: newMatches.length }));
-      renderAdminPanel();
+      refreshAfterCompetitionChange();
     };
   } else {
     // Copa
@@ -1411,7 +1457,7 @@ function openSortearCompetitionModal(comp) {
 
       closeModal();
       toast(tr('toast_competencia_sorteada', { nombre: comp.name, rounds: totalRounds, matches: bracketMatches.length }));
-      renderAdminPanel();
+      refreshAfterCompetitionChange();
     };
   };
 }
@@ -1439,6 +1485,6 @@ function openDeleteCompetitionModal(comp) {
     await deleteCompetitionDB(comp.id);
     closeModal();
     toast(tr('toast_competencia_eliminada'));
-    renderAdminPanel();
+    refreshAfterCompetitionChange();
   };
 }
