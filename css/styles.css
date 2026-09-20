@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --uy-navy: #0a1128;
   --uy-navy-2: #0f1b3d;
   --uy-blue: #1a3a6e;
@@ -1012,12 +1012,12 @@ table.pso-table td.pts { font-weight: 700; color: var(--accent-dark); }
 }
 .penal-ball.spotbob { animation: penalSpotBob 1s ease-in-out infinite; }
 @keyframes penalSpotBob { 0%,100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -7px); } }
-.penal-ball.ball-gol-izq { left: 12%; bottom: 34%; transform: translate(-50%, 0) rotate(560deg) scale(1.05); }
+.penal-ball.ball-gol-izq { left: 31%; bottom: 30%; transform: translate(-50%, 0) rotate(560deg) scale(1.05); }
 .penal-ball.ball-gol-cen { left: 50%; bottom: 8%; transform: translate(-50%, 0) rotate(560deg) scale(1.05); }
-.penal-ball.ball-gol-der { left: 88%; bottom: 34%; transform: translate(-50%, 0) rotate(560deg) scale(1.05); }
-.penal-ball.ball-save-izq { left: 24%; bottom: 26%; transform: translate(-50%, 0) rotate(210deg) scale(0.75); opacity: 0.5; }
+.penal-ball.ball-gol-der { left: 69%; bottom: 30%; transform: translate(-50%, 0) rotate(560deg) scale(1.05); }
+.penal-ball.ball-save-izq { left: 20%; bottom: 26%; transform: translate(-50%, 0) rotate(210deg) scale(0.75); opacity: 0.5; }
 .penal-ball.ball-save-cen { left: 50%; bottom: 26%; transform: translate(-50%, 0) rotate(210deg) scale(0.75); opacity: 0.5; }
-.penal-ball.ball-save-der { left: 76%; bottom: 26%; transform: translate(-50%, 0) rotate(210deg) scale(0.75); opacity: 0.5; }
+.penal-ball.ball-save-der { left: 80%; bottom: 26%; transform: translate(-50%, 0) rotate(210deg) scale(0.75); opacity: 0.5; }
 
 .penal-feedback { min-height: 1.7rem; text-align: center; font-weight: 700; font-size: 1.02rem; margin: 1rem 0 0.2rem; }
 .penal-timer {

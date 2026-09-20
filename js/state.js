@@ -1,26 +1,33 @@
 /* ======================================================================
-   PSO URUGUAY - ESTADO DE LA APP Y CAPA DE DATOS
+   PSO URUGUAY - ESTADO DE LA APP Y CAPA DE DATOS (SUPABASE DIRECTO)
    ======================================================================
-   Dos modos posibles:
-   - ONLINE:  se detecta un servidor (server.js) en /api → todo se guarda
-              en el backend y se comparte entre todos los usuarios.
-   - LOCAL:   sin servidor (ej: abrir index.html directo) → respaldo con
-              localStorage del navegador actual.
+   Estructura 100% estática (Netlify). La web habla DIRECTO con Supabase
+   (PostgREST + Auth), SIN server.js:
+
+     - ONLINE:  el ranking/cuentas/datos viven en Postgres de Supabase y
+                se comparten online con todos los jugadores.
+     - LOCAL:   sin red (ej: abrir index.html sin internet) → respaldo con
+                localStorage del navegador actual.
+
+   No se usa PSO_CONFIG.API_URL acá: se usa SUPABASE_URL + SUPABASE_ANON_KEY
+   (pública por diseño, protegida por RLS). La "service_role/secret" NUNCA
+   va en el front.
    ====================================================================== */
 
 let dbReady = false;
-let online = false;
+let online = null;
+
+/* ---------------- Estado global ---------------- */
 
 const State = {
-  theme: localStorage.getItem('pso_theme') || 'light',
-  isAdmin: sessionStorage.getItem('pso_admin') === '1',
+  theme: localStorage.getItem('pso_theme') || 'dark',
   currentTab: 'inicio',
-  currentAdminTab: 'resultados',
+  isAdmin: sessionStorage.getItem('pso_admin') === '1',
   currentStatsTab: 'general',
   currentStatsCompetition: 'todas',
   data: {
-    teams: [],       // {id, name, short, color, players:[{id,name}]}
-    matches: [],      // {id, round, homeId, awayId, homeScore, awayScore, played, stats:{playerId:{goals,assists,yellow,red}}}
+    teams: [],       // {id, name, short, logo, color, players:[{id,name}]}
+    matches: [],      // {id, round, homeId, awayId, homeScore, awayScore, played, stats:{playerId:{goals,assists,yellow,red}}, competitionFormat, bracket}
     settings: { leagueName: 'Pro Soccer Online Uruguay', season: '2026', competitionFormat: null, competitionName: '' }
   }
 };
@@ -29,7 +36,151 @@ function uid(prefix) {
   return prefix + '_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 }
 
-/* ---------------- Cliente API (online) ---------------- */
+/* ======================================================================
+   CLIENTE SUPABASE (REST directo, sin servidor)
+   ====================================================================== */
+
+async function supaFetch(path, options = {}) {
+  const { method = 'GET', query, headers = {}, body, token } = options;
+
+  let url = PSO_CONFIG.SUPABASE_URL + path;
+  if (query && Object.keys(query).length) {
+    const params = new URLSearchParams();
+    for (const k in query) if (query[k] !== undefined && query[k] !== '') params.set(k, query[k]);
+    const qs = params.toString();
+    if (qs) url += (url.includes('?') ? '&' : '?') + qs;
+  }
+
+  const h = {
+    apikey: PSO_CONFIG.SUPABASE_ANON_KEY,
+    Authorization: 'Bearer ' + (token || PSO_CONFIG.SUPABASE_ANON_KEY),
+    'Content-Type': 'application/json',
+    ...headers
+  };
+
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: h,
+      body: body !== undefined ? JSON.stringify(body) : undefined
+    });
+  } catch (e) {
+    throw new Error(tr('err_no_server'));
+  }
+
+  if (!res.ok) {
+    let msg = 'HTTP ' + res.status;
+    try {
+      const j = await res.json();
+      if (j && (j.message || j.error_description || j.error)) {
+        msg = j.message || j.error_description || j.error;
+      }
+    } catch (e) {}
+    throw new Error(localizeServerError(msg));
+  }
+
+  const text = await res.text();
+  if (!text) return null;
+  try { return JSON.parse(text); } catch (e) { return text; }
+}
+
+/* ---------------- Detección de conexión ---------------- */
+
+async function detectOnline() {
+  try {
+    const r = await fetch(PSO_CONFIG.SUPABASE_URL + '/auth/v1/health', {
+      headers: { apikey: PSO_CONFIG.SUPABASE_ANON_KEY }
+    });
+    return r.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* ---------------- Capa de almacenamiento (kv ↔ Postgres) ---------------- */
+
+/* safeSet: upsert key/value. Devuelve true si quedó guardado. */
+async function safeSet(key, value) {
+  if (!online) {
+    try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
+  }
+  try {
+    await supaFetch('/rest/v1/kv', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: [{ key, value }]
+    });
+    return true;
+  } catch (e) {
+    console.warn('safeSet falló', key, e);
+    return false;
+  }
+}
+
+/* safeGet: lee un valor por key. Devuelve string o null. */
+async function safeGet(key) {
+  if (!online) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  try {
+    const rows = await supaFetch('/rest/v1/kv', {
+      query: { select: 'value', key: 'eq.' + encodeURIComponent(key) }
+    });
+    return Array.isArray(rows) && rows.length ? rows[0].value : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function safeDelete(key) {
+  if (!online) {
+    try { localStorage.removeItem(key); return true; } catch (e) { return false; }
+  }
+  try {
+    await supaFetch('/rest/v1/kv', {
+      method: 'DELETE',
+      query: { key: 'eq.' + encodeURIComponent(key) },
+      headers: { Prefer: 'count=exact' }
+    });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function safeList(prefix) {
+  if (!online) {
+    try {
+      const out = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(prefix)) out.push(k);
+      }
+      return out;
+    } catch (e) { return []; }
+  }
+  try {
+    const rows = await supaFetch('/rest/v1/kv', {
+      query: { select: 'key', key: 'like.' + encodeURIComponent(prefix) + '%' }
+    });
+    return Array.isArray(rows) ? rows.map(r => r.key) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/* ======================================================================
+   API "FICTICIA" PARA EL FRONT (traduce las rutas /api/... a Supabase)
+   Mantiene la MISMA interfaz que usaban auth.js / trivia.js / penales.js:
+     POST /api/auth/signup  {username,password,displayName} → {user, token}
+     POST /api/auth/login   {username,password}             → {user, token}
+     GET  /api/me           (token)                         → {user}
+     GET  /api/ranking      → {ranking:[{id,username,displayName,bestStreak,createdAt}]}
+     POST /api/ranking      (token) {bestStreak}            → {user}
+     GET  /api/ranking/penales → {ranking:[{id,username,displayName,bestPenalStreak,createdAt}]}
+     POST /api/ranking/penales (token) {bestPenalStreak}    → {user}
+   ====================================================================== */
 
 const I18N_SERVER_ERR = {
   'No autorizado. Iniciá sesión.': 'Não autorizado. Faça login.',
@@ -42,153 +193,180 @@ const I18N_SERVER_ERR = {
 };
 
 function localizeServerError(msg) {
-  if (I18N.lang === 'pt' && I18N_SERVER_ERR[msg]) return I18N_SERVER_ERR[msg];
+  if (typeof I18N === 'undefined' || typeof I18N_SERVER_ERR !== 'object') return msg;
+  const lang = window.I18N ? I18N.lang : 'es';
+  if (lang === 'pt' && I18N_SERVER_ERR[msg]) return I18N_SERVER_ERR[msg];
   return msg;
 }
 
-async function apiRequest(path, options = {}) {
-  const { auth, body, method = 'GET' } = options;
-  const headers = { ...(options.headers || {}) };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
-  const token = localStorage.getItem('pso_token');
-  if (auth && token) headers['Authorization'] = 'Bearer ' + token;
+/* Email sintético: el ranking usa username+password, pero Supabase Auth
+   usa email. Armamos username + "@pso.uy" y lo guardamos en metadata. */
+function authEmail(username) {
+  const u = String(username || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+  return u + '@pso.uy';
+}
 
-  let res;
+function mapAuthUser(authData) {
+  const md = (authData && authData.user_metadata) || {};
+  return {
+    id: authData && (authData.id || authData.sub),
+    username: md.username || md.email,
+    displayName: md.display_name || md.full_name || md.username,
+    bestStreak: Number(md.best_streak || 0),
+    bestPenalStreak: Number(md.best_penal_streak || 0),
+    createdAt: Date.now()
+  };
+}
+
+function authToken() {
   try {
-    res = await fetch(PSO_CONFIG.API_URL + path, {
-      method,
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined
+    return localStorage.getItem('pso_token') || null;
+  } catch (e) { return null; }
+}
+
+/* upserta la fila en public.users (para que el ranking lo vea) */
+async function supaUpsertUser(token, extra) {
+  try {
+    const me = await supaFetch('/auth/v1/user', { token: token });
+    const md = (me.user_metadata || {});
+    const row = {
+      id: me.id,
+      username: md.username,
+      display_name: md.display_name || md.username,
+      best_streak: extra.best_streak !== undefined ? extra.best_streak : Number(md.best_streak || 0),
+      best_penal_streak: extra.best_penal_streak !== undefined ? extra.best_penal_streak : Number(md.best_penal_streak || 0)
+    };
+    await supaFetch('/rest/v1/users', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+      body: [row]
     });
   } catch (e) {
-    throw new Error(tr('err_no_server'));
-  }
-
-  const data = await res.json().catch(() => null);
-  if (!res.ok) throw new Error((data && data.error && localizeServerError(data.error)) || tr('err_server', { status: res.status }));
-  return data;
-}
-
-async function detectOnline() {
-  try {
-    const res = await fetch(PSO_CONFIG.API_URL + '/api/health', { method: 'GET' });
-    return res.ok;
-  } catch (e) {
-    return false;
+    throw new Error(localizeServerError(e.message));
   }
 }
 
-/* ---------------- Capa de almacenamiento ---------------- */
+async function apiRequest(path, options = {}) {
+  const { method = 'GET', body, auth } = options;
+  const pathStr = String(path || '');
+  const token = auth ? authToken() : null;
 
-async function safeGet(key) {
-  if (online) {
-    try {
-      const r = await apiRequest('/api/data?key=' + encodeURIComponent(key));
-      return r.value != null ? r.value : null;
-    } catch (e) {
-      return null;
-    }
-  }
-  try {
-    return localStorage.getItem(key);
-  } catch (e) {
-    return null;
-  }
-}
-
-async function safeSet(key, value) {
-  if (online) {
-    try {
-      await apiRequest('/api/data', { method: 'PUT', body: { key, value } });
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-  try {
-    localStorage.setItem(key, value);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-async function safeDelete(key) {
-  if (online) {
-    try {
-      await apiRequest('/api/data?key=' + encodeURIComponent(key), { method: 'DELETE' });
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-  try {
-    localStorage.removeItem(key);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-async function safeList(prefix) {
-  if (online) {
-    try {
-      const r = await apiRequest('/api/data?prefix=' + encodeURIComponent(prefix));
-      return r.keys || [];
-    } catch (e) {
-      return [];
-    }
-  }
-  try {
-    const out = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && k.startsWith(prefix)) out.push(k);
-    }
-    return out;
-  } catch (e) {
-    return [];
-  }
-}
-
-/* ---------------- Inicialización de la base de datos ---------------- */
-
-async function initDB() {
-  online = await detectOnline();
-
-  if (online) {
-    try {
-      const teamKeys = await safeList('teams:');
-      const teams = [];
-      for (const key of teamKeys) {
-        const rec = await safeGet(key);
-        if (rec) { try { teams.push(JSON.parse(rec)); } catch (e) {} }
+  /* ---------------- AUTH ---------------- */
+  if (pathStr === '/api/auth/signup') {
+    const data = await supaFetch('/auth/v1/signup', {
+      method: 'POST',
+      body: {
+        email: authEmail(body.username),
+        password: body.password,
+        data: {
+          username: String(body.username).toLowerCase(),
+          display_name: body.displayName || String(body.username),
+          best_streak: 0,
+          best_penal_streak: 0
+        }
       }
-      State.data.teams = teams;
-
-      const matchKeys = await safeList('matches:');
-      const matches = [];
-      for (const key of matchKeys) {
-        const rec = await safeGet(key);
-        if (rec) { try { matches.push(JSON.parse(rec)); } catch (e) {} }
-      }
-      State.data.matches = matches;
-
-      const settingsRaw = await safeGet('settings:main');
-      if (settingsRaw) {
-        try { State.data.settings = { ...State.data.settings, ...JSON.parse(settingsRaw) }; } catch (e) {}
-      }
-    } catch (e) {
-      console.error('DB init error', e);
-      loadLocalFallback();
-    }
-  } else {
-    loadLocalFallback();
+    });
+    if (!data || !data.access_token) throw new Error(tr('err_bad_credentials'));
+    await supaUpsertUser(data.access_token, {});
+    return { user: mapAuthUser(data.user), token: data.access_token };
   }
+
+  if (pathStr === '/api/auth/login') {
+    const data = await supaFetch('/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      body: { email: authEmail(body.username), password: body.password }
+    });
+    if (!data || !data.access_token) throw new Error(tr('err_bad_credentials'));
+    await supaUpsertUser(data.access_token, {});
+    return { user: mapAuthUser(data.user), token: data.access_token };
+  }
+
+  if (pathStr === '/api/me') {
+    if (!token) throw new Error(tr('err_no_auth'));
+    const me = await supaFetch('/auth/v1/user', { token: token });
+    const user = mapAuthUser(me);
+    user.bestStreak = Number((me.user_metadata || {}).best_streak || 0);
+    user.bestPenalStreak = Number((me.user_metadata || {}).best_penal_streak || 0);
+    return { user };
+  }
+
+  /* ---------------- RANKING TRIVIA ---------------- */
+  if (pathStr === '/api/ranking') {
+    if (method === 'POST') {
+      if (!token) throw new Error(tr('err_no_auth'));
+      const me = await supaFetch('/auth/v1/user', { token: token });
+      const cur = Number((me.user_metadata || {}).best_streak || 0);
+      const next = Math.max(cur, Number(body.bestStreak || 0));
+      await supaUpsertUser(token, { best_streak: next });
+      return { user: mapAuthUser({ ...me, user_metadata: { ...(me.user_metadata || {}), best_streak: next } }) };
+    }
+    const rows = await supaFetch('/rest/v1/users', {
+      query: { select: '*', order: 'best_streak.desc,created_at.asc', limit: '50' }
+    });
+    const ranking = (Array.isArray(rows) ? rows : []).map(r => ({
+      id: r.id,
+      username: r.username,
+      displayName: r.display_name || r.username,
+      bestStreak: Number(r.best_streak || 0),
+      createdAt: r.created_at
+    }));
+    return { ranking };
+  }
+
+  /* ---------------- RANKING PENALES ---------------- */
+  if (pathStr === '/api/ranking/penales') {
+    if (method === 'POST') {
+      if (!token) throw new Error(tr('err_no_auth'));
+      const me = await supaFetch('/auth/v1/user', { token: token });
+      const cur = Number((me.user_metadata || {}).best_penal_streak || 0);
+      const next = Math.max(cur, Number(body.bestPenalStreak || 0));
+      await supaUpsertUser(token, { best_penal_streak: next });
+      return { user: mapAuthUser({ ...me, user_metadata: { ...(me.user_metadata || {}), best_penal_streak: next } }) };
+    }
+    const rows = await supaFetch('/rest/v1/users', {
+      query: { select: '*', order: 'best_penal_streak.desc,created_at.asc', limit: '50' }
+    });
+    const ranking = (Array.isArray(rows) ? rows : []).map(r => ({
+      id: r.id,
+      username: r.username,
+      displayName: r.display_name || r.username,
+      bestPenalStreak: Number(r.best_penal_streak || 0),
+      createdAt: r.created_at
+    }));
+    return { ranking };
+  }
+
+  throw new Error('Ruta desconocida: ' + path);
+}
+
+/* ======================================================================
+   INICIALIZACIÓN: detectar online y cargar datos iniciales
+   ====================================================================== */
+
+async function detectOnlineAndInit() {
+  try {
+    online = await detectOnline();
+  } catch (e) {
+    online = false;
+  }
+  if (!online) await loadLocalFallback();
   dbReady = true;
 }
 
-function loadLocalFallback() {
+async function initDB() {
+  let detected = false;
+  try {
+    online = await detectOnline();
+    detected = true;
+  } catch (e) {
+    online = false;
+  }
+  if (!online) await loadLocalFallback();
+  dbReady = true;
+  return detected;
+}
+
+async function loadLocalFallback() {
   try {
     const raw = localStorage.getItem('pso_data_fallback');
     if (raw) {
@@ -201,10 +379,40 @@ function loadLocalFallback() {
 }
 
 function saveLocalFallback() {
-  localStorage.setItem('pso_data_fallback', JSON.stringify(State.data));
+  try {
+    localStorage.setItem('pso_data_fallback', JSON.stringify(State.data));
+  } catch (e) {}
 }
 
-/* ---------------- Persistencia de entidades ---------------- */
+async function refreshFromStorage() {
+  if (!online) return;
+  try {
+    const teamRows = await safeList('teams:');
+    const teams = [];
+    for (const key of teamRows) {
+      const rec = await safeGet(key);
+      if (rec) { try { teams.push(JSON.parse(rec)); } catch (e) {} }
+    }
+    const matchRows = await safeList('matches:');
+    const matches = [];
+    for (const key of matchRows) {
+      const rec = await safeGet(key);
+      if (rec) { try { matches.push(JSON.parse(rec)); } catch (e) {} }
+    }
+    const settingsRaw = await safeGet('settings:main');
+    const settings = State.data.settings;
+    if (settingsRaw) { try { Object.assign(settings, JSON.parse(settingsRaw)); } catch (e) {} }
+
+    State.data.teams = teams;
+    State.data.matches = matches;
+    State.data.settings = settings;
+    if (typeof renderAll === 'function') renderAll();
+  } catch (e) {}
+}
+
+/* ======================================================================
+   PERSISTENCIA DE ENTIDADES (teams / matches / settings)
+   ====================================================================== */
 
 async function persistTeam(team) {
   if (online) {
@@ -217,9 +425,7 @@ async function persistTeam(team) {
 }
 
 async function deleteTeamDB(id) {
-  if (online) {
-    await safeDelete('teams:' + id);
-  }
+  if (online) await safeDelete('teams:' + id);
   State.data.teams = State.data.teams.filter(t => t.id !== id);
   if (!online) saveLocalFallback();
 }
@@ -235,9 +441,7 @@ async function persistMatch(match) {
 }
 
 async function deleteMatchDB(id) {
-  if (online) {
-    await safeDelete('matches:' + id);
-  }
+  if (online) await safeDelete('matches:' + id);
   State.data.matches = State.data.matches.filter(m => m.id !== id);
   if (!online) saveLocalFallback();
 }
@@ -248,31 +452,4 @@ async function persistSettings() {
   } else {
     saveLocalFallback();
   }
-}
-
-/* ---------------- Sincronización periódica (modo online) ---------------- */
-
-async function refreshFromStorage() {
-  try {
-    const teamKeys = await safeList('teams:');
-    const teams = [];
-    for (const key of teamKeys) {
-      const rec = await safeGet(key);
-      if (rec) { try { teams.push(JSON.parse(rec)); } catch (e) {} }
-    }
-    const matchKeys = await safeList('matches:');
-    const matches = [];
-    for (const key of matchKeys) {
-      const rec = await safeGet(key);
-      if (rec) { try { matches.push(JSON.parse(rec)); } catch (e) {} }
-    }
-    const settingsRaw = await safeGet('settings:main');
-    let settings = State.data.settings;
-    if (settingsRaw) { try { settings = { ...State.data.settings, ...JSON.parse(settingsRaw) }; } catch (e) {} }
-
-    State.data.teams = teams;
-    State.data.matches = matches;
-    State.data.settings = settings;
-    renderAll();
-  } catch (e) {}
 }
