@@ -73,7 +73,28 @@ SUPABASE_ANON_KEY: "sb_publishable_xxxx",
    **Supabase Dashboard → SQL Editor → Run**.
 5. Activamos **Row Level Security (RLS)** en las tablas `users` y `kv`
    (el script ya lo hace).
-6. En **Authentication → Providers** dejamos **Email** activado (email + contraseña).
+6. En **Authentication → Sign In / Providers → Email** dejamos **Email** activado
+   (email + contraseña) y **desactivamos "Confirm email"**.
+
+   > ⚠ **Obligatorio.** Las cuentas se crean con emails **sintéticos**
+   > (`usuario@pso.uy`, ver `authEmail()` en `js/state.js`), que no tienen
+   > buzón real. Si "Confirm email" queda activado, el signup no devuelve
+   > `access_token` y el front muestra "Usuario o contraseña incorrectos":
+   > **nadie puede registrarse** desde la web.
+   > (Se verifica con `GET /auth/v1/settings` → `"mailer_autoconfirm": true`).
+
+7. Verificamos que las tablas existan y que la API las vea:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" \
+  -H "apikey: $ANON_KEY" \
+  "https://<proyecto>.supabase.co/rest/v1/kv?select=key&limit=1"
+#   200 → ok | 404 PGRST205 → falta correr el SQL o recargar el schema cache
+```
+
+   Si da `404` con `PGRST205: Could not find the table`, volvé a correr
+   `supabase-schema.sql` (es idempotente y termina con
+   `notify pgrst, 'reload schema';`).
 
 ## API del frontend (no es un server)
 
@@ -118,12 +139,19 @@ npm install -g wrangler   # si no lo tenemos
 wrangler login
 
 # 2. Publicamos la carpeta actual
-wrangler pages deploy .
+#    --branch main → producción (psouruguay.pages.dev)
+#    cualquier otra rama → preview (*.psouruguay.pages.dev)
+wrangler pages deploy . --project-name psouruguay --branch main
 
-# 3. (Opcional) Conectamos el repo de GitHub en:
-#    Cloudflare Dashboard → Pages → Create a project → Connect to Git
-#    Elegimos la rama main y la carpeta raíz.
+# 3. (Opcional) Auto-deploy en cada push: conectar el repo de GitHub en
+#    Cloudflare Dashboard → Workers & Pages → psouruguay →
+#    Settings → Builds & deployments → Connect to Git
+#    Repo: RenzoBarbitta/PsoUruguay · Rama: main · Build: ninguno
+#    Output directory: / (raíz, sitio estático puro).
 ```
+
+> `wrangler pages project link --github` **no** sirve: wrangler no expone esa
+> opción, la conexión con Git se hace solo desde el dashboard.
 
 Cloudflare Pages sirve `index.html` como entrada y resuelve `.js`, `.css`
 y `logo.webp` automáticamente. Todo queda en `https://<tu-proyecto>.pages.dev`.

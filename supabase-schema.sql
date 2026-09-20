@@ -87,3 +87,18 @@ create policy "users_update_own" on public.users
 -- ======================================================================
 create index if not exists idx_users_streak        on public.users (best_streak desc);
 create index if not exists idx_users_penal_streak  on public.users (best_penal_streak desc);
+
+-- ======================================================================
+-- 4) RECARGAR EL SCHEMA CACHE DE POSTGREST
+--    Sin esto, la API puede seguir respondiendo
+--    "PGRST205: Could not find the table 'public.kv' in the schema cache"
+--    aunque la tabla ya exista (el front lo ve como servidor caído).
+-- ======================================================================
+notify pgrst, 'reload schema';
+
+-- ======================================================================
+-- 5) VERIFICACIÓN (opcional): debería listar kv y users
+-- ======================================================================
+-- select table_name from information_schema.tables
+--   where table_schema = 'public' order by table_name;
+

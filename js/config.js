@@ -14,7 +14,7 @@ const PSO_CONFIG = {
        (que no usamos más) o rótala de una.
   ==================================================================== */
   SUPABASE_URL: "https://magestcsmgxegjbjcxef.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_ypyO6Mq-j6FX9S_klCcvw_izVw6NAg",
+  SUPABASE_ANON_KEY: "sb_publishable_ypyO6Mq-j6FX9S_klCcvwA_izVw6NAg",
 
   /* ============ ADMINISTRACIÓN (panel) ============ */
   ADMIN_USER: "admin",
