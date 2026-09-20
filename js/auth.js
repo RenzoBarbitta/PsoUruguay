@@ -242,32 +242,56 @@ function openAuthModal(tab = 'login') {
       try {
         const mail = email.value.trim();
         const p = password.value;
+
+        // Validaciones comunes (ambos tabs)
         if (!mail || !p) { errorEl.textContent = tr('err_login_incomplete'); errorEl.style.display = 'block'; return; }
         if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(mail)) { errorEl.textContent = tr('err_email_format'); errorEl.style.display = 'block'; return; }
 
         if (currentTab === 'register') {
+          // === TAB REGISTRO: validaciones completas ANTES de doSignup ===
           const u = username.value.trim();
-          /* Validamos ANTES de llamar al server: Supabase exige contraseña de
-             6+ y usuario de 3-20 (letras/números/_). Si no, responde 422. */
-          if (String(p).length < 6) { errorEl.textContent = tr('err_password_short'); errorEl.style.display = 'block'; return; }
-          if (p !== password2.value) { errorEl.textContent = tr('err_pass_mismatch'); errorEl.style.display = 'block'; return; }
-          if (!/^[a-z0-9_]{3,20}$/.test(u.toLowerCase())) { errorEl.textContent = tr('err_username_format'); errorEl.style.display = 'block'; return; }
+          const u2 = password2.value;
+
+          // 1. Username válido
+          if (!u || !/^[a-z0-9_]{3,20}$/.test(u.toLowerCase())) {
+            errorEl.textContent = tr('err_username_format');
+            errorEl.style.display = 'block';
+            return;
+          }
+          // 2. Contraseña mínima 6 caracteres
+          if (String(p).length < 6) {
+            errorEl.textContent = tr('err_password_short');
+            errorEl.style.display = 'block';
+            return;
+          }
+          // 3. Contraseñas coinciden
+          if (p !== u2) {
+            errorEl.textContent = tr('err_pass_mismatch');
+            errorEl.style.display = 'block';
+            return;
+          }
+          // 4. Confirmar cuenta local si no hay servidor
           if (!online && !confirm(tr('confirm_local_account'))) return;
-          const displayName = body.querySelector('#auth-displayname') ? body.querySelector('#auth-displayname').value : '';
+
+          const displayName = body.querySelector('#auth-displayname') ?
+            body.querySelector('#auth-displayname').value : '';
+
+          // 5. Ejecutar registro (NUNCA cae al login)
           const res = await doSignup(mail, u, p, displayName);
           if (res && res.pendingConfirmation) {
-            /* La cuenta se creó, pero Supabase está esperando que el jugador
-               confirme el email: todavía no hay sesión, así que le avisamos
-               y dejamos el modal abierto. */
             okEl.textContent = tr('err_signup_confirm_email', { email: res.email });
             okEl.style.display = 'block';
             return;
           }
+          // Si doSignup devolvió usuario (login automático), cerrar modal
+          closeModal();
+          switchTab('trivia');
         } else {
+          // === TAB LOGIN: solo login ===
           await doLoginUser(mail, p);
+          closeModal();
+          switchTab('trivia');
         }
-        closeModal();
-        switchTab('trivia');
       } catch (e) {
         errorEl.textContent = e.message || tr('err_generic');
         errorEl.style.display = 'block';
