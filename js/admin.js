@@ -1074,24 +1074,6 @@ function attachConfigEvents() {
   };
 }
 
-// Función auxiliar para próximo power of 2
-function nextPowerOfTwo(n) {
-  if (n <= 1) return 1;
-  let p = 1;
-  while (p < n) p *= 2;
-  return p;
-}
-
-// Generar bracket de copa básico
-function generateCopaBracket(teamIds) {
-  const pairs = [];
-  const shuffled = [...teamIds].sort(() => Math.random() - 0.5);
-  for (let i = 0; i < shuffled.length; i += 2) {
-    pairs.push([shuffled[i], shuffled[i + 1]]);
-  }
-  return pairs;
-}
-
 /* -------------------- COMPETENCIAS -------------------- */
 
 function adminPanelCompetencias() {

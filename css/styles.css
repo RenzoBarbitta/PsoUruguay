@@ -631,7 +631,6 @@ table.pso-table td.pts { font-weight: 700; color: var(--accent-dark); }
 }
 
 .fixture-round-title {
-.fixture-round-title {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.05rem;

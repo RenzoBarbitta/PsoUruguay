@@ -624,6 +624,8 @@ const I18N = {
     filtro_todas_comp: { es: 'Todas', pt: 'Todas' },
     filtro_competencia: { es: '{nombre}', pt: '{nome}' },
     fixture_elegir_comp: { es: 'Elegir competencia', pt: 'Escolher competição' },
+    stats_pj_short: { es: 'PJ', pt: 'J' },
+    err_campo_requerido: { es: 'campo requerido', pt: 'campo obrigatório' },
   }
 };
 

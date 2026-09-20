@@ -261,28 +261,6 @@ function bracketRoundName(roundNum, totalRounds) {
   return tr('bracket_ronda', { n: roundNum });
 }
 
-function bracketMatchCard(m) {
-  const home = m.homeId ? getTeamById(m.homeId) : null;
-  const away = m.awayId ? getTeamById(m.awayId) : null;
-  const isBye = m.isBye || false;
-
-  return `<div class="bracket-match" style="display:flex; flex-direction:column; align-items:center; gap:0.4rem; padding:0.6rem 0.4rem; background:var(--bg-surface); border-radius:8px; border:0.5px solid var(--border);">
-    <div style="display:flex; align-items:center; justify-content:center; gap:0.4rem; width:100%;">
-      ${home ? `<span style="font-size:0.8rem; padding:0.2rem 0.5rem; background:var(--bg-surface-2); border-radius:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100px;">${escapeHtml(home.name)}</span>` : `<span style="font-size:0.72rem; color:var(--text-muted);">—</span>`}
-      <span class="draw-vs" style="font-size:0.7rem; color:var(--text-muted);">vs</span>
-      ${away ? `<span style="font-size:0.8rem; padding:0.2rem 0.5rem; background:var(--bg-surface-2); border-radius:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100px;">${escapeHtml(away.name)}</span>` : `<span style="font-size:0.72rem; color:var(--text-muted);">—</span>`}
-    </div>
-    <div style="display:flex; align-items:center; gap:0.8rem; font-family:var(--font-display); font-weight:700;">
-      <span style="font-size:0.9rem; min-width:20px; text-align:center;">${m.played ? (m.homeScore || 0) : ''}</span>
-      <span style="color:var(--text-muted); font-size:0.75rem;">-</span>
-      <span style="font-size:0.9rem; min-width:20px; text-align:center;">${m.played ? (m.awayScore || 0) : ''}</span>
-    </div>
-    <div style="font-size:0.7rem; color:var(--text-muted);">
-      ${isBye ? tr('bye_libre') : (m.played ? tr('match_finalizado') : tr('match_por_jugar'))}
-    </div>
-  </div>`;
-}
-
 function viewFixtureCopa() {
   const bracketMatches = State.data.matches.filter(m => m.bracket);
   const rounds = {};
