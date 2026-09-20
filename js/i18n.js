@@ -48,6 +48,8 @@ const I18N = {
     err_server: { es: 'Error del servidor ({status})', pt: 'Erro do servidor ({status})' },
     toast_save_team_error: { es: 'No se pudo guardar en la base de datos', pt: 'Não foi possível salvar no banco de dados' },
     toast_save_match_error: { es: 'No se pudo guardar el partido', pt: 'Não foi possível salvar o jogo' },
+    toast_conexion_restaurada: { es: 'Conexión restaurada ✅', pt: 'Conexão restaurada ✅' },
+    toast_conexion_perdida: { es: 'Sin conexión — funcionando en modo local', pt: 'Sem conexão — funcionando em modo local' },
 
     /* ------- Botones genéricos ------- */
     btn_cancel: { es: 'Cancelar', pt: 'Cancelar' },

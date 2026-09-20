@@ -268,10 +268,16 @@ async function supaUpsertUser(token, extra) {
     const me = await supaFetch('/auth/v1/user', { token: token });
     const md = (me.user_metadata || {});
     // verificamos si el usuario ya existe en public.users
-    const existing = await supaFetch('/rest/v1/users?id=eq.' + encodeURIComponent(me.id), {
-      token: token,
-      query: { select: 'id', limit: '1' }
-    });
+    let existing = null;
+    try {
+      existing = await supaFetch('/rest/v1/users?id=eq.' + encodeURIComponent(me.id), {
+        token: token,
+        query: { select: 'id,created_at', limit: '1' }
+      });
+    } catch (e) {
+      // si no podemos verificar, asumimos que es nuevo y enviamos created_at
+      console.warn('supaUpsertUser: no se pudo verificar existencia, asumiendo nuevo', e);
+    }
     const isNew = !Array.isArray(existing) || existing.length === 0;
     const row = {
       id: me.id,
@@ -282,6 +288,9 @@ async function supaUpsertUser(token, extra) {
     };
     if (isNew) {
       row.created_at = Date.now();
+    } else if (existing.length > 0 && existing[0].created_at) {
+      // si ya existe, conservamos su created_at original para evitar conflictos
+      row.created_at = existing[0].created_at;
     }
     await supaFetch('/rest/v1/users', {
       method: 'POST',
@@ -428,6 +437,8 @@ async function initDB() {
       // si falla, quedarse con lo que haya en memoria (puede ser vacío)
       console.warn('initDB: refreshFromStorage falló al iniciar', e);
     }
+    // iniciar heartbeat para revalidar conexión periódicamente
+    startHeartbeat();
   }
   dbReady = true;
   return detected;
@@ -449,6 +460,40 @@ function saveLocalFallback() {
   try {
     localStorage.setItem('pso_data_fallback', JSON.stringify(State.data));
   } catch (e) {}
+}
+/* heartbeat: revalidar conexión periódicamente para detectar cambios
+   (ej: usuario que pierde/redobla internet después del init). */
+let heartbeatTimer = null;
+
+function startHeartbeat() {
+  if (heartbeatTimer) return;
+  heartbeatTimer = setInterval(async () => {
+    try {
+      const wasOnline = online;
+      const nowOnline = await detectOnline();
+      if (nowOnline !== wasOnline) {
+        online = nowOnline;
+        console.log('heartbeat: estado de conexión cambiado →', nowOnline ? 'online' : 'offline');
+        if (nowOnline) {
+          // si volvimos a online, refrescar datos desde Supabase
+          try { await refreshFromStorage(); } catch (e) { console.warn('heartbeat refreshFromStorage falló', e); }
+          toast(tr('toast_conexion_restaurada'), 'success');
+        } else {
+          toast(tr('toast_conexion_perdida'), 'warning');
+        }
+      }
+    } catch (e) {
+      console.warn('heartbeat detectOnline falló', e);
+      online = false;
+    }
+  }, 15000);
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
 }
 
 async function refreshFromStorage() {
