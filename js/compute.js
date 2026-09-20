@@ -7,19 +7,55 @@ function getTeamById(id) {
   return State.data.teams.find(t => t.id === id);
 }
 
+function getCompetitionById(id) {
+  return State.data.competitions ? State.data.competitions.find(c => c.id === id) : null;
+}
+
 /* ---------------- Tabla de posiciones ---------------- */
 // Sistema básico de fútbol: Victoria 3pts, Empate 1pt, Derrota 0pts
 
-function computeStandings() {
-  const table = {};
-  State.data.teams.forEach(t => {
-    table[t.id] = {
-      id: t.id, name: t.name, short: t.short, color: t.color,
-      pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0
-    };
-  });
+function computeStandings(competitionFilter) {
+  // Si hay competencias, usarlas para determinar qué partidos incluir
+  const competitions = State.data.competitions || [];
+  let matchesToConsider = State.data.matches.filter(m => m.played);
 
-  State.data.matches.filter(m => m.played).forEach(m => {
+  if (competitions.length > 0) {
+    // Si competitionFilter es un ID específico, filtrar por esa competencia
+    if (competitionFilter && competitionFilter !== 'todas' && competitionFilter !== 'liga' && competitionFilter !== 'copa') {
+      matchesToConsider = matchesToConsider.filter(m => m.competitionId === competitionFilter);
+    } else if (competitionFilter === 'liga' || competitionFilter === 'copa') {
+      matchesToConsider = matchesToConsider.filter(m => m.competitionFormat === competitionFilter);
+    }
+    // Si no hay filtro específico pero hay competencias, considerar todos los partidos con competencia
+    else if (competitions.length > 0 && !competitionFilter) {
+      matchesToConsider = matchesToConsider.filter(m => m.competitionId);
+    }
+  }
+
+  const table = {};
+  // Solo incluir equipos que participan en las competencias si hay competencias definidas
+  if (competitions.length > 0 && competitionFilter) {
+    const comp = competitions.find(c => c.id === competitionFilter);
+    if (comp && comp.teamIds) {
+      State.data.teams.filter(t => comp.teamIds.includes(t.id)).forEach(t => {
+        table[t.id] = {
+          id: t.id, name: t.name, short: t.short, color: t.color,
+          pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0
+        };
+      });
+    }
+  }
+
+  if (Object.keys(table).length === 0) {
+    State.data.teams.forEach(t => {
+      table[t.id] = {
+        id: t.id, name: t.name, short: t.short, color: t.color,
+        pj: 0, pg: 0, pe: 0, pp: 0, gf: 0, gc: 0, dg: 0, pts: 0
+      };
+    });
+  }
+
+  matchesToConsider.forEach(m => {
     const home = table[m.homeId];
     const away = table[m.awayId];
     if (!home || !away) return;
@@ -43,8 +79,21 @@ function computeStandings() {
 
 function matchMatchesCompetitionFilter(m, competitionFilter) {
   if (!competitionFilter || competitionFilter === 'todas') return true;
-  const format = m.competitionFormat || (m.bracket ? 'copa' : 'liga');
-  return format === competitionFilter;
+  // Si es 'liga' o 'copa', filtrar por formato
+  if (competitionFilter === 'liga' || competitionFilter === 'copa') {
+    const format = m.competitionFormat || (m.bracket ? 'copa' : 'liga');
+    return format === competitionFilter;
+  }
+  // Si es un ID de competencia, filtrar por competenciaId
+  if (m.competitionId === competitionFilter) return true;
+  return false;
+}
+
+function getCompetitionByIdOrFormat(filter) {
+  if (!filter || filter === 'todas') return null;
+  if (filter === 'liga' || filter === 'copa') return null;
+  // Es un ID de competencia
+  return getCompetitionById(filter);
 }
 
 /* ---------------- Rankings de jugadores ---------------- */

@@ -1,6 +1,6 @@
 /* ======================================================================
    PSO URUGUAY - PANEL DE ADMINISTRACIÓN
-   Equipos · Resultados · Sorteo de fixture · Configuración
+   Equipos · Resultados · Sorteo de fixture · Configuración · Competencias
    ====================================================================== */
 
 function viewAdmin() {
@@ -14,6 +14,7 @@ function viewAdmin() {
     <div class="admin-subtabs">
       ${adminSubtab('equipos', 'ti-users-group', tr('admin_sub_equipos'))}
       ${adminSubtab('resultados', 'ti-clipboard-check', tr('admin_sub_resultados'))}
+      ${adminSubtab('competencias', 'ti-trophy', tr('admin_sub_competencias'))}
       ${adminSubtab('sorteo', 'ti-arrows-shuffle', tr('admin_sub_sorteo'))}
       ${adminSubtab('config', 'ti-adjustments', tr('admin_sub_config'))}
     </div>
@@ -42,6 +43,7 @@ function renderAdminPanel() {
   switch (State.currentAdminTab) {
     case 'equipos': el.innerHTML = adminPanelEquipos(); attachEquiposEvents(); break;
     case 'resultados': el.innerHTML = adminPanelResultados(); attachResultadosEvents(); break;
+    case 'competencias': el.innerHTML = adminPanelCompetencias(); attachCompetenciasEvents(); break;
     case 'sorteo': sorteoFormatoElegido = null; el.innerHTML = adminPanelSorteo(); attachSorteoEvents(); break;
     case 'config': el.innerHTML = adminPanelConfig(); attachConfigEvents(); break;
   }
@@ -1060,13 +1062,401 @@ function attachConfigEvents() {
     document.getElementById('reset-confirm').onclick = async () => {
       for (const t of [...State.data.teams]) await deleteTeamDB(t.id);
       for (const m of [...State.data.matches]) await deleteMatchDB(m.id);
-      State.data.settings.competitionFormat = null;
-      State.data.settings.competitionName = '';
+      State.data.settings.leagueName = 'Pro Soccer Online Uruguay';
+      State.data.settings.season = '2026';
+      State.data.competitions = [];
       await persistSettings();
       renderAdminPanel();
       closeModal();
       toast(tr('toast_liga_reiniciada'));
       renderAdminPanel();
     };
+  };
+}
+
+// Función auxiliar para próximo power of 2
+function nextPowerOfTwo(n) {
+  if (n <= 1) return 1;
+  let p = 1;
+  while (p < n) p *= 2;
+  return p;
+}
+
+// Generar bracket de copa básico
+function generateCopaBracket(teamIds) {
+  const pairs = [];
+  const shuffled = [...teamIds].sort(() => Math.random() - 0.5);
+  for (let i = 0; i < shuffled.length; i += 2) {
+    pairs.push([shuffled[i], shuffled[i + 1]]);
+  }
+  return pairs;
+}
+
+/* -------------------- COMPETENCIAS -------------------- */
+
+function adminPanelCompetencias() {
+  const competitions = State.data.competitions || [];
+  const teams = State.data.teams;
+
+  if (!competitions.length) {
+    return `
+      <div class="view active">
+        <div class="section-head">
+          <h2 class="section-title">${tr('competencias_title')}</h2>
+          <span class="section-sub">${tr('competencias_subtitle')}</span>
+        </div>
+        <div class="card" style="padding: 2rem; text-align: center; margin-top: 1rem;">
+          <i class="ti ti-trophy-off" style="font-size: 2.5rem; opacity: 0.4; margin-bottom: 1rem; display: block;"></i>
+          <p style="color: var(--text-muted); margin-bottom: 1.5rem;">${tr('competencias_vacias')}</p>
+          <button class="btn btn-gold btn-block" id="btn-new-competition-first">
+            <i class="ti ti-plus"></i> ${tr('btn_nueva_competencia')}
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="view active">
+      <div class="section-head">
+        <h2 class="section-title">${tr('competencias_title')}</h2>
+        <span class="section-sub">${tr('competencias_subtitle')}</span>
+      </div>
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+        <button class="btn btn-primary" id="btn-new-competition" ${competitions.length >= 4 ? 'disabled' : ''}>
+          <i class="ti ti-plus"></i> ${tr('btn_nueva_competencia')}
+        </button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;">
+        ${competitions.map((comp, idx) => competitionCard(comp, idx + 1, teams)).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function competitionCard(comp, num, teams) {
+  const isLiga = comp.type === 'liga';
+  const participatingTeams = teams.filter(t => comp.teamIds && comp.teamIds.includes(t.id));
+  const matchCount = getCompetitionMatchesCount(comp.id);
+
+  return `
+    <div class="card competition-card" data-comp-id="${comp.id}">
+      <div class="competition-card-header">
+        <div class="competition-slot-badge">${num}</div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            ${escapeHtml(comp.name)}
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+            ${isLiga ? '🏆 Liga' : '🥇 Copa'} · ${comp.teamIds ? comp.teamIds.length : 0} equipos
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.4rem; flex-shrink: 0;">
+          <button class="btn btn-sm btn-edit-competition" data-comp-id="${comp.id}" title="${tr('btn_editar_competencia')}">
+            <i class="ti ti-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-danger btn-delete-competition" data-comp-id="${comp.id}" title="${tr('btn_eliminar_competencia')}">
+            <i class="ti ti-trash"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="competition-teams-preview">
+        ${participatingTeams.length ? participatingTeams.slice(0, 4).map(t => `
+          <div class="competition-team-chip" title="${escapeHtml(t.name)}">
+            ${teamDotHtml(t)}
+          </div>
+        `).join('')}
+        ${participatingTeams.length > 4 ? `<div class="competition-team-more">+${participatingTeams.length - 4}</div>` : ''}
+        ${!participatingTeams.length ? `<div style="font-size: 0.8rem; color: var(--text-muted); padding: 0.3rem 0;">${tr('competencias_vacias')}</div>` : ''}
+      </div>
+
+      <div class="competition-stats-row">
+        <div class="competition-stat">
+          <div class="competition-stat-value">${matchCount}</div>
+          <div class="competition-stat-label">${tr('stats_pj_short')}</div>
+        </div>
+        <div class="competition-stat">
+          <div class="competition-stat-value">${isLiga ? 'Ida y vuelta' : 'Eliminación directa'}</div>
+          <div class="competition-stat-label">${tr('label_tipo_competencia')}</div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+        <button class="btn btn-sm btn-sortear-competition" data-comp-id="${comp.id}" style="flex: 1;">
+          <i class="ti ti-arrows-shuffle"></i> ${tr('btn_sortear_competencia')}
+        </button>
+        <button class="btn btn-sm btn-ver-competition" data-comp-id="${comp.id}" style="flex: 1;">
+          <i class="ti ti-eye"></i> ${tr('btn_ver_competencia')}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function openCompetitionFormModal(comp) {
+  const isEdit = !!comp;
+  const title = isEdit ? tr('btn_editar_competencia') : tr('btn_nueva_competencia');
+
+  let availableTeams = State.data.teams;
+  if (isEdit && comp.teamIds) {
+    availableTeams = State.data.teams.filter(t => !comp.teamIds.includes(t.id));
+  }
+  if (!isEdit) {
+    availableTeams = State.data.teams;
+  }
+
+  openModal(title, `
+    <div class="field">
+      <label>${tr('label_nombre_competencia')}</label>
+      <input type="text" id="comp-name-input" value="${escapeHtml(comp ? comp.name : '')}" placeholder="${tr('ph_nombre_competencia')}">
+    </div>
+
+    <div class="field">
+      <label>${tr('label_tipo_competencia')}</label>
+      <select id="comp-type-select">
+        <option value="liga" ${comp && comp.type === 'liga' ? 'selected' : ''}>${tr('opt_liga')}</option>
+        <option value="copa" ${comp && comp.type === 'copa' ? 'selected' : ''}>${tr('opt_copa')}</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>${tr('label_equipos_participan')}</label>
+      <div id="comp-teams-selector" style="max-height: 200px; overflow-y: auto; border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 0.5rem; background: var(--bg-surface-2);">
+        ${availableTeams.length ? availableTeams.map(t => {
+          const isSelected = comp && comp.teamIds && comp.teamIds.includes(t.id);
+          return `
+            <label class="competition-team-checkbox" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.5rem; border-radius: 6px; cursor: pointer; ${isSelected ? 'background: rgba(91,155,213,0.1);' : ''} border: 0.5px solid ${isSelected ? 'var(--accent-dark)' : 'transparent'};">
+              <input type="checkbox" class="comp-team-check" data-team-id="${t.id}" ${isEdit && isSelected ? 'checked disabled' : ''}>
+              ${teamDotHtml(t)}
+              <span style="flex: 1; font-size: 0.88rem; font-weight: 500;">${escapeHtml(t.name)}</span>
+              ${isEdit && isSelected ? '<span style="font-size: 0.7rem; color: var(--accent-dark);">✓</span>' : ''}
+            </label>
+          `;
+        }).join('') : `<div style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.88rem;">No hay equipos disponibles</div>`}
+      </div>
+      ${isEdit ? `<div class="mini-note" style="margin-top: 0.5rem;">Los equipos ya asignados no se pueden quitar.</div>` : ''}
+    </div>
+  `, `
+    <button class="btn" id="comp-form-cancel">${tr('btn_cancel')}</button>
+    <button class="btn btn-gold" id="comp-form-save"><i class="ti ti-check"></i> ${tr('btn_guardar_competencia')}</button>
+  `);
+
+  document.getElementById('comp-form-cancel').onclick = closeModal;
+
+  document.getElementById('comp-form-save').onclick = async () => {
+    const name = document.getElementById('comp-name-input').value.trim();
+    const type = document.getElementById('comp-type-select').value;
+
+    if (!name) {
+      toast(tr('label_nombre_competencia') + ': ' + tr('err_campo_requerido'), 'error');
+      return;
+    }
+
+    const checkedBoxes = document.querySelectorAll('#comp-teams-selector .comp-team-check:checked');
+    let teamIds = [];
+    if (isEdit && comp.teamIds) {
+      teamIds = [...comp.teamIds];
+      checkedBoxes.forEach(cb => {
+        if (!teamIds.includes(cb.dataset.teamId)) {
+          teamIds.push(cb.dataset.teamId);
+        }
+      });
+    } else {
+      checkedBoxes.forEach(cb => teamIds.push(cb.dataset.teamId));
+    }
+
+    if (teamIds.length < 2) {
+      toast(tr('no_equipos_seleccionados'), 'error');
+      return;
+    }
+
+    if (isEdit) {
+      const updated = { ...comp, name, type, teamIds };
+      await persistCompetition(updated);
+      toast(tr('toast_competencia_actualizada'));
+    } else {
+      if (State.data.competitions.length >= 4) {
+        toast(tr('toast_max_competencias'), 'error');
+        closeModal();
+        return;
+      }
+      const newComp = { id: uid('comp'), name, type, teamIds, season: State.data.settings.season || '2026', createdAt: Date.now() };
+      await persistCompetition(newComp);
+      toast(tr('toast_competencia_creada'));
+    }
+    closeModal();
+    renderAdminPanel();
+  };
+}
+
+/* -------------------- COMPETENCIAS (SORTEO) -------------------- */
+
+function openSortearCompetitionModal(comp) {
+  const isLiga = comp.type === 'liga';
+  const teamIds = comp.teamIds || [];
+
+  if (teamIds.length < 2) {
+    toast(tr('no_equipos_seleccionados'), 'error');
+    return;
+  }
+
+  const teams = teamIds.map(id => getTeamById(id)).filter(Boolean);
+
+  if (isLiga) {
+    const ida_vuelta = true;
+    const rounds = generateRoundRobin(teamIds, ida_vuelta);
+
+    const previewHtml = rounds.map((roundMatches, idx) => `
+      <div class="sorteo-competencia-preview">
+        <div class="round-title">Fecha ${idx + 1}</div>
+        ${roundMatches.map(([h, a]) => `  <div class="match-preview"><span>${escapeHtml(getTeamById(h).name)}</span><span class="draw-vs">vs</span><span>${escapeHtml(getTeamById(a).name)}</span></div>`).join('')}
+      </div>
+    `).join('');
+
+    const veces = teams.length - 1;
+    const plural = veces > 1 ? 'es' : '';
+
+    openModal(tr('confirmar_sorteo_competencia', { nombre: comp.name }), `
+      <p style="font-size: 0.88rem; margin-bottom: 1rem; color: var(--text-secondary);">
+        ${tr('sorteo_competencia_p', { nombre: comp.name, n: teams.length })}
+      </p>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">
+        ${tr('sorteo_liga_p_comp', { n: teams.length, veces: veces, plural: plural })}
+      </p>
+      ${previewHtml}
+    `, `
+      <button class="btn" id="sorteo-comp-cancel">${tr('btn_cancel')}</button>
+      <button class="btn btn-gold" id="sorteo-comp-confirm"><i class="ti ti-check"></i> ${tr('btn_sortear_y_guardar')}</button>
+    `);
+
+    document.getElementById('sorteo-comp-cancel').onclick = closeModal;
+    document.getElementById('sorteo-comp-confirm').onclick = async () => {
+      const existingMatches = State.data.matches.filter(m => m.competitionId === comp.id);
+      for (const m of existingMatches) {
+        await deleteMatchDB(m.id);
+      }
+
+      const newMatches = [];
+      rounds.forEach((roundMatches, idx) => {
+        roundMatches.forEach(([homeId, awayId]) => {
+          newMatches.push({
+            id: uid('match'),
+            round: idx + 1,
+            homeId,
+            awayId,
+            homeScore: 0,
+            awayScore: 0,
+            played: false,
+            stats: {},
+            competitionId: comp.id,
+            competitionFormat: 'liga',
+            bracket: false
+          });
+        });
+      });
+
+      for (const m of newMatches) {
+        await persistMatch(m);
+      }
+
+      closeModal();
+      toast(tr('toast_competencia_sorteada', { nombre: comp.name, rounds: rounds.length, matches: newMatches.length }));
+      renderAdminPanel();
+    };
+  } else {
+    // Copa
+    const round1Pairs = generateCopaBracket(teamIds);
+    const totalRounds = Math.ceil(Math.log2(nextPowerOfTwo(teamIds.length)));
+
+    const previewHtml = round1Pairs.map(([a, b], idx) => {
+      const teamA = a ? getTeamById(a).name : tr('bye_libre');
+      const teamB = b ? getTeamById(b).name : tr('bye_libre');
+      return `
+        <div class="sorteo-competencia-preview">
+          <div class="round-title">Primera ronda</div>
+          <div class="match-preview"><span>${escapeHtml(teamA)}</span><span class="draw-vs">vs</span><span>${escapeHtml(teamB)}</span></div>
+        </div>
+      `;
+    }).join('');
+
+    openModal(tr('confirmar_sorteo_competencia', { nombre: comp.name }), `
+      <p style="font-size: 0.88rem; margin-bottom: 1rem; color: var(--text-secondary);">
+        ${tr('sorteo_competencia_p', { nombre: comp.name, n: teams.length })}
+      </p>
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">
+        ${tr('sorteo_copa_p_comp', { n: teams.length })}
+      </p>
+      ${previewHtml}
+    `, `
+      <button class="btn" id="sorteo-comp-cancel">${tr('btn_cancel')}</button>
+      <button class="btn btn-gold" id="sorteo-comp-confirm"><i class="ti ti-check"></i> ${tr('btn_sortear_y_guardar')}</button>
+    `);
+
+    document.getElementById('sorteo-comp-cancel').onclick = closeModal;
+    document.getElementById('sorteo-comp-confirm').onclick = async () => {
+      const existingMatches = State.data.matches.filter(m => m.competitionId === comp.id && m.bracket);
+      for (const m of existingMatches) {
+        await deleteMatchDB(m.id);
+      }
+
+      const bracketMatches = [];
+      const round1Pairs_array = generateCopaBracket(teamIds);
+
+      round1Pairs_array.forEach(([homeId, awayId], idx) => {
+        const hasBye = !homeId || !awayId;
+        bracketMatches.push({
+          id: uid('match'),
+          bracketRound: 1,
+          bracketSlot: idx,
+          homeId: homeId || null,
+          awayId: awayId || null,
+          homeScore: hasBye && homeId ? 1 : 0,
+          awayScore: hasBye && awayId ? 1 : 0,
+          played: hasBye,
+          isBye: hasBye,
+          stats: {},
+          bracket: true,
+          competitionId: comp.id,
+          competitionFormat: 'copa',
+          totalBracketRounds: totalRounds
+        });
+      });
+
+      for (const m of bracketMatches) {
+        await persistMatch(m);
+      }
+
+      closeModal();
+      toast(tr('toast_competencia_sorteada', { nombre: comp.name, rounds: totalRounds, matches: bracketMatches.length }));
+      renderAdminPanel();
+    };
+  };
+}
+
+function openDeleteCompetitionModal(comp) {
+  openModal(tr('confirmar_eliminar_competencia'), `
+    <p style="font-size: 0.92rem;">${tr('confirmar_eliminar_competencia_p')}</p>
+    <div style="margin-top: 1rem; padding: 0.75rem; background: var(--bg-surface-2); border-radius: 8px; text-align: center;">
+      <strong style="font-family: var(--font-display); font-size: 1rem;">${escapeHtml(comp.name)}</strong>
+      <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.3rem;">
+        ${comp.teamIds ? comp.teamIds.length : 0} equipos · ${getCompetitionMatchesCount(comp.id)} partidos
+      </div>
+    </div>
+  `, `
+    <button class="btn" id="del-comp-cancel">${tr('btn_cancel')}</button>
+    <button class="btn btn-danger" id="del-comp-confirm"><i class="ti ti-trash"></i> ${tr('btn_eliminar_competencia')}</button>
+  `);
+
+  document.getElementById('del-comp-cancel').onclick = closeModal;
+  document.getElementById('del-comp-confirm').onclick = async () => {
+    const matchesToDelete = State.data.matches.filter(m => m.competitionId === comp.id);
+    for (const m of matchesToDelete) {
+      await deleteMatchDB(m.id);
+    }
+    await deleteCompetitionDB(comp.id);
+    closeModal();
+    toast(tr('toast_competencia_eliminada'));
+    renderAdminPanel();
   };
 }

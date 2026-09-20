@@ -27,8 +27,9 @@ const State = {
   currentStatsCompetition: 'todas',
   data: {
     teams: [],       // {id, name, short, logo, color, players:[{id,name}]}
-    matches: [],      // {id, round, homeId, awayId, homeScore, awayScore, played, stats:{playerId:{goals,assists,yellow,red}}, competitionFormat, bracket}
-    settings: { leagueName: 'Pro Soccer Online Uruguay', season: '2026', competitionFormat: null, competitionName: '' }
+    matches: [],      // {id, round, homeId, awayId, homeScore, awayScore, played, stats:{playerId:{goals,assists,yellow,red}}, competitionId, competitionFormat, bracket}
+    competitions: [], // {id, name, type:'liga'|'copa', teamIds:[], season, createdAt}
+    settings: { leagueName: 'Pro Soccer Online Uruguay', season: '2026' }
   }
 };
 
@@ -514,10 +515,12 @@ async function refreshFromStorage() {
     const settingsRaw = await safeGet('settings:main');
     const settings = State.data.settings;
     if (settingsRaw) { try { Object.assign(settings, JSON.parse(settingsRaw)); } catch (e) {} }
+    const competitions = await getCompetitionsFromStorage();
 
     State.data.teams = teams;
     State.data.matches = matches;
     State.data.settings = settings;
+    State.data.competitions = competitions;
     if (typeof renderAll === 'function') renderAll();
   } catch (e) {}
 }
@@ -552,6 +555,12 @@ async function persistMatch(match) {
   if (!online) saveLocalFallback();
 }
 
+function getCompetitionByMatchMatchId(matchId) {
+  const match = State.data.matches.find(m => m.id === matchId);
+  if (!match || !match.competitionId) return null;
+  return getCompetitionById(match.competitionId);
+}
+
 async function deleteMatchDB(id) {
   if (online) await safeDelete('matches:' + id);
   State.data.matches = State.data.matches.filter(m => m.id !== id);
@@ -564,4 +573,47 @@ async function persistSettings() {
   } else {
     saveLocalFallback();
   }
+}
+
+/* ---------------- Competencias ---------------- */
+
+async function persistCompetition(comp) {
+  if (online) {
+    const ok = await safeSet('competitions:' + comp.id, JSON.stringify(comp));
+    if (!ok) { toast(tr('toast_save_team_error'), 'error'); return; }
+  }
+  const idx = State.data.competitions.findIndex(c => c.id === comp.id);
+  if (idx >= 0) State.data.competitions[idx] = comp; else State.data.competitions.push(comp);
+  if (!online) saveLocalFallback();
+}
+
+async function deleteCompetitionDB(id) {
+  if (online) await safeDelete('competitions:' + id);
+  State.data.competitions = State.data.competitions.filter(c => c.id !== id);
+  if (!online) saveLocalFallback();
+}
+
+async function getCompetitionsFromStorage() {
+  if (!online) return [];
+  try {
+    const rows = await safeList('competitions:');
+    const comps = [];
+    for (const key of rows) {
+      const rec = await safeGet(key);
+      if (rec) { try { comps.push(JSON.parse(rec)); } catch (e) {} }
+    }
+    return comps;
+  } catch (e) { return []; }
+}
+
+function getCompetitionById(id) {
+  return State.data.competitions.find(c => c.id === id);
+}
+
+function getMatchesByCompetition(competitionId) {
+  return State.data.matches.filter(m => m.competitionId === competitionId);
+}
+
+function getCompetitionMatchesCount(competitionId) {
+  return State.data.matches.filter(m => m.competitionId === competitionId).length;
 }

@@ -566,9 +566,64 @@ const I18N = {
       pt: 'Esta ação excluirá todas as equipes, jogadores e jogos permanentemente. Confirma?'
     },
     btn_si_reiniciar: { es: 'Sí, reiniciar todo', pt: 'Sim, reiniciar tudo' },
-    toast_liga_reiniciada: { es: 'Liga reiniciada', pt: 'Liga reiniciada' }
+    toast_liga_reiniciada: { es: 'Liga reiniciada', pt: 'Liga reiniciada' },
+
+    /* ------- Competencias múltiples ------- */
+    tab_competencias: { es: 'Competencias', pt: 'Competições' },
+    admin_sub_competencias: { es: 'Competencias', pt: 'Competições' },
+    competencias_title: { es: 'Gestionar competencias', pt: 'Gerenciar competições' },
+    competencias_subtitle: { es: 'Crea hasta 4 competencias simultáneas (ligas y copas)', pt: 'Crie até 4 competições simultâneas (ligas e copas)' },
+    btn_nueva_competencia: { es: '➕ Nueva competencia', pt: '➕ Nova competição' },
+    btn_editar_competencia: { es: '✏️ Editar', pt: '✏️ Editar' },
+    btn_eliminar_competencia: { es: '🗑️ Eliminar', pt: '🗑️ Excluir' },
+    btn_guardar_competencia: { es: '💾 Guardar competencia', pt: '💾 Salvar competição' },
+    label_nombre_competencia: { es: 'Nombre de la competencia', pt: 'Nome da competição' },
+    ph_nombre_competencia: { es: 'Ej: Liga Uruguaya 2026', pt: 'Ex: Liga Uruguaia 2026' },
+    label_tipo_competencia: { es: 'Tipo de competencia', pt: 'Tipo de competição' },
+    opt_liga: { es: 'Liga (todos contra todos)', pt: 'Liga (todos contra todos)' },
+    opt_copa: { es: 'Copa (eliminación directa)', pt: 'Copa (eliminação direta)' },
+    label_equipos_participan: { es: 'Equipos participantes', pt: 'Equipes participantes' },
+    ph_seleccionar_equipos: { es: ' Selecciona los equipos que participan...', pt: ' Selecione as equipes que participam...' },
+    competencia_activa: { es: 'Competencia activa', pt: 'Competição ativa' },
+    competencias_vacias: { es: 'No hay competencias creadas', pt: 'Não há competições criadas' },
+    btn_sortear_competencia: { es: '🔀 Sortear fixture', pt: '🔀 Sortear calendário' },
+    btn_ver_competencia: { es: '👁️ Ver competencia', pt: '👁️ Ver competição' },
+    toast_competencia_creada: { es: '✅ Competencia creada', pt: '✅ Competição criada' },
+    toast_competencia_actualizada: { es: '✅ Competencia actualizada', pt: '✅ Competição atualizada' },
+    toast_competencia_eliminada: { es: '🗑️ Competencia eliminada', pt: '🗑️ Competição excluída' },
+    toast_max_competencias: { es: '⚠️ Ya tienes 4 competencias máximas', pt: '⚠️ Você já tem 4 competições no máximo' },
+    slot_competencia: { es: 'Competencia {n}', pt: 'Competição {n}' },
+    no_equipos_seleccionados: { es: 'Selecciona al menos 2 equipos', pt: 'Selecione pelo menos 2 equipes' },
+    confirmar_eliminar_competencia: { es: '¿Confirmás eliminar esta competencia?', pt: 'Confirma excluir esta competição?' },
+    confirmar_eliminar_competencia_p: { es: 'Se eliminan todos los partidos de esta competencia. Los equipos no se eliminan.', pt: 'Todos os jogos desta competição serão excluídos. As equipes não serão excluídas.' },
+
+    /* ------- Vista por competencia ------- */
+    fixture_selecciona_competencia: { es: 'Selecciona una competencia', pt: 'Selecione uma competição' },
+    tabla_selecciona_competencia: { es: 'Selecciona una competencia', pt: 'Selecione uma competição' },
+    stats_selecciona_competencia: { es: 'Selecciona una competencia', pt: 'Selecione uma competição' },
+    competencia_lista: { es: 'Competencias', pt: 'Competições' },
+    competencia_sin_partidos: { es: 'Sin partidos', pt: 'Sem jogos' },
+    competencia_empty: { es: 'No hay partidos en esta competencia', pt: 'Não há jogos nesta competição' },
+
+    /* ------- Sorteo por competencia ------- */
+    confirmar_sorteo_competencia: { es: 'Confirmar sorteo de {nombre}', pt: 'Confirmar sorteio de {nome}' },
+    sorteo_competencia_p: { es: 'Se sorteará la competencia "{nombre}" con {n} equipos.', pt: 'A competição "{nome}" será sorteada com {n} equipes.' },
+    btn_sortear_y_guardar: { es: '🔀 Sortear y guardar', pt: '🔀 Sortear e salvar' },
+    toast_competencia_sorteada: { es: '🏆 Competencia "{nombre}" sorteada: {rounds} fechas, {matches} partidos', pt: '🏆 Competição "{nome}" sorteada: {rounds} rodadas, {matches} jogos' },
+    sorteo_liga_p_comp: { es: 'Liga de {n} equipos. Cada equipo juega contra todos {veces} vez{plural}.', pt: 'Liga de {n} equipes. Cada equipe joga contra todos {veces} vez{es}' },
+    sorteo_copa_p_comp: { es: 'Copa de {n} equipos. El formato de eliminación directa requiere potencia de 2.', pt: 'Copa de {n} equipes. O formato de eliminação direta requer potência de 2.' },
+    sorteo_copa_confirm_p: { es: 'Copa de {n} equipos. Total de rondas: {rounds}.', pt: 'Copa de {n} equipes. Total de rodadas: {rounds}.' },
+    llaves_ronda1: { es: 'Primera ronda (Llaves)', pt: 'Primeira rodada (Chaves)' },
+    nota_reemplaza_comp: { es: 'Los partidos existentes de esta competencia serán reemplazados.', pt: 'Os jogos existentes desta competição serão substituídos.' },
+    nota_reemplaza_copa_comp: { es: 'Los partidos existentes de esta copa serán reemplazados.', pt: 'Os jogos existentes desta copa serão substituídos.' },
+    vista_previa_comp: { es: 'Vista previa del sorteo', pt: 'Pré-visualização do sorteio' },
+    fecha_badge_comp: { es: 'Fecha {n}', pt: 'Rodada {n}' },
+    bye_libre: { es: 'Libre (bye)', pt: 'Livre (bye)' },
+
+    /* ------- Filtros por competencia ------- */
+    filtro_todas_comp: { es: 'Todas', pt: 'Todas' },
+    filtro_competencia: { es: '{nombre}', pt: '{nome}' },
   }
-};
 
 /* Traduce una clave del diccionario con interpolación de {vars} */
 function tr(key, vars) {
