@@ -198,15 +198,27 @@ const I18N_SERVER_ERR = {
   'Password should be at least 6 characters.': { es: 'La contraseña debe tener al menos 6 caracteres.', pt: 'A senha deve ter pelo menos 6 caracteres.' },
   'Email not confirmed': { es: 'Falta confirmar el correo de la cuenta (pedile al administrador).', pt: 'Falta confirmar o e-mail da conta (peça ao administrador).' },
   'Signups not allowed for this instance': { es: 'El registro está deshabilitado en el servidor.', pt: 'O registro está desativado no servidor.' },
-  'Unable to validate email address: invalid format': { es: 'El nombre de usuario no es válido.', pt: 'O nome de usuário não é válido.' }
+  'Unable to validate email address: invalid format': { es: 'El nombre de usuario no es válido.', pt: 'O nome de usuário não é válido.' },
+  'email rate limit exceeded': {
+    es: 'El servidor superó el límite de correos de confirmación (el registro pide verificar el email y no debería). Avisá al administrador de la liga.',
+    pt: 'O servidor excedeu o limite de e-mails de confirmação (o registro pede verificar o e-mail e não deveria). Avise o administrador da liga.'
+  }
 };
+
+/* Índice en minúsculas: GoTrue (Auth) varía el uso de mayúsculas entre versiones. */
+const I18N_SERVER_ERR_LC = (() => {
+  const out = {};
+  for (const k in I18N_SERVER_ERR) out[k.toLowerCase()] = I18N_SERVER_ERR[k];
+  return out;
+})();
 
 function localizeServerError(msg) {
   if (typeof I18N === 'undefined' || typeof I18N_SERVER_ERR !== 'object') return msg;
-  const entry = I18N_SERVER_ERR[msg];
-  if (!entry) return msg;
+  const text = String(msg || '');
+  const entry = I18N_SERVER_ERR[text] || I18N_SERVER_ERR_LC[text.toLowerCase()];
+  if (!entry) return text;
   const lang = window.I18N ? I18N.lang : 'es';
-  return entry[lang] || entry.es || msg;
+  return entry[lang] || entry.es || text;
 }
 
 /* Email sintético: el ranking usa username+password, pero Supabase Auth
