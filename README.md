@@ -82,11 +82,22 @@ SUPABASE_ANON_KEY: "sb_publishable_xxxx",
    el front se lo avisa en el modal apenas se registra.
 
    > ⚠ **Para producción hace falta SMTP propio.** El mailer integrado de
-   > Supabase es solo de prueba: tiene un límite de ~2-4 correos por hora y
-   > solo entrega a direcciones autorizadas. Si se pasa el límite, la API
-   > responde `429 over_email_send_rate_limit`. Configuralo en
-   > **Authentication → Emails → SMTP Settings** (Resend / Brevo / SendGrid
-   > tienen plan gratis) y subí el *Rate limit* de emails.
+   > Supabase es solo para pruebas y tiene **3 restricciones** (documentadas
+   > por Supabase): límite de **2 correos por hora**, **solo entrega a los
+   > emails del equipo del proyecto** (el resto falla con
+   > `Email address not authorized`) y sin garantía de entrega.
+   >
+   > Opciones de SMTP propio, en `Authentication → Emails → SMTP Settings`:
+   >
+   > - **Gmail de la liga** — lo más rápido y gratis, **no necesita dominio
+   >   propio**: host `smtp.gmail.com`, port `465`, usuario el Gmail completo
+   >   y una **contraseña de aplicación** (requiere activar la verificación en
+   >   2 pasos). Límite ~500 correos/día.
+   > - **Resend / Brevo / SendGrid** — mejor entregabilidad, pero Resend exige
+   >   **verificar un dominio propio** (registros MX + SPF + DKIM) y **sin
+   >   dominio verificado solo puede enviar a tu propio email**.
+   >
+   > Después subí el límite en **Authentication → Rate Limits**.
 
 7. Verificamos que las tablas existan y que la API las vea:
 
