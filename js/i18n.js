@@ -66,10 +66,21 @@ const I18N = {
     err_password_short: { es: 'La contraseña debe tener al menos 6 caracteres.', pt: 'A senha deve ter pelo menos 6 caracteres.' },
     err_username_taken: { es: 'Ese nombre de usuario ya está en uso.', pt: 'Esse nome de usuário já está em uso.' },
     err_signup_confirm_email: {
-      es: 'El servidor exige confirmar el email para activar la cuenta. Avisá al administrador de la liga.',
-      pt: 'O servidor exige confirmar o e-mail para ativar a conta. Avise o administrador da liga.'
+      es: 'Te enviamos un correo a {email}. Abrilo y confirmá la cuenta para poder ingresar.',
+      pt: 'Enviamos um e-mail para {email}. Abra e confirme a conta para poder entrar.'
+    },
+    label_email: { es: 'Correo electrónico', pt: 'E-mail' },
+    ph_email: { es: 'tucorreo@ejemplo.com', pt: 'seuemail@exemplo.com' },
+    err_email_format: {
+      es: 'Ingresá un correo electrónico válido (ej: tucorreo@gmail.com).',
+      pt: 'Digite um e-mail válido (ex: seuemail@gmail.com).'
+    },
+    note_email_confirm: {
+      es: 'Te vamos a enviar un correo a esa dirección: abrilo y confirmá la cuenta, si no no vas a poder ingresar.',
+      pt: 'Vamos enviar um e-mail para esse endereço: abra e confirme a conta, senão você não poderá entrar.'
     },
     err_bad_credentials: { es: 'Usuario o contraseña incorrectos.', pt: 'Usuário ou senha incorretos.' },
+    err_no_auth: { es: 'Iniciá sesión para continuar.', pt: 'Faça login para continuar.' },
     toast_signup: { es: '¡Cuenta creada! Bienvenido, {name}', pt: 'Conta criada! Bem-vindo, {name}' },
     toast_login: { es: '¡Hola de nuevo, {name}!', pt: 'Bem-vindo de volta, {name}!' },
     auth_title: { es: 'Tu cuenta', pt: 'Sua conta' },
@@ -84,14 +95,15 @@ const I18N = {
     label_display_name: { es: 'Nombre visible (opcional)', pt: 'Nome de exibição (opcional)' },
     ph_display_name: { es: 'Cómo te vas a ver en el ranking', pt: 'Como você vai aparecer no ranking' },
     label_password: { es: 'Contraseña', pt: 'Senha' },
-    ph_password: { es: 'Mínimo 4 caracteres', pt: 'Mínimo 4 caracteres' },
+    ph_password: { es: 'Mínimo 6 caracteres', pt: 'Mínimo 6 caracteres' },
+    label_password_min: { es: '(6 caracteres mínimo)', pt: '(6 caracteres mínimo)' },
     label_password2: { es: 'Repetir contraseña', pt: 'Repetir senha' },
     btn_crear_mi_cuenta: { es: 'Crear mi cuenta', pt: 'Criar minha conta' },
     label_user: { es: 'Usuario', pt: 'Usuário' },
     ph_user: { es: 'Tu nombre de usuario', pt: 'Seu nome de usuário' },
     auth_admin_link: { es: '¿Sos el administrador de la liga?', pt: 'É você o administrador da liga?' },
     auth_admin_link_btn: { es: 'Ingresá acá', pt: 'Entre aqui' },
-    err_login_incomplete: { es: 'Completá usuario y contraseña.', pt: 'Preencha usuário e senha.' },
+    err_login_incomplete: { es: 'Completá correo y contraseña.', pt: 'Preencha e-mail e senha.' },
     err_pass_mismatch: { es: 'Las contraseñas no coinciden.', pt: 'As senhas não coincidem.' },
     confirm_local_account: {
       es: 'Abriste el sitio sin servidor online: la cuenta se guardará SOLO en esta computadora. ¿Continuar?',

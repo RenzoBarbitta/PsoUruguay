@@ -35,12 +35,13 @@ function saveLocalUsers(arr) {
   localStorage.setItem('pso_local_users', JSON.stringify(arr));
 }
 
-function localFindUser(username) {
-  const name = String(username || '').trim().toLowerCase();
-  return getLocalUsers().find(u => u.username === name);
+/* En modo local el jugador puede entrar con su nombre de usuario o con su email. */
+function localFindUser(identifier) {
+  const id = String(identifier || '').trim().toLowerCase();
+  return getLocalUsers().find(u => u.username === id || (u.email && u.email === id));
 }
 
-function localUserSignup(username, password, displayName) {
+function localUserSignup(username, password, displayName, email) {
   const name = String(username || '').trim().toLowerCase();
   if (!/^[a-z0-9_]{3,20}$/.test(name)) {
     throw new Error(tr('err_username_format'));
@@ -56,6 +57,7 @@ function localUserSignup(username, password, displayName) {
     id: uid('u'),
     username: name,
     displayName: String(displayName || '').trim() || name,
+    email: String(email || '').trim().toLowerCase(),
     bestStreak: 0,
     bestPenalStreak: 0,
     createdAt: Date.now()
@@ -67,8 +69,8 @@ function localUserSignup(username, password, displayName) {
   return user;
 }
 
-function localUserLogin(username, password) {
-  const user = localFindUser(username);
+function localUserLogin(identifier, password) {
+  const user = localFindUser(identifier);
   if (!user) throw new Error(tr('err_bad_credentials'));
   if (localStorage.getItem('pso_local_pass_' + user.username) !== String(password)) {
     throw new Error(tr('err_bad_credentials'));
@@ -79,28 +81,31 @@ function localUserLogin(username, password) {
 
 /* ---------------- Registro / Login (online o local) ---------------- */
 
-async function doSignup(username, password, displayName) {
+/* Devuelve {pendingConfirmation:true, email} cuando la cuenta se creó pero
+   Supabase está esperando que el jugador confirme el email (todavía sin sesión). */
+async function doSignup(email, username, password, displayName) {
   let user;
   if (online) {
-    const data = await apiRequest('/api/auth/signup', { method: 'POST', body: { username, password, displayName } });
+    const data = await apiRequest('/api/auth/signup', { method: 'POST', body: { email, username, password, displayName } });
+    if (data && data.pendingConfirmation) return { pendingConfirmation: true, email: data.email };
     user = data.user;
     saveAuth(user, data.token);
   } else {
-    user = localUserSignup(username, password, displayName);
+    user = localUserSignup(username, password, displayName, email);
   }
   refreshShellAfterAuth();
   toast(tr('toast_signup', { name: (user.displayName || user.username) }));
   return user;
 }
 
-async function doLoginUser(username, password) {
+async function doLoginUser(email, password) {
   let user;
   if (online) {
-    const data = await apiRequest('/api/auth/login', { method: 'POST', body: { username, password } });
+    const data = await apiRequest('/api/auth/login', { method: 'POST', body: { email, password } });
     user = data.user;
     saveAuth(user, data.token);
   } else {
-    user = localUserLogin(username, password);
+    user = localUserLogin(email, password);
   }
   refreshShellAfterAuth();
   toast(tr('toast_login', { name: (user.displayName || user.username) }));
@@ -132,6 +137,7 @@ function openAuthModal(tab = 'login') {
         <button class="auth-tab ${currentTab === 'register' ? 'active' : ''}" data-auth-tab="register"><i class="ti ti-user-plus"></i> ${tr('btn_crear_cuenta')}</button>
       </div>
       <div class="field-error" id="auth-error" style="display:none;"></div>
+      <div id="auth-ok" style="display:none; margin-bottom:0.9rem; padding:0.6rem 0.75rem; border-radius:8px; font-size:0.82rem; line-height:1.4; background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.45); color:#4ade80;"></div>
 
       ${currentTab === 'register' ? `
         <div class="field">
@@ -143,22 +149,29 @@ function openAuthModal(tab = 'login') {
           <input type="text" id="auth-displayname" autocomplete="nickname" placeholder="${tr('ph_display_name')}" maxlength="24">
         </div>
         <div class="field">
-          <label>${tr('label_password')}</label>
-          <input type="password" id="auth-password" autocomplete="new-password" placeholder="${tr('ph_password')}">
+          <label>${tr('label_email')}</label>
+          <input type="email" id="auth-email" autocomplete="email" placeholder="${tr('ph_email')}" required>
         </div>
-        <div class="field" style="margin-bottom:0.25rem;">
+        <div class="field">
+          <label>${tr('label_password')} <span style="color:var(--text-muted); font-weight:400;">${tr('label_password_min')}</span></label>
+          <input type="password" id="auth-password" autocomplete="new-password" placeholder="${tr('ph_password')}" minlength="6" required>
+        </div>
+        <div class="field">
           <label>${tr('label_password2')}</label>
-          <input type="password" id="auth-password2" autocomplete="new-password" placeholder="••••••••">
+          <input type="password" id="auth-password2" autocomplete="new-password" placeholder="${tr('ph_password')}" minlength="6" required>
         </div>
+        <p style="color:var(--text-muted); font-size:0.78rem; line-height:1.4; margin:0.15rem 0 0.9rem; padding:0.55rem 0.7rem; border-radius:8px; background:rgba(59,130,246,0.10); border:1px solid rgba(59,130,246,0.35);">
+          <i class="ti ti-mail"></i> ${tr('note_email_confirm')}
+        </p>
         <button class="btn btn-primary btn-block" id="auth-submit"><i class="ti ti-user-plus"></i> ${tr('btn_crear_mi_cuenta')}</button>
       ` : `
         <div class="field">
-          <label>${tr('label_user')}</label>
-          <input type="text" id="auth-username" autocomplete="username" placeholder="${tr('ph_user')}">
+          <label>${tr('label_email')}</label>
+          <input type="email" id="auth-email" autocomplete="email" placeholder="${tr('ph_email')}" required>
         </div>
         <div class="field" style="margin-bottom:0.25rem;">
           <label>${tr('label_password')}</label>
-          <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••">
+          <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••" required>
         </div>
         <button class="btn btn-primary btn-block" id="auth-submit"><i class="ti ti-login"></i> ${tr('btn_ingresar')}</button>
       `}
@@ -173,27 +186,42 @@ function openAuthModal(tab = 'login') {
     const goAdmin = body.querySelector('#go-admin-login');
     if (goAdmin) goAdmin.onclick = () => { closeModal(); openLoginModal(); };
 
-    const username = body.querySelector('#auth-username');
+    const email = body.querySelector('#auth-email');
     const password = body.querySelector('#auth-password');
+    const username = body.querySelector('#auth-username');    // solo existe en el tab de registro
+    const password2 = body.querySelector('#auth-password2');  // solo existe en el tab de registro
 
     const submit = async () => {
       const errorEl = body.querySelector('#auth-error');
+      const okEl = body.querySelector('#auth-ok');
       errorEl.style.display = 'none';
+      okEl.style.display = 'none';
       try {
-        const u = username.value.trim();
+        const mail = email.value.trim();
         const p = password.value;
-        if (!u || !p) { errorEl.textContent = tr('err_login_incomplete'); errorEl.style.display = 'block'; return; }
+        if (!mail || !p) { errorEl.textContent = tr('err_login_incomplete'); errorEl.style.display = 'block'; return; }
+        if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(mail)) { errorEl.textContent = tr('err_email_format'); errorEl.style.display = 'block'; return; }
+
         if (currentTab === 'register') {
-          const p2 = body.querySelector('#auth-password2').value;
-          if (p !== p2) { errorEl.textContent = tr('err_pass_mismatch'); errorEl.style.display = 'block'; return; }
+          const u = username.value.trim();
           /* Validamos ANTES de llamar al server: Supabase exige contraseña de
              6+ y usuario de 3-20 (letras/números/_). Si no, responde 422. */
           if (String(p).length < 6) { errorEl.textContent = tr('err_password_short'); errorEl.style.display = 'block'; return; }
+          if (p !== password2.value) { errorEl.textContent = tr('err_pass_mismatch'); errorEl.style.display = 'block'; return; }
           if (!/^[a-z0-9_]{3,20}$/.test(u.toLowerCase())) { errorEl.textContent = tr('err_username_format'); errorEl.style.display = 'block'; return; }
           if (!online && !confirm(tr('confirm_local_account'))) return;
-          await doSignup(u, p, body.querySelector('#auth-displayname') ? body.querySelector('#auth-displayname').value : '');
+          const displayName = body.querySelector('#auth-displayname') ? body.querySelector('#auth-displayname').value : '';
+          const res = await doSignup(mail, u, p, displayName);
+          if (res && res.pendingConfirmation) {
+            /* La cuenta se creó, pero Supabase está esperando que el jugador
+               confirme el email: todavía no hay sesión, así que le avisamos
+               y dejamos el modal abierto. */
+            okEl.textContent = tr('err_signup_confirm_email', { email: res.email });
+            okEl.style.display = 'block';
+            return;
+          }
         } else {
-          await doLoginUser(u, p);
+          await doLoginUser(mail, p);
         }
         closeModal();
         switchTab('trivia');
@@ -204,10 +232,10 @@ function openAuthModal(tab = 'login') {
     };
 
     body.querySelector('#auth-submit').onclick = submit;
-    [username, password, body.querySelector('#auth-password2')].forEach(inp => {
+    [email, password, username, password2].forEach(inp => {
       if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
     });
-    setTimeout(() => username.focus(), 100);
+    setTimeout(() => (currentTab === 'register' && username ? username : email).focus(), 100);
   }
 
   renderBody();

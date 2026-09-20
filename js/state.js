@@ -174,8 +174,9 @@ async function safeList(prefix) {
 /* ======================================================================
    API "FICTICIA" PARA EL FRONT (traduce las rutas /api/... a Supabase)
    Mantiene la MISMA interfaz que usaban auth.js / trivia.js / penales.js:
-     POST /api/auth/signup  {username,password,displayName} → {user, token}
-     POST /api/auth/login   {username,password}             → {user, token}
+     POST /api/auth/signup  {email,username,password,displayName} → {user, token}
+                            (si falta confirmar el email: {pendingConfirmation:true, email})
+     POST /api/auth/login   {email,password}                → {user, token}
      GET  /api/me           (token)                         → {user}
      GET  /api/ranking      → {ranking:[{id,username,displayName,bestStreak,createdAt}]}
      POST /api/ranking      (token) {bestStreak}            → {user}
@@ -221,11 +222,14 @@ function localizeServerError(msg) {
   return entry[lang] || entry.es || text;
 }
 
-/* Email sintético: el ranking usa username+password, pero Supabase Auth
-   usa email. Armamos username + "@pso.uy" y lo guardamos en metadata. */
-function authEmail(username) {
-  const u = String(username || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
-  return u + '@pso.uy';
+/* El jugador se registra con su email real (lo pide el formulario): ese email
+   es el que usa Supabase Auth para mandar el link de confirmación. El username
+   viaja en user_metadata y es el nombre que se ve en el ranking.
+   El email NO se guarda en public.users a propósito: esa tabla la lee
+   cualquiera con la anon key y no queremos exponer los correos. */
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
 }
 
 function mapAuthUser(authData) {
@@ -275,13 +279,14 @@ async function apiRequest(path, options = {}) {
 
   /* ---------------- AUTH ---------------- */
   if (pathStr === '/api/auth/signup') {
+    const email = normalizeEmail(body.email);
     const data = await supaFetch('/auth/v1/signup', {
       method: 'POST',
       body: {
-        email: authEmail(body.username),
+        email,
         password: body.password,
         data: {
-          username: String(body.username).toLowerCase(),
+          username: String(body.username || '').toLowerCase(),
           display_name: body.displayName || String(body.username),
           best_streak: 0,
           best_penal_streak: 0
@@ -289,10 +294,12 @@ async function apiRequest(path, options = {}) {
       }
     });
     if (!data || !data.access_token) {
-      /* Sin token, pero con usuario: Supabase creó la cuenta y quedó pendiente
-         de confirmar el email (Authentication → Sign In / Providers → Email
-         → "Confirm email" debe estar OFF, porque usamos usuario@pso.uy). */
-      if (data && data.user) throw new Error(tr('err_signup_confirm_email'));
+      /* Sin token pero con usuario: Supabase creó la cuenta y quedó esperando
+         que el jugador confirme el email (por eso todavía no hay sesión).
+         Devolvemos "pendiente" para que el modal se lo explique. */
+      if (data && data.user) {
+        return { pendingConfirmation: true, email, user: mapAuthUser(data.user), token: null };
+      }
       throw new Error(tr('err_bad_credentials'));
     }
     await supaUpsertUser(data.access_token, {});
@@ -302,7 +309,7 @@ async function apiRequest(path, options = {}) {
   if (pathStr === '/api/auth/login') {
     const data = await supaFetch('/auth/v1/token?grant_type=password', {
       method: 'POST',
-      body: { email: authEmail(body.username), password: body.password }
+      body: { email: normalizeEmail(body.email), password: body.password }
     });
     if (!data || !data.access_token) throw new Error(tr('err_bad_credentials'));
     await supaUpsertUser(data.access_token, {});

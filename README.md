@@ -74,14 +74,19 @@ SUPABASE_ANON_KEY: "sb_publishable_xxxx",
 5. Activamos **Row Level Security (RLS)** en las tablas `users` y `kv`
    (el script ya lo hace).
 6. En **Authentication → Sign In / Providers → Email** dejamos **Email** activado
-   (email + contraseña) y **desactivamos "Confirm email"**.
+   (email + contraseña) y **"Confirm email" ACTIVADO**.
 
-   > ⚠ **Obligatorio.** Las cuentas se crean con emails **sintéticos**
-   > (`usuario@pso.uy`, ver `authEmail()` en `js/state.js`), que no tienen
-   > buzón real. Si "Confirm email" queda activado, el signup no devuelve
-   > `access_token` y el front muestra "Usuario o contraseña incorrectos":
-   > **nadie puede registrarse** desde la web.
-   > (Se verifica con `GET /auth/v1/settings` → `"mailer_autoconfirm": true`).
+   Las cuentas se crean con el **email real** que el jugador escribe en el
+   formulario (`js/auth.js`). Con "Confirm email" en ON, Supabase manda el
+   correo de confirmación y **el jugador no puede iniciar sesión hasta abrirlo**;
+   el front se lo avisa en el modal apenas se registra.
+
+   > ⚠ **Para producción hace falta SMTP propio.** El mailer integrado de
+   > Supabase es solo de prueba: tiene un límite de ~2-4 correos por hora y
+   > solo entrega a direcciones autorizadas. Si se pasa el límite, la API
+   > responde `429 over_email_send_rate_limit`. Configuralo en
+   > **Authentication → Emails → SMTP Settings** (Resend / Brevo / SendGrid
+   > tienen plan gratis) y subí el *Rate limit* de emails.
 
 7. Verificamos que las tablas existan y que la API las vea:
 
@@ -133,8 +138,12 @@ pass: pso2026
 ## Cuentas de jugador
 
 En la barra superior, el botón 👤 abre el formulario para **ingresar** o
-**crear cuenta**. La trivia exige estar con sesión iniciada: así el ranking
-sabe quién es cada jugador y guarda su mejor racha online.
+**crear cuenta**. El registro pide **usuario, nombre visible, email y
+contraseña (6+)**; el email es real y hay que **confirmarlo desde el correo**
+antes de poder entrar (así se evita que cualquiera cargue nombres ajenos en el
+ranking). El login se hace con **email + contraseña**. La trivia exige estar con
+sesión iniciada: así el ranking sabe quién es cada jugador y guarda su mejor
+racha online.
 
 ## Desplegar en internet
 
