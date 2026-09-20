@@ -73,8 +73,9 @@ async function supaFetch(path, options = {}) {
     let msg = 'HTTP ' + res.status;
     try {
       const j = await res.json();
-      if (j && (j.message || j.error_description || j.error)) {
-        msg = j.message || j.error_description || j.error;
+      /* GoTrue (Auth) manda el texto en `msg`; PostgREST en `message`. */
+      if (j && (j.message || j.msg || j.error_description || j.error)) {
+        msg = j.message || j.msg || j.error_description || j.error;
       }
     } catch (e) {}
     throw new Error(localizeServerError(msg));
@@ -183,20 +184,29 @@ async function safeList(prefix) {
    ====================================================================== */
 
 const I18N_SERVER_ERR = {
-  'No autorizado. Iniciá sesión.': 'Não autorizado. Faça login.',
-  'El usuario debe tener entre 3 y 20 caracteres (letras, números o _).': 'O usuário deve ter entre 3 e 20 caracteres (letras, números ou _).',
-  'La contraseña debe tener al menos 4 caracteres.': 'A senha deve ter pelo menos 4 caracteres.',
-  'Ese nombre de usuario ya está en uso.': 'Esse nome de usuário já está em uso.',
-  'Usuario o contraseña incorrectos.': 'Usuário ou senha incorretos.',
-  'Usuario no encontrado.': 'Usuário não encontrado.',
-  'Falta la key.': 'Falta a key.'
+  'No autorizado. Iniciá sesión.': { es: 'No autorizado. Iniciá sesión.', pt: 'Não autorizado. Faça login.' },
+  'El usuario debe tener entre 3 y 20 caracteres (letras, números o _).': { es: 'El usuario debe tener entre 3 y 20 caracteres (letras, números o _).', pt: 'O usuário deve ter entre 3 e 20 caracteres (letras, números ou _).' },
+  'La contraseña debe tener al menos 6 caracteres.': { es: 'La contraseña debe tener al menos 6 caracteres.', pt: 'A senha deve ter pelo menos 6 caracteres.' },
+  'Ese nombre de usuario ya está en uso.': { es: 'Ese nombre de usuario ya está en uso.', pt: 'Esse nome de usuário já está em uso.' },
+  'Usuario o contraseña incorrectos.': { es: 'Usuario o contraseña incorrectos.', pt: 'Usuário ou senha incorretos.' },
+  'Usuario no encontrado.': { es: 'Usuario no encontrado.', pt: 'Usuário não encontrado.' },
+  'Falta la key.': { es: 'Falta la key.', pt: 'Falta a key.' },
+
+  /* ---- Mensajes que devuelve Supabase Auth (GoTrue), en inglés ---- */
+  'Invalid login credentials': { es: 'Usuario o contraseña incorrectos.', pt: 'Usuário ou senha incorretos.' },
+  'User already registered': { es: 'Ese nombre de usuario ya está en uso.', pt: 'Esse nome de usuário já está em uso.' },
+  'Password should be at least 6 characters.': { es: 'La contraseña debe tener al menos 6 caracteres.', pt: 'A senha deve ter pelo menos 6 caracteres.' },
+  'Email not confirmed': { es: 'Falta confirmar el correo de la cuenta (pedile al administrador).', pt: 'Falta confirmar o e-mail da conta (peça ao administrador).' },
+  'Signups not allowed for this instance': { es: 'El registro está deshabilitado en el servidor.', pt: 'O registro está desativado no servidor.' },
+  'Unable to validate email address: invalid format': { es: 'El nombre de usuario no es válido.', pt: 'O nome de usuário não é válido.' }
 };
 
 function localizeServerError(msg) {
   if (typeof I18N === 'undefined' || typeof I18N_SERVER_ERR !== 'object') return msg;
+  const entry = I18N_SERVER_ERR[msg];
+  if (!entry) return msg;
   const lang = window.I18N ? I18N.lang : 'es';
-  if (lang === 'pt' && I18N_SERVER_ERR[msg]) return I18N_SERVER_ERR[msg];
-  return msg;
+  return entry[lang] || entry.es || msg;
 }
 
 /* Email sintético: el ranking usa username+password, pero Supabase Auth
@@ -266,7 +276,13 @@ async function apiRequest(path, options = {}) {
         }
       }
     });
-    if (!data || !data.access_token) throw new Error(tr('err_bad_credentials'));
+    if (!data || !data.access_token) {
+      /* Sin token, pero con usuario: Supabase creó la cuenta y quedó pendiente
+         de confirmar el email (Authentication → Sign In / Providers → Email
+         → "Confirm email" debe estar OFF, porque usamos usuario@pso.uy). */
+      if (data && data.user) throw new Error(tr('err_signup_confirm_email'));
+      throw new Error(tr('err_bad_credentials'));
+    }
     await supaUpsertUser(data.access_token, {});
     return { user: mapAuthUser(data.user), token: data.access_token };
   }

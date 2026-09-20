@@ -45,7 +45,7 @@ function localUserSignup(username, password, displayName) {
   if (!/^[a-z0-9_]{3,20}$/.test(name)) {
     throw new Error(tr('err_username_format'));
   }
-  if (!password || String(password).length < 4) {
+  if (!password || String(password).length < 6) {
     throw new Error(tr('err_password_short'));
   }
   const users = getLocalUsers();
@@ -186,6 +186,10 @@ function openAuthModal(tab = 'login') {
         if (currentTab === 'register') {
           const p2 = body.querySelector('#auth-password2').value;
           if (p !== p2) { errorEl.textContent = tr('err_pass_mismatch'); errorEl.style.display = 'block'; return; }
+          /* Validamos ANTES de llamar al server: Supabase exige contraseña de
+             6+ y usuario de 3-20 (letras/números/_). Si no, responde 422. */
+          if (String(p).length < 6) { errorEl.textContent = tr('err_password_short'); errorEl.style.display = 'block'; return; }
+          if (!/^[a-z0-9_]{3,20}$/.test(u.toLowerCase())) { errorEl.textContent = tr('err_username_format'); errorEl.style.display = 'block'; return; }
           if (!online && !confirm(tr('confirm_local_account'))) return;
           await doSignup(u, p, body.querySelector('#auth-displayname') ? body.querySelector('#auth-displayname').value : '');
         } else {

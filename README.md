@@ -96,6 +96,13 @@ curl -s -o /dev/null -w "%{http_code}\n" \
    `supabase-schema.sql` (es idempotente y termina con
    `notify pgrst, 'reload schema';`).
 
+8. La **contraseña mínima es de 6 caracteres** (política por defecto de
+   Supabase Auth). El front valida lo mismo antes de llamar al server
+   (`js/auth.js`), así el jugador ve *"La contraseña debe tener al menos 6
+   caracteres"* en vez de un `HTTP 422` pelado.
+   Si querés permitir contraseñas más cortas: **Authentication → Settings →
+   Password requirements → Minimum length**, y bajá el `6` en `js/auth.js`.
+
 ## API del frontend (no es un server)
 
 El sitio NO tiene su propio backend: usa Supabase REST directamente desde el

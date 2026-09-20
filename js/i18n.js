@@ -63,8 +63,12 @@ const I18N = {
       es: 'El usuario debe tener entre 3 y 20 caracteres (letras, números o _).',
       pt: 'O usuário deve ter entre 3 e 20 caracteres (letras, números ou _).'
     },
-    err_password_short: { es: 'La contraseña debe tener al menos 4 caracteres.', pt: 'A senha deve ter pelo menos 4 caracteres.' },
+    err_password_short: { es: 'La contraseña debe tener al menos 6 caracteres.', pt: 'A senha deve ter pelo menos 6 caracteres.' },
     err_username_taken: { es: 'Ese nombre de usuario ya está en uso.', pt: 'Esse nome de usuário já está em uso.' },
+    err_signup_confirm_email: {
+      es: 'El servidor exige confirmar el email para activar la cuenta. Avisá al administrador de la liga.',
+      pt: 'O servidor exige confirmar o e-mail para ativar a conta. Avise o administrador da liga.'
+    },
     err_bad_credentials: { es: 'Usuario o contraseña incorrectos.', pt: 'Usuário ou senha incorretos.' },
     toast_signup: { es: '¡Cuenta creada! Bienvenido, {name}', pt: 'Conta criada! Bem-vindo, {name}' },
     toast_login: { es: '¡Hola de nuevo, {name}!', pt: 'Bem-vindo de volta, {name}!' },
