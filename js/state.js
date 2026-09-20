@@ -267,14 +267,18 @@ async function supaUpsertUser(token, extra) {
   try {
     const me = await supaFetch('/auth/v1/user', { token: token });
     const md = (me.user_metadata || {});
+    const updatingStreak = extra.best_streak !== undefined || extra.best_penal_streak !== undefined;
     const row = {
       id: me.id,
       username: md.username,
       display_name: md.display_name || md.username,
       best_streak: extra.best_streak !== undefined ? extra.best_streak : Number(md.best_streak || 0),
-      best_penal_streak: extra.best_penal_streak !== undefined ? extra.best_penal_streak : Number(md.best_penal_streak || 0),
-      created_at: Date.now()
+      best_penal_streak: extra.best_penal_streak !== undefined ? extra.best_penal_streak : Number(md.best_penal_streak || 0)
     };
+    if (!updatingStreak) {
+      // solo en creación: created_at lo maneja la DB si tiene DEFAULT, pero lo enviamos por si acaso
+      row.created_at = Date.now();
+    }
     await supaFetch('/rest/v1/users', {
       method: 'POST',
       token: token,
