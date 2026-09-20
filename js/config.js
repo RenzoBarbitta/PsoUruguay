@@ -1,7 +1,7 @@
 const PSO_CONFIG = {
   /* ===================== SUPABASE =====================
      El ranking y las cuentas ahora viven en Supabase (Postgres online).
-     La web es 100% estática (Netlify) y habla DIRECTO con Supabase:
+     La web es 100% estática y habla DIRECTO con Supabase:
        - URL       : Project Settings → API → "Project URL"
        - ANON KEY  : Project Settings → API → "anon public" (la "publishable").
 

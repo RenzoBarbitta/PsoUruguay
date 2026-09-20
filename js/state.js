@@ -1,7 +1,7 @@
 /* ======================================================================
    PSO URUGUAY - ESTADO DE LA APP Y CAPA DE DATOS (SUPABASE DIRECTO)
    ======================================================================
-   Estructura 100% estática (Netlify). La web habla DIRECTO con Supabase
+   Estructura 100% estática. La web habla DIRECTO con Supabase
    (PostgREST + Auth), SIN server.js:
 
      - ONLINE:  el ranking/cuentas/datos viven en Postgres de Supabase y

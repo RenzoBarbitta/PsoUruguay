@@ -16,9 +16,10 @@ async function initApp() {
 
   await initDB();
 
-  if (online && AuthState.token) {
-    // Validar que la sesión siga siendo válida en el servidor
+  if (online && authToken()) {
+    // Validar que la sesión siga siendo válida en Supabase
     try {
+      /* eslint-disable-next-line no-unused-vars */
       const data = await apiRequest('/api/me', { auth: true });
       if (data.user) {
         AuthState.user = data.user;
@@ -28,8 +29,6 @@ async function initApp() {
       // Token inválido o servidor caído: se mantiene la sesión local que ya estaba
     }
   }
-
-  renderMainContent();
 
   setTimeout(() => {
     document.getElementById('splash').classList.add('closing');

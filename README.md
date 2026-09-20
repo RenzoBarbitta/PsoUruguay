@@ -2,24 +2,26 @@
 
 ## Qué es esto
 
-Sitio web de la liga **Pro Soccer Online Uruguay**: tabla de posiciones,
-fixture, estadísticas de jugadores, palmarés, panel de administración y una
+Sitio web de la liga **Pro Soccer Online Uruguay**: tabla de posiciones, fixture,
+estadísticas de jugadores, palmarés, panel de administración y una
 **trivia futbolera con ranking online** que requiere cuenta de usuario.
 
 ## Cómo se organiza (arquitectura)
 
-El código ya no vive en un único `index.html`: está dividido por responsabilidad.
+El proyecto es **100% estático** (funciona en Cloudflare Pages/Netlify/GitHub Pages).
 
 ```
 PsoUruguay/
-├── index.html          → solo la estructura (splash + contenedor + carga de archivos)
+├── index.html          → estructura + carga de archivos JS (orden correcto)
 ├── css/
 │   └── styles.css      → todos los estilos (variables, componentes, temas)
 ├── js/
 │   ├── logo.js         → logo oficial de PSO Uruguay (base64 embebido)
-│   ├── config.js       → credenciales admin y URL de la API
+│   ├── config.js       → credenciales Supabase (URL + anon key)
+│   ├── i18n.js         → internacionalización (ES / PT-BR)
 │   ├── trivia-data.js  → banco de preguntas de la trivia
-│   ├── state.js        → estado global + capa de datos (servidor o localStorage)
+│   ├── pasapalabra-data.js → banco de preguntas del pasapalabra diario
+│   ├── state.js        → estado global + capa de datos (Supabase directo o localStorage)
 │   ├── compute.js      → lógica pura: tabla, goleadores, asistencias, stats
 │   ├── auth.js         → cuentas de usuario, registro/login, acceso admin
 │   ├── ui.js           → shell, pestañas, modales, toasts, helpers
@@ -27,60 +29,78 @@ PsoUruguay/
 │   ├── trivia.js       → trivia (requiere cuenta) + ranking online dinámico
 │   ├── admin.js        → panel de administración (equipos, resultados, sorteo)
 │   └── main.js         → inicialización
-├── server.js           → servidor Express (API + archivos estáticos)
-├── package.json
-└── data/               → se crea sola al correr el server (se puede borrar)
+├── supabase-schema.sql → esquema SQL para ejecutar en Supabase Dashboard
+└── .gitignore
 ```
 
-## Cómo correrlo (modo online)
+## Stack actual
+
+- **Frontend 100% estático** (JS vanilla, sin build, sin Node)
+- **Backend**: Supabase (Postgres + Auth vía REST directo desde el navegador)
+- **Hosting recomendado**: Cloudflare Pages (ver sección de deploy abajo)
+- **RLS**: las políticas de seguridad viven en Supabase (véase `supabase-schema.sql`)
+
+## Cómo probarlo localmente
+
+No hace falta Node. Basta abrir `index.html` en el navegador (doble clic,
+`file://`, o `python -m http.server`). El sitio detecta si hay conexión a
+Supabase y, si no la hay, cae a `localStorage` automáticamente.
 
 ```bash
-npm install
-node server.js
+# Opción A — archivo local (sin servidor web)
+open index.html
+
+# Opción B — server local si querés la política de mismo origen tranquila:
+cd PsoUruguay
+python -m http.server 8000
+# abrir http://localhost:8000
 ```
 
-Después abrí <http://localhost:3000>. El sitio queda **online y compartido**:
-los usuarios se crean su cuenta, juegan la trivia y su mejor racha aparece en
-un ranking que **se actualiza solo cada 5 segundos** para todos.
+## Supabase — configuración requerida
 
-Los datos se guardan en la carpeta `data/`:
-- `data/users.json` — cuentas de jugadores y mejores rachas (contraseñas con hash).
-- `data/kv.json` — equipos, partidos y configuración de la liga.
+1. Creamos un proyecto nuevo en [supabase.com](https://supabase.com).
+2. En **Project Settings → API** copiamos:
+   - **Project URL**
+   - **anon public** key (la "publishable")
+3. Pegamos ambos en `js/config.js`:
 
-## API del servidor
+```js
+SUPABASE_URL: "https://tudominio.supabase.co",
+SUPABASE_ANON_KEY: "sb_publishable_xxxx",
+```
 
-| Método | Ruta | Descripción |
-| ------ | ---- | ----------- |
-| GET  | `/api/health`   | estado del servidor |
-| POST | `/api/auth/signup` | crea cuenta `{username, password, displayName}` |
-| POST | `/api/auth/login`  | inicia sesión, devuelve token |
-| GET  | `/api/me`      | devuelve el usuario autenticado |
-| GET  | `/api/ranking` | ranking de trivia ordenado por mejor racha |
-| POST | `/api/ranking` | guarda la mejor racha del usuario (requiere token) |
-| GET  | `/api/data?key=/prefix=` | lee datos de la liga |
-| PUT  | `/api/data`    | guarda datos de la liga `{key, value}` |
-| DELETE | `/api/data?key=` | elimina un dato |
+4. Ejecutamos el SQL de `supabase-schema.sql` en:
+   **Supabase Dashboard → SQL Editor → Run**.
+5. Activamos **Row Level Security (RLS)** en las tablas `users` y `kv`
+   (el script ya lo hace).
+6. En **Authentication → Providers** dejamos **Email** activado (email + contraseña).
 
-Los endpoints `/api/me` y `POST /api/ranking` usan el token en el header
-`Authorization: Bearer <token>`.
+## API del frontend (no es un server)
 
-## Modo sin servidor (respaldo local)
+El sitio NO tiene su propio backend: usa Supabase REST directamente desde el
+navegador. El mapeo completo está en `js/state.js`:
 
-Si abrís `index.html` directo en el navegador (doble clic, `file://`) no hay
-servidor, así que el sitio **detecciona la ausencia de API** y usa
-`localStorage` de esa computadora. Funciona igual, pero los datos (incluido el
-ranking) son solo locales y las cuentas se guardan en ese navegador.
+| Front desea | Llamada real |
+| ----------- | ------------ |
+| Register    | `POST /auth/v1/signup` |
+| Login       | `POST /auth/v1/token` |
+| Mi usuario  | `GET /auth/v1/user` |
+| Ranking     | `GET /rest/v1/users` (ordenado por best_streak) |
+| Guardar racha | `upsert` en `public.users` |
+
+Las credenciales en `config.js` son **públicas por diseño** (son las que
+embeddé en el HTML). Están protegidas por RLS.
+**Nunca** subas la `service_role` key al repo.
 
 ## Panel de administración
 
-Buscá estas líneas en `js/config.js` para cambiarlas:
+Accedés desde el candado 🔒 de la barra superior.
+Credenciales por defecto (cambiables en `js/config.js`):
 
-```js
-ADMIN_USER: "admin",
-ADMIN_PASS: "pso2026"
 ```
-
-Entrás desde el candado 🔒 de la barra superior.
+user: admin
+pass: pso2026
+```
 
 ## Cuentas de jugador
 
@@ -90,9 +110,56 @@ sabe quién es cada jugador y guarda su mejor racha online.
 
 ## Desplegar en internet
 
-- En cualquier VPS con Node: `npm install && node server.js` (configurá el
-  puerto con la variable de entorno `PORT`).
-- En plataformas tipo Railway / Render / Fly.io: indicá `node server.js` como
-  comando de arranque y usá el puerto que te den con `PORT`.
-- Recordá que cada usuario se autentica con su cuenta y el ranking se comparte
-  desde `data/users.json`.
+### Cloudflare Pages (recomendado)
+
+```bash
+# 1. Nos logueamos en wrangler
+npm install -g wrangler   # si no lo tenemos
+wrangler login
+
+# 2. Publicamos la carpeta actual
+wrangler pages deploy .
+
+# 3. (Opcional) Conectamos el repo de GitHub en:
+#    Cloudflare Dashboard → Pages → Create a project → Connect to Git
+#    Elegimos la rama main y la carpeta raíz.
+```
+
+Cloudflare Pages sirve `index.html` como entrada y resuelve `.js`, `.css`
+y `logo.webp` automáticamente. Todo queda en `https://<tu-proyecto>.pages.dev`.
+
+### Otras opciones estáticas
+
+- **Netlify**: arrastramos la carpeta a Netlify Drop o conectamos GitHub.
+- **GitHub Pages**: `Settings → Pages → Source: main branch, /root`.
+- **Vercel**: importamos el repo, no hace falta `vercel.json`.
+
+### Dominio propio (psouruguay.uy)
+
+Desde Cloudflare Dashboard:
+1. **SSL/TLS → Overview** → Full (strict) recomendado si hay origen.
+2. **DNS** → añadimos un `CNAME` o `A` del dominio a Cloudflare Pages.
+3. **Rules → Redirect Rules** si queremos que `www` redirija al canonical.
+
+## FAQ
+
+**¿Puedo usar el sitio sin internet?**
+Sí. Sin conexión a Supabase, todos los datos (equipos, partidos, ranking)
+viven en `localStorage` y son locales a ese navegador. Al volver online se
+vuelven a sincronizar si hay cambios.
+
+**¿Qué pasa si Supabase se cae?**
+El frontend detecta la caída en `detectOnline()` y sigue funcionando en modo
+local. El ranking online deja de actualizarse hasta que Supabase vuelve.
+
+**¿Cómo agrego más preguntas?**
+- Trivia: añadí objetos al array `TRIVIA_QUESTIONS` en `js/trivia-data.js`.
+- Pasapalabra: añadí entradas en `PASAPALABRA_QUESTIONS` en
+  `js/pasapalabra-data.js` (una por letra, en español y portugués).
+
+**¿Puedo cambiar el idioma por defecto?**
+Sí — en `js/i18n.js`:
+
+```js
+lang: localStorage.getItem('pso_lang') || 'es'   // cambiar 'es' por 'pt'
+```
