@@ -120,11 +120,11 @@ function renderFixtureCopaByCompetition(comp) {
   </div>`;
 }
 
-// Renderizar tabla por competencia específica
+// Renderizar tabla por competencia específica (solo ligas)
 function renderTablaByCompetition(comp) {
   const isLiga = comp.type === 'liga';
   if (!isLiga) {
-    return `<div class="view active">
+    return `<div class="fixture-comp-block">
       <div class="section-head">
         <h2 class="section-title">${escapeHtml(comp.name)}</h2>
       </div>
@@ -134,7 +134,7 @@ function renderTablaByCompetition(comp) {
 
   const standings = computeStandings(comp.id);
   if (!standings.length) {
-    return `<div class="view active">
+    return `<div class="fixture-comp-block">
       <div class="section-head">
         <h2 class="section-title">${escapeHtml(comp.name)}</h2>
       </div>
@@ -143,7 +143,7 @@ function renderTablaByCompetition(comp) {
   }
 
   const n = standings.length;
-  return `<div class="view active">
+  return `<div class="fixture-comp-block">
     <div class="section-head">
       <h2 class="section-title">${escapeHtml(comp.name)}</h2>
       <span class="section-sub">${tr('tabla_sub')}</span>

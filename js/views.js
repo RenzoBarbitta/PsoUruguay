@@ -369,22 +369,23 @@ function attachTablaEvents() {
 /* ---------------- VIEW: TABLA DE POSICIONES ---------------- */
 
 function viewTabla() {
-  const competitions = State.data.competitions || [];
+  // SOLO competencias tipo LIGA: las copas no tienen tabla de posiciones
+  const competitions = (State.data.competitions || []).filter(c => c.type === 'liga');
 
-  // Validar selección actual
+  // Validar selección actual (si era una copa, volver a "Todas")
   let sel = State.currentStatsCompetition || 'todas';
   if (sel !== 'todas' && !competitions.find(c => c.id === sel)) {
     sel = 'todas';
     State.currentStatsCompetition = 'todas';
   }
 
-  // Combo desplegable para elegir competencia
+  // Combo desplegable para elegir competencia (solo ligas)
   const compSelector = `
     <div style="margin-bottom:1.4rem; max-width:360px;">
       <label for="tabla-comp-select" style="display:block; font-size:0.78rem; color:var(--text-muted); font-weight:600; margin-bottom:0.35rem;">${tr('fixture_elegir_comp')}</label>
       <select id="tabla-comp-select" class="fixture-comp-select">
         <option value="todas" ${sel === 'todas' ? 'selected' : ''}>${tr('filtro_todas_comp')}</option>
-        ${competitions.map(c => `<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${escapeHtml(c.name)} · ${c.type === 'copa' ? tr('stats_copa') : tr('stats_liga')}</option>`).join('')}
+        ${competitions.map(c => `<option value="${c.id}" ${sel === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
       </select>
     </div>
   `;
@@ -392,6 +393,9 @@ function viewTabla() {
   let body = '';
   if (sel !== 'todas') {
     body = renderTablaByCompetition(competitions.find(c => c.id === sel));
+  } else if (competitions.length) {
+    // Tablas apiladas de cada liga (una debajo de la otra)
+    body = competitions.map(renderTablaByCompetition).join('');
   } else {
     body = renderTablaGeneral();
   }
