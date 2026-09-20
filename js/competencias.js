@@ -3,8 +3,10 @@
    ====================================================================== */
 
 function attachCompetenciasEvents() {
-  document.getElementById('btn-new-competition')?.onclick = () => openCompetitionFormModal();
-  document.getElementById('btn-new-competition-first')?.onclick = () => openCompetitionFormModal();
+  const btnNew = document.getElementById('btn-new-competition');
+  if (btnNew) btnNew.onclick = () => openCompetitionFormModal();
+  const btnNewFirst = document.getElementById('btn-new-competition-first');
+  if (btnNewFirst) btnNewFirst.onclick = () => openCompetitionFormModal();
 
   document.querySelectorAll('.btn-edit-competition').forEach(btn => {
     btn.onclick = () => {

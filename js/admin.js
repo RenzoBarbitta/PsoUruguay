@@ -1166,7 +1166,7 @@ function competitionCard(comp, num, teams) {
           <div class="competition-team-chip" title="${escapeHtml(t.name)}">
             ${teamDotHtml(t)}
           </div>
-        `).join('')}
+        `).join('') : ''}
         ${participatingTeams.length > 4 ? `<div class="competition-team-more">+${participatingTeams.length - 4}</div>` : ''}
         ${!participatingTeams.length ? `<div style="font-size: 0.8rem; color: var(--text-muted); padding: 0.3rem 0;">${tr('competencias_vacias')}</div>` : ''}
       </div>

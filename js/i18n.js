@@ -624,6 +624,7 @@ const I18N = {
     filtro_todas_comp: { es: 'Todas', pt: 'Todas' },
     filtro_competencia: { es: '{nombre}', pt: '{nome}' },
   }
+};
 
 /* Traduce una clave del diccionario con interpolación de {vars} */
 function tr(key, vars) {
