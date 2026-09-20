@@ -16,6 +16,10 @@ async function initApp() {
 
   await initDB();
 
+  /* Si el jugador viene de confirmar el email, trae los tokens en el hash:
+     los convertimos en sesión antes de validar nada más. */
+  await handleAuthRedirect();
+
   if (online && authToken()) {
     // Validar que la sesión siga siendo válida en Supabase
     try {

@@ -116,6 +116,49 @@ function logoutUser() {
   saveAuth(null, null);
 }
 
+/* ---------------- Confirmación de email (link del correo) ---------------- */
+
+/* Cuando el jugador confirma su email, Supabase lo devuelve al sitio con los
+   tokens en el hash de la URL:
+     #access_token=...&expires_in=3600&refresh_token=...&token_type=bearer&type=signup
+   Los guardamos como sesión (y creamos la fila del ranking) y limpiamos el
+   hash, para que no quede el token a la vista en la barra de direcciones. */
+async function handleAuthRedirect() {
+  if (typeof location === 'undefined' || !location.hash || location.hash.length < 2) return false;
+
+  const params = new URLSearchParams(location.hash.replace(/^#/, ''));
+  const token = params.get('access_token');
+  const errText = params.get('error_description') || params.get('error');
+  if (!token && !errText) return false;
+
+  /* Limpiamos la URL siempre, antes de cualquier await. */
+  try {
+    history.replaceState(null, '', location.pathname + location.search);
+  } catch (e) {
+    location.hash = '';
+  }
+
+  if (errText) {
+    toast(localizeServerError(decodeURIComponent(String(errText).replace(/\+/g, ' '))));
+    return false;
+  }
+
+  try {
+    const me = await supaFetch('/auth/v1/user', { token });
+    const user = mapAuthUser(me);
+    saveAuth(user, token);
+    /* Alta en public.users para que apararezca en el ranking. Si falla, la
+       sesión igual queda iniciada (no queremos perder el login por esto). */
+    try { await supaUpsertUser(token, {}); } catch (e) { console.warn('no se pudo crear la fila del ranking', e); }
+    refreshShellAfterAuth();
+    toast(tr('toast_email_confirmed', { name: user.displayName || user.username }));
+    return true;
+  } catch (e) {
+    toast(e.message || tr('err_generic'));
+    return false;
+  }
+}
+
 /* ---------------- Modal de cuenta (Ingresar / Crear cuenta) ---------------- */
 
 function openAuthModal(tab = 'login') {

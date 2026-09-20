@@ -203,6 +203,14 @@ const I18N_SERVER_ERR = {
   'email rate limit exceeded': {
     es: 'El servidor de correos está saturado: el servicio de prueba solo deja mandar 2 correos por hora. Esperá una hora y reintentá, o pedile al administrador que configure un servidor de correo propio (SMTP).',
     pt: 'O servidor de e-mails está saturado: o serviço de teste só permite 2 e-mails por hora. Espere uma hora e tente novamente, ou peça ao administrador que configure um servidor de e-mail próprio (SMTP).'
+  },
+  'Email address not authorized': {
+    es: 'El servidor de correos todavía es el de prueba y solo puede mandar mails a los administradores del proyecto. Pedile al administrador que configure un servidor de correo propio (SMTP).',
+    pt: 'O servidor de e-mails ainda é o de teste e só pode enviar e-mails aos administradores do projeto. Peça ao administrador que configure um servidor de e-mail próprio (SMTP).'
+  },
+  'Email link is invalid or has expired': {
+    es: 'El link del correo ya venció o se usó antes. Entrá con tu email y contraseña, o pedí un correo nuevo.',
+    pt: 'O link do e-mail expirou ou já foi usado. Entre com seu e-mail e senha, ou peça um novo e-mail.'
   }
 };
 

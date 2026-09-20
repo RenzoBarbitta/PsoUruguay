@@ -83,6 +83,7 @@ const I18N = {
     err_no_auth: { es: 'Iniciá sesión para continuar.', pt: 'Faça login para continuar.' },
     toast_signup: { es: '¡Cuenta creada! Bienvenido, {name}', pt: 'Conta criada! Bem-vindo, {name}' },
     toast_login: { es: '¡Hola de nuevo, {name}!', pt: 'Bem-vindo de volta, {name}!' },
+    toast_email_confirmed: { es: '¡Cuenta confirmada, {name}! Ya estás dentro.', pt: 'Conta confirmada, {name}! Você já está dentro.' },
     auth_title: { es: 'Tu cuenta', pt: 'Sua conta' },
     auth_need_account: {
       es: 'Necesitás una cuenta para aparecer en el ranking de la trivia.',
