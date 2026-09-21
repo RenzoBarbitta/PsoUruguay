@@ -546,6 +546,82 @@ function attachEstadisticasEvents() {
   });
 }
 
+/* ---------------- VIEW: PLANTELES ---------------- */
+
+function viewPlanteles() {
+  const sel = State.currentPlantel && getTeamById(State.currentPlantel) ? State.currentPlantel : null;
+  if (sel) return viewPlantelDetail(sel);
+
+  const teams = State.data.teams;
+  return `<div class="view active">
+    <div class="section-head">
+      <h2 class="section-title">${tr('planteles_title')}</h2>
+      <span class="section-sub">${tr('planteles_sub')}</span>
+    </div>
+    ${teams.length
+      ? `<div class="plant-grid">${teams.map(plantelCardHtml).join('')}</div>`
+      : emptyState('ti-shield-off', tr('planteles_empty'))}
+  </div>`;
+}
+
+function plantelCardHtml(team) {
+  const color = team.color || 'var(--accent-dark)';
+  return `<button class="plant-card" data-plantel="${team.id}" style="--pc:${color};">
+    <span class="plant-card-crest">${teamDotHtml({ logo: team.logo, name: team.name }, '')}</span>
+    <span class="plant-card-name">${escapeHtml(team.name)}</span>
+  </button>`;
+}
+
+function attachPlantelesEvents() {
+  document.querySelectorAll('.plant-card').forEach(c => {
+    c.onclick = () => { State.currentPlantel = c.dataset.plantel; renderMainContent(); };
+  });
+  const back = document.getElementById('plantel-back-btn');
+  if (back) back.onclick = () => { State.currentPlantel = null; renderMainContent(); };
+}
+
+function viewPlantelDetail(teamId) {
+  const team = getTeamById(teamId);
+  if (!team) { State.currentPlantel = null; return viewPlanteles(); }
+
+  const color = team.color || 'var(--accent-dark)';
+  const statsByPlayer = {};
+  computeAllPlayerStats('todas').forEach(s => { statsByPlayer[s.playerId] = s; });
+  const players = (team.players || []).map(p => ({ name: p.name, s: statsByPlayer[p.id] }));
+
+  return `<div class="view active">
+    <button class="btn btn-sm" id="plantel-back-btn" style="margin-bottom:1rem;"><i class="ti ti-arrow-left"></i> ${tr('planteles_volver')}</button>
+
+    <div class="plantel-head" style="--pc:${color};">
+      <div class="plantel-head-crest">${teamDotHtml({ logo: team.logo, name: team.name }, '')}</div>
+      <div class="plantel-head-info">
+        <div class="plantel-head-name">${escapeHtml(team.name)}</div>
+        <div class="plantel-head-meta">${(team.players || []).length} ${tr('planteles_jugadores')}${team.short ? ` · ${escapeHtml(team.short.toUpperCase())}` : ''}</div>
+      </div>
+    </div>
+
+    <div class="card plantel-squad" style="--pc:${color};">
+      ${players.length ? players.map(plantelPlayerRow).join('') : `<p style="color:var(--text-muted); font-size:0.85rem; padding:0.75rem 0;">${tr('sin_jugadores')}</p>`}
+    </div>
+  </div>`;
+}
+
+function plantelPlayerRow({ name, s }) {
+  const st = s || { pj: 0, goals: 0, assists: 0, saves: 0, yellow: 0, red: 0 };
+  let pills = `
+    <span class="plantel-pill"><em>${tr('th_pj')}</em><strong>${st.pj}</strong></span>
+    <span class="plantel-pill hl"><em>${tr('th_goles')}</em><strong>${st.goals}</strong></span>
+    <span class="plantel-pill"><em>${tr('th_asist')}</em><strong>${st.assists}</strong></span>`;
+  if (st.saves > 0) pills += `<span class="plantel-pill"><em>${tr('th_atajadas')}</em><strong>${st.saves}</strong></span>`;
+  if (st.yellow > 0) pills += `<span class="plantel-pill card-ta"><em>${tr('th_ta')}</em><strong>${st.yellow}</strong></span>`;
+  if (st.red > 0) pills += `<span class="plantel-pill card-tr"><em>${tr('th_tr')}</em><strong>${st.red}</strong></span>`;
+
+  return `<div class="plantel-player">
+    <span class="plantel-player-name">${escapeHtml(name)}</span>
+    <span class="plantel-player-stats">${pills}</span>
+  </div>`;
+}
+
 /* ---------------- VIEW: PALMARES ---------------- */
 
 /* Lista completa de títulos: los manuales (cargados por el admin con año,

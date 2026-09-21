@@ -89,6 +89,7 @@ function renderShell() {
           ${tabButton('fixture', 'ti-calendar-event', tr('tab_fixture'))}
           ${hasActiveLigas() ? tabButton('tabla', 'ti-table', tr('tab_tabla')) : ''}
           ${tabButton('estadisticas', 'ti-chart-bar', tr('tab_estadisticas'))}
+          ${tabButton('planteles', 'ti-users', tr('tab_planteles'))}
           ${tabButton('palmares', 'ti-trophy', tr('tab_palmares'))}
           ${tabButton('seleccion', 'ti-flag', tr('tab_seleccion'))}
           ${gamesTabButton()}
@@ -213,6 +214,7 @@ function renderMainContent() {
     case 'fixture': main.innerHTML = viewFixture(); attachFixtureEvents(); break;
     case 'tabla': main.innerHTML = viewTabla(); attachTablaEvents(); break;
     case 'estadisticas': main.innerHTML = viewEstadisticas(); attachEstadisticasEvents(); break;
+    case 'planteles': main.innerHTML = viewPlanteles(); attachPlantelesEvents(); break;
     case 'palmares': main.innerHTML = viewPalmares(); attachPalmaresEvents(); break;
     case 'seleccion': main.innerHTML = viewSeleccion(); break;
     case 'juegos': main.innerHTML = viewJuegos(); attachJuegosEvents(); break;

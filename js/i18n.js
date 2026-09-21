@@ -30,6 +30,7 @@ const I18N = {
     tab_fixture: { es: 'Fixture', pt: 'Confrontos' },
     tab_tabla: { es: 'Posiciones', pt: 'Classificação' },
     tab_estadisticas: { es: 'Estadísticas', pt: 'Estatísticas' },
+    tab_planteles: { es: 'Planteles', pt: 'Elencos' },
     tab_palmares: { es: 'Palmarés', pt: 'Títulos' },
     tab_seleccion: { es: 'Selección', pt: 'Seleção' },
     tab_juegos: { es: 'Juegos', pt: 'Jogos' },
@@ -41,6 +42,13 @@ const I18N = {
     juegos_tag_trivia: { es: '⚡ Ranking online', pt: '⚡ Ranking online' },
     juegos_tag_pasapalabra: { es: '📅 Reto diario', pt: '📅 Desafio diário' },
     juegos_tag_penales: { es: '🥅 10 tiros', pt: '🥅 10 chutes' },
+
+    /* ------- Planteles ------- */
+    planteles_title: { es: 'Planteles', pt: 'Elencos' },
+    planteles_sub: { es: 'Tocá un escudo para ver la ficha del plantel', pt: 'Toque um escudo para ver a ficha do elenco' },
+    planteles_empty: { es: 'Todavía no hay equipos cargados.', pt: 'Ainda não há equipes cadastradas.' },
+    planteles_volver: { es: 'Volver a planteles', pt: 'Voltar aos elencos' },
+    planteles_jugadores: { es: 'jugadores', pt: 'jogadores' },
     tab_trivia: { es: 'Trivia', pt: 'Quiz' },
     aria_discord: { es: 'Unirse al Discord de PSO Uruguay', pt: 'Entrar no Discord do PSO Uruguai' },
     tab_admin: { es: 'Administrar', pt: 'Administrar' },
