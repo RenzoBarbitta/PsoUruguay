@@ -140,6 +140,7 @@ function doLogout() {
   if (State.isAdmin) {
     State.isAdmin = false;
     sessionStorage.removeItem('pso_admin');
+    sessionStorage.removeItem('pso_admin_token');
   }
   if (AuthState.user) {
     logoutUser();

@@ -11,7 +11,12 @@ const TriviaState = {
   indicesUsados: [],
   racha: 0,
   mejorRachaSesion: 0,
-  respondida: false
+  respondida: false,
+  /* Partida validada en el server (anti-trampa): la racha la cuenta el server */
+  serverMode: false,
+  sessionToken: null,
+  serverScore: 0,
+  serverError: false
 };
 
 let triviaRankingTimer = null;
@@ -43,6 +48,11 @@ function elegirSiguientePregunta() {
   const idx = disponibles[Math.floor(Math.random() * disponibles.length)];
   TriviaState.indicesUsados.push(idx);
   return { ...localQ(TRIVIA_QUESTIONS[idx]), _index: idx };
+}
+
+/* Pregunta por índice (el server reparte los índices en modo validado) */
+function preguntaPorIndice(i) {
+  return { ...localQ(TRIVIA_QUESTIONS[i]), _index: i };
 }
 
 function viewTrivia() {
@@ -211,11 +221,31 @@ function attachTriviaEvents() {
   if (abandonar) abandonar.onclick = terminarPartidaTrivia;
 }
 
-function iniciarPartidaTrivia() {
+async function iniciarPartidaTrivia() {
   TriviaState.jugando = true;
   TriviaState.racha = 0;
   TriviaState.indicesUsados = [];
   TriviaState.respondida = false;
+  TriviaState.serverMode = false;
+  TriviaState.sessionToken = null;
+  TriviaState.serverScore = 0;
+  TriviaState.serverError = false;
+  TriviaState.preguntaActual = null;
+  renderMainContent();
+
+  /* Online: el server reparte las preguntas y valida cada respuesta.
+     Si el server no está configurado (not_configured) → flujo clásico. */
+  if (online) {
+    try {
+      const data = await gameApi('/api/game/start', { game: 'trivia' });
+      TriviaState.sessionToken = data.token;
+      TriviaState.serverMode = true;
+      TriviaState.preguntaActual = preguntaPorIndice(data.q);
+      renderMainContent();
+      return;
+    } catch (e) { /* cae al flujo legacy */ }
+  }
+
   TriviaState.preguntaActual = elegirSiguientePregunta();
   renderMainContent();
 }
@@ -238,15 +268,39 @@ function seleccionarRespuestaTrivia(idx) {
   if (esCorrecta) {
     TriviaState.racha++;
     feedback.innerHTML = `<span style="color:var(--win);">${tr('trivia_correcto', { n: TriviaState.racha })}</span>`;
-    setTimeout(() => {
-      TriviaState.preguntaActual = elegirSiguientePregunta();
-      TriviaState.respondida = false;
-      renderMainContent();
-    }, 1200);
+    setTimeout(() => avanzarTrasRespuestaTrivia(idx), 1200);
   } else {
     feedback.innerHTML = `<span style="color:var(--loss);">${tr('trivia_incorrecto', { n: TriviaState.racha })}</span>`;
     setTimeout(() => finalizarPartidaTrivia(), 1600);
   }
+}
+
+/* Continúa la partida tras responder. En modo server la próxima pregunta la
+   reparte el server y la racha la cuenta él: el cliente no declara aciertos. */
+async function avanzarTrasRespuestaTrivia(idx) {
+  if (TriviaState.serverMode && TriviaState.sessionToken) {
+    try {
+      const res = await gameApi('/api/game/answer', { token: TriviaState.sessionToken, a: idx });
+      TriviaState.sessionToken = res.token;
+      TriviaState.serverScore = res.s;
+      if (res.over) return finalizarPartidaTrivia();
+      TriviaState.respondida = false;
+      TriviaState.preguntaActual = preguntaPorIndice(res.next);
+      renderMainContent();
+      return;
+    } catch (e) {
+      /* Falló la red con sesión validada: no se puede guardar de forma
+         verificable, así que no se guarda (el record local sí queda). */
+      TriviaState.jugando = false;
+      TriviaState.respondida = false;
+      toast(tr('trivia_save_error'), 'error');
+      renderMainContent();
+      return;
+    }
+  }
+  TriviaState.respondida = false;
+  TriviaState.preguntaActual = elegirSiguientePregunta();
+  renderMainContent();
 }
 
 async function guardarPuntajeTrivia(racha) {
@@ -276,10 +330,31 @@ async function guardarPuntajeTrivia(racha) {
 }
 
 async function finalizarPartidaTrivia() {
-  const rachaFinal = TriviaState.racha;
-  await guardarPuntajeTrivia(rachaFinal);
+  let rachaFinal = TriviaState.racha;
   TriviaState.jugando = false;
   TriviaState.preguntaActual = null;
+
+  if (online && TriviaState.serverMode && TriviaState.sessionToken) {
+    try {
+      const res = await gameApi('/api/game/finish', { token: TriviaState.sessionToken });
+      /* La racha oficial es la que contó el server */
+      if (typeof res.score === 'number') rachaFinal = res.score;
+      if (res.user) {
+        AuthState.user = res.user;
+        localStorage.setItem('pso_user', JSON.stringify(res.user));
+      }
+      TriviaState.sessionToken = null;
+    } catch (e) {
+      if (e.code === 'not_configured') {
+        /* Server aún sin service key → guardamos como siempre (legacy) */
+        await guardarPuntajeTrivia(rachaFinal);
+      } else {
+        toast(tr('trivia_save_error'), 'error');
+      }
+    }
+  } else {
+    await guardarPuntajeTrivia(rachaFinal);
+  }
 
   const main = document.getElementById('main-content');
   main.innerHTML = `<div class="view active">

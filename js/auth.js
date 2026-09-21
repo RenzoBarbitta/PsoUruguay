@@ -331,18 +331,38 @@ function openLoginModal() {
     <button class="btn btn-primary" id="login-submit">🔓 ${tr('btn_ingresar')}</button>
   `);
 
-  const submit = () => {
+  /* El panel admin ya NO usa una contraseña fija escrita en config.js
+     (cualquiera puede ver el código fuente y leerla). Ahora "admin" es una
+     cuenta real de Supabase Auth marcada como admin en su app_metadata
+     (`is_admin: true`), y esa marca es la que exige la RLS de la tabla
+     `kv` para dejar escribir equipos/partidos/settings. Sin esa sesión
+     real, Supabase rechaza la escritura aunque alguien adivine la clave
+     vieja o llame a la API directo. */
+  const submit = async () => {
+    const errorEl = document.getElementById('login-error');
+    errorEl.style.display = 'none';
     const u = document.getElementById('login-user').value.trim();
     const p = document.getElementById('login-pass').value;
-    if (u === PSO_CONFIG.ADMIN_USER && p === PSO_CONFIG.ADMIN_PASS) {
+    if (!u || !p) { errorEl.style.display = 'block'; return; }
+    try {
+      const data = await supaFetch('/auth/v1/token?grant_type=password', {
+        method: 'POST',
+        body: { email: normalizeEmail(u), password: p }
+      });
+      const isAdmin = !!(data && data.user && data.user.app_metadata && data.user.app_metadata.is_admin === true);
+      if (!data || !data.access_token || !isAdmin) {
+        errorEl.style.display = 'block';
+        return;
+      }
       State.isAdmin = true;
       sessionStorage.setItem('pso_admin', '1');
+      sessionStorage.setItem('pso_admin_token', data.access_token);
       closeModal();
       renderShell();
       switchTab('admin');
       toast(tr('toast_admin_welcome'));
-    } else {
-      document.getElementById('login-error').style.display = 'block';
+    } catch (e) {
+      errorEl.style.display = 'block';
     }
   };
 

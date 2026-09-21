@@ -82,6 +82,7 @@ const I18N = {
       pt: 'Vamos enviar um e-mail para esse endereço: abra e confirme a conta, senão você não poderá entrar.'
     },
     err_bad_credentials: { es: 'Usuario o contraseña incorrectos.', pt: 'Usuário ou senha incorretos.' },
+    err_signup_failed: { es: 'No se pudo crear la cuenta. Probá de nuevo en un momento.', pt: 'Não foi possível criar a conta. Tente novamente em instantes.' },
     err_no_auth: { es: 'Iniciá sesión para continuar.', pt: 'Faça login para continuar.' },
     toast_signup: { es: '¡Cuenta creada! Bienvenido, {name}', pt: 'Conta criada! Bem-vindo, {name}' },
     toast_login: { es: '¡Hola de nuevo, {name}!', pt: 'Bem-vindo de volta, {name}!' },

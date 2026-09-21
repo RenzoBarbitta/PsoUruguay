@@ -16,9 +16,11 @@ const PSO_CONFIG = {
   SUPABASE_URL: "https://magestcsmgxegjbjcxef.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_ypyO6Mq-j6FX9S_klCcvwA_izVw6NAg",
 
-  /* ============ ADMINISTRACIÓN (panel) ============ */
-  ADMIN_USER: "admin",
-  ADMIN_PASS: "pso2026",
+  /* ============ ADMINISTRACIÓN (panel) ============
+     Ya NO hay usuario/contraseña fijos acá (antes cualquiera podía verlos
+     con "Ver código fuente" y editar la web entera). El panel admin ahora
+     entra con una cuenta REAL de Supabase Auth marcada como admin.
+     Ver "PANEL DE ADMINISTRACIÓN" en el README para crearla. */
 
   /* ============ API (ya no se usa; se dejó por compatibilidad) ============ */
   API_URL: ""

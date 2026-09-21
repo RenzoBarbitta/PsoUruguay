@@ -139,12 +139,25 @@ embeddé en el HTML). Están protegidas por RLS.
 ## Panel de administración
 
 Accedés desde el candado 🔒 de la barra superior.
-Credenciales por defecto (cambiables en `js/config.js`):
 
-```
-user: admin
-pass: pso2026
-```
+Ya **no** hay usuario/contraseña fijos en el código (antes cualquiera los
+veía con "Ver código fuente" y, peor, la tabla `kv` donde viven equipos y
+partidos aceptaba escrituras de cualquiera con la anon key, sin login).
+Ahora el admin es una cuenta real de Supabase Auth marcada como admin.
+Para crearla (una sola vez):
+
+1. **Supabase Dashboard → Authentication → Users → Add user** — cargá un
+   email y una contraseña fuerte para el admin.
+2. **SQL Editor**, corré (reemplazando el email):
+   ```sql
+   update auth.users
+   set raw_app_meta_data = raw_app_meta_data || '{"is_admin": true}'::jsonb
+   where email = 'admin@tudominio.com';
+   ```
+3. En la web, el candado 🔒 pide ese email + esa contraseña. La RLS de la
+   tabla `kv` (ver `supabase-schema.sql`) ahora exige esa marca `is_admin`
+   para dejar guardar equipos, partidos, resultados y sorteos — sin eso,
+   Supabase rechaza la escritura aunque alguien llame a la API directo.
 
 ## Cuentas de jugador
 

@@ -103,13 +103,21 @@ async function detectOnline() {
 /* ---------------- Capa de almacenamiento (kv ↔ Postgres) ---------------- */
 
 /* safeSet: upsert key/value. Devuelve true si quedó guardado. */
+function adminToken() {
+  try { return sessionStorage.getItem('pso_admin_token') || null; } catch (e) { return null; }
+}
+
 async function safeSet(key, value) {
   if (!online) {
     try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
   }
   try {
+    /* Escribir en kv (equipos/partidos/competencias/settings) requiere sesión
+       de admin real (Supabase Auth), la RLS de la tabla lo exige. Sin token
+       de admin esto devuelve 401/403 de PostgREST. */
     await supaFetch('/rest/v1/kv', {
       method: 'POST',
+      token: adminToken(),
       headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
       body: [{ key, value }]
     });
@@ -142,6 +150,7 @@ async function safeDelete(key) {
   try {
     await supaFetch('/rest/v1/kv', {
       method: 'DELETE',
+      token: adminToken(),
       query: { key: 'eq.' + key },
       headers: { Prefer: 'count=exact' }
     });
@@ -328,11 +337,17 @@ async function apiRequest(path, options = {}) {
     if (!data || !data.access_token) {
       /* Sin token pero con usuario: Supabase creó la cuenta y quedó esperando
          que el jugador confirme el email (por eso todavía no hay sesión).
-         Devolvemos "pendiente" para que el modal se lo explique. */
-      if (data && data.user) {
-        return { pendingConfirmation: true, email, user: mapAuthUser(data.user), token: null };
+         OJO: cuando "Confirm email" está ON, /auth/v1/signup NO devuelve
+         {user:{...}}, devuelve el objeto de usuario DIRECTO (id, email,
+         confirmation_sent_at, etc). Por eso hay que aceptar ambas formas;
+         si solo se acepta "data.user" esto cae siempre al error genérico
+         de credenciales, aunque el registro y el envío del mail hayan
+         funcionado bien (el bug que reportaban). */
+      const rawUser = (data && data.user) ? data.user : data;
+      if (rawUser && (rawUser.id || rawUser.email)) {
+        return { pendingConfirmation: true, email, user: mapAuthUser(rawUser), token: null };
       }
-      throw new Error(tr('err_bad_credentials'));
+      throw new Error(tr('err_signup_failed'));
     }
     await supaUpsertUser(data.access_token, {});
     return { user: mapAuthUser(data.user), token: data.access_token };
@@ -362,7 +377,19 @@ async function apiRequest(path, options = {}) {
     if (method === 'POST') {
       if (!token) throw new Error(tr('err_no_auth'));
       const me = await supaFetch('/auth/v1/user', { token: token });
-      const cur = Number((me.user_metadata || {}).best_streak || 0);
+      /* IMPORTANTE: la racha "actual" NUNCA se lee de user_metadata (eso es
+         del JWT de Auth, que solo se pisa al firmar el token y quedaba
+         siempre en el valor del registro: 0). La racha real y actualizada
+         vive en public.users, así que la leemos de ahí antes de comparar,
+         si no siempre "ganaba" el intento nuevo y se perdía el mejor. */
+      let cur = 0;
+      try {
+        const rows = await supaFetch('/rest/v1/users?id=eq.' + encodeURIComponent(me.id), {
+          token: token,
+          query: { select: 'best_streak', limit: '1' }
+        });
+        if (Array.isArray(rows) && rows.length) cur = Number(rows[0].best_streak || 0);
+      } catch (e) { /* si falla la lectura, seguimos con cur=0 y confiamos en el trigger de la DB */ }
       const next = Math.max(cur, Number(body.bestStreak || 0));
       await supaUpsertUser(token, { best_streak: next });
       return { user: mapAuthUser({ ...me, user_metadata: { ...(me.user_metadata || {}), best_streak: next } }) };
@@ -385,7 +412,14 @@ async function apiRequest(path, options = {}) {
     if (method === 'POST') {
       if (!token) throw new Error(tr('err_no_auth'));
       const me = await supaFetch('/auth/v1/user', { token: token });
-      const cur = Number((me.user_metadata || {}).best_penal_streak || 0);
+      let cur = 0;
+      try {
+        const rows = await supaFetch('/rest/v1/users?id=eq.' + encodeURIComponent(me.id), {
+          token: token,
+          query: { select: 'best_penal_streak', limit: '1' }
+        });
+        if (Array.isArray(rows) && rows.length) cur = Number(rows[0].best_penal_streak || 0);
+      } catch (e) {}
       const next = Math.max(cur, Number(body.bestPenalStreak || 0));
       await supaUpsertUser(token, { best_penal_streak: next });
       return { user: mapAuthUser({ ...me, user_metadata: { ...(me.user_metadata || {}), best_penal_streak: next } }) };
@@ -404,6 +438,33 @@ async function apiRequest(path, options = {}) {
   }
 
   throw new Error('Ruta desconocida: ' + path);
+}
+
+/* ======================================================================
+   PARTIDAS VALIDADAS EN EL SERVER (anti-trampa)
+   Las Pages Functions del propio sitio (/api/game/*) emiten tokens de
+   sesión firmados (HMAC) y llevan la racha del lado del server.
+   Si el server no está configurado (503 not_configured) los juegos caen
+   al flujo legacy de siempre.
+   ====================================================================== */
+async function gameApi(path, body) {
+  const token = authToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = 'Bearer ' + token;
+  const r = await fetch(path, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body || {})
+  });
+  let data = null;
+  try { data = await r.json(); } catch (e) { /* sin cuerpo */ }
+  if (!r.ok) {
+    const err = new Error((data && data.error) || ('HTTP ' + r.status));
+    err.code = data && data.error;
+    err.status = r.status;
+    throw err;
+  }
+  return data;
 }
 
 /* ======================================================================

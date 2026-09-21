@@ -16,7 +16,12 @@ const PenalesState = {
   zona: null,        // zona elegida por el jugador ('izq' | 'cen' | 'der')
   arqueroZona: null, // zona del arquero
   resultado: null,   // 'gol' | 'atajada' | 'sin_tiempo'
-  _nuevoRecord: false
+  _nuevoRecord: false,
+  /* Partida validada en el server (anti-trampa) */
+  serverMode: false,
+  sessionToken: null,
+  serverScore: 0,
+  serverError: false
 };
 
 const PENALES_ZONAS = ['izq', 'cen', 'der'];
@@ -169,7 +174,7 @@ function iniciarPenalTimer() {
 
 /* ---------------- Acciones ---------------- */
 
-function iniciarPenales() {
+async function iniciarPenales() {
   stopPenalesTimer();
   PenalesState.jugando = true;
   PenalesState.nivel = 1;
@@ -180,7 +185,21 @@ function iniciarPenales() {
   PenalesState.arqueroZona = null;
   PenalesState.resultado = null;
   PenalesState._nuevoRecord = false;
+  PenalesState.serverMode = false;
+  PenalesState.sessionToken = null;
+  PenalesState.serverScore = 0;
+  PenalesState.serverError = false;
   renderMainContent();
+
+  /* Online: cada tiro lo valida el server (piso de tiempo anti-autoplay).
+     Si el server no está configurado (not_configured) → flujo clásico. */
+  if (online) {
+    try {
+      const data = await gameApi('/api/game/start', { game: 'penales' });
+      PenalesState.sessionToken = data.token;
+      PenalesState.serverMode = true;
+    } catch (e) { /* cae al flujo legacy */ }
+  }
 }
 
 function elegirArquero() {
@@ -201,6 +220,15 @@ function ejecutarTiroPenales(zona) {
   if (esGol) {
     PenalesState.goles++;
     PenalesState.nivel = PenalesState.goles + 1;
+  }
+
+  /* Modo server: cada tiro lo valida el backend (piso de tiempo anti-autoplay).
+     La racha oficial la cuenta el server, el cliente solo la informa. */
+  if (PenalesState.serverMode && PenalesState.sessionToken) {
+    gameApi('/api/game/kick', { token: PenalesState.sessionToken, result: PenalesState.resultado }).then(res => {
+      PenalesState.sessionToken = res.token;
+      PenalesState.serverScore = res.s;
+    }).catch(() => { PenalesState.serverError = true; });
   }
 
   document.querySelectorAll('.penal-zona').forEach(b => { b.disabled = true; });
@@ -243,8 +271,33 @@ function siguientePenal() {
 
 async function finalizarPenales() {
   stopPenalesTimer();
-  const racha = PenalesState.goles;
-  const esRecordOnline = await guardarRecordPenales(racha);
+  let racha = PenalesState.goles;
+  const prevBest = AuthState.user ? Number(AuthState.user.bestPenalStreak || 0) : 0;
+  let esRecordOnline = false;
+
+  if (online && PenalesState.serverMode && PenalesState.sessionToken && !PenalesState.serverError) {
+    try {
+      const res = await gameApi('/api/game/finish', { token: PenalesState.sessionToken });
+      /* La racha oficial es la que contó el server */
+      if (typeof res.score === 'number') racha = res.score;
+      if (res.user) {
+        AuthState.user = res.user;
+        localStorage.setItem('pso_user', JSON.stringify(res.user));
+      }
+      PenalesState.sessionToken = null;
+      esRecordOnline = racha > prevBest && racha > 0;
+    } catch (e) {
+      if (e.code === 'not_configured') {
+        /* Server aún sin service key → guardamos como siempre (legacy) */
+        esRecordOnline = await guardarRecordPenales(racha);
+      } else {
+        toast(tr('penales_save_error'), 'error');
+      }
+    }
+  } else {
+    esRecordOnline = await guardarRecordPenales(racha);
+  }
+
   const esRecordLocal = penalGuardarRecordLocal(racha);
   PenalesState.jugando = false;
   PenalesState.respondida = false;
