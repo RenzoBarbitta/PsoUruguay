@@ -36,7 +36,7 @@ const I18N = {
     tab_juegos: { es: 'Juegos', pt: 'Jogos' },
     juegos_desc_trivia: { es: 'Respondé 8 preguntas y sumá racha al ranking', pt: 'Responda 8 perguntas e some sequência no ranking' },
     juegos_desc_pasapalabra: { es: 'La rosca diaria letra por letra', pt: 'A rosca diária letra por letra' },
-    juegos_desc_penales: { es: 'Pateá 10 penales y vencé al arquero', pt: 'Bata 10 pênaltis e vença o goleiro' },
+    juegos_desc_penales: { es: 'Pateá penales y vencé al arquero', pt: 'Bata pênaltis e vença o goleiro' },
     juegos_hub_sub: { es: 'Elegí tu juego y sumá gloria celeste', pt: 'Escolha seu jogo e some glória celeste' },
     juegos_play: { es: 'Jugar', pt: 'Jogar' },
     juegos_tag_trivia: { es: '⚡ Ranking online', pt: '⚡ Ranking online' },

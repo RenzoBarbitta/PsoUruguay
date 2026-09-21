@@ -122,9 +122,10 @@ async function cargarYRenderizarRankingPenales() {
   </div>`;
 }
 
-async function guardarRecordPenales(racha) {
+async function guardarRecordPenales(racha, prevBest) {
   if (!AuthState.user) return { saved: false, record: false };
-  const esRecord = racha > (AuthState.user.bestPenalStreak || 0);
+  const base = prevBest !== undefined ? prevBest : (AuthState.user.bestPenalStreak || 0);
+  const esRecord = racha > base;
 
   /* Siempre intentar el server primero (aunque el heartbeat diga offline):
      si hay red, el puntaje llega a la DB que es la única fuente del ranking. */
@@ -226,6 +227,22 @@ async function iniciarPenales() {
       PenalesState.serverMode = true;
     } catch (e) { /* cae al flujo legacy */ }
   }
+
+  /* El "¿es récord?" se decide contra el mejor valor REAL de la DB (el del
+     login arranca en 0 y hacía que siempre marcara "nuevo récord"). */
+  PenalesState.prevBest = await obtenerMejorRachaPenalesServer();
+}
+
+/* Mejor racha actual del jugador en la DB. Sin red → lo que tenga la sesión. */
+async function obtenerMejorRachaPenalesServer() {
+  if (AuthState.user) {
+    try {
+      const data = await rankingApi('/api/ranking/penales');
+      const yo = (data.ranking || []).find(u => u.id === AuthState.user.id);
+      if (yo) return yo.bestPenalStreak;
+    } catch (e) { /* sin red → sesión */ }
+  }
+  return AuthState.user ? Number(AuthState.user.bestPenalStreak || 0) : 0;
 }
 
 function elegirArquero() {
@@ -300,7 +317,7 @@ function siguientePenal() {
 async function finalizarPenales() {
   stopPenalesTimer();
   let racha = PenalesState.goles;
-  const prevBest = AuthState.user ? Number(AuthState.user.bestPenalStreak || 0) : 0;
+  const prevBest = (PenalesState.prevBest !== undefined ? PenalesState.prevBest : (AuthState.user ? Number(AuthState.user.bestPenalStreak || 0) : 0));
   let esRecordOnline = false;
 
   if (PenalesState.serverMode && PenalesState.sessionToken && !PenalesState.serverError) {
@@ -317,11 +334,11 @@ async function finalizarPenales() {
     } catch (e) {
       /* Si el finish falló por lo que sea, igual intentamos guardar el
          puntaje directo en el ranking: el score no se tiene que perder. */
-      const r = await guardarRecordPenales(racha);
+      const r = await guardarRecordPenales(racha, prevBest);
       if (e.code !== 'not_configured' && !r.saved) toast(tr('penales_save_error'), 'error');
     }
   } else {
-    esRecordOnline = (await guardarRecordPenales(racha)).record;
+    esRecordOnline = (await guardarRecordPenales(racha, prevBest)).record;
   }
 
   const esRecordLocal = penalGuardarRecordLocal(racha);
@@ -469,7 +486,11 @@ function viewPenalesResultado() {
 
 function attachResultadoPenalesEvents() {
   const volver = document.getElementById('penales-volver');
-  if (volver) volver.onclick = () => renderMainContent();
+  if (volver) volver.onclick = () => {
+    /* Al volver a la home el ranking se recarga al toque para reflejar
+       el récord recién guardado (además del auto-refresh de 5s). */
+    renderMainContent();
+  };
   const deNuevo = document.getElementById('penales-jugar-de-nuevo');
   if (deNuevo) deNuevo.onclick = iniciarPenales;
 }
