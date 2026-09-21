@@ -869,9 +869,9 @@ function openPalmaresFormModal(preserve) {
 
 const SELECCION_UY = [
   { pos: 'arqueros', icon: 'ti-hand-stop', players: [{ name: 'Molleja', num: 99 }, { name: 'Benji Price', num: 1 }] },
-  { pos: 'defensas', icon: 'ti-shield', players: [{ name: 'Qevale', num: 47 }, { name: 'Sebasuarezz' }, { name: 'Unfav', num: 4 }, { name: 'Taro Misaki', num: 24 }] },
-  { pos: 'medios', icon: 'ti-run', players: [{ name: 'Caseros', num: 64 }, { name: 'Agstn', num: 16 }, { name: 'Marabola', num: 7 }, { name: 'Best666', num: 10 }, { name: 'Sant1_Uru', num: 14 }] },
-  { pos: 'delanteros', icon: 'ti-ball-football', players: [{ name: 'Fran', num: 69 }, { name: 'Popa' }, { name: 'Parling', num: 17 }, { name: 'Chepas', num: 21 }, { name: 'Lnfermo', num: 9 }, { name: 'Alan Velasco', num: 15 }, { name: 'El Rkt' }, { name: 'Nachodeldanu' }, { name: 'Perssa', num: 5 }] },
+  { pos: 'defensas', icon: 'ti-shield', players: [{ name: 'Qevale', num: 47 }, { name: 'Sebasuarezz', num: 80 }, { name: 'Unfav', num: 4 }, { name: 'Taro Misaki', num: 24 }] },
+  { pos: 'medios', icon: 'ti-run', players: [{ name: 'Caseros', num: 64 }, { name: 'Agstn', num: 16 }, { name: 'Marabola', num: 7 }, { name: 'Best666', num: 10 }] },
+  { pos: 'delanteros', icon: 'ti-ball-football', players: [{ name: 'Fran', num: 69 }, { name: 'Popa', num: 14 }, { name: 'Parling', num: 17 }, { name: 'Chepas', num: 21 }, { name: 'Lnfermo', num: 9 }, { name: 'Alan Velasco', num: 15 }, { name: 'El Rkt', num: 30 }, { name: 'Nachodeldanu', num: 11 }, { name: 'Perssa', num: 5 }] },
 ];
 
 function seleccionPosKey(pos) {
