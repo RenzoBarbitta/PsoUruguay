@@ -21,7 +21,7 @@ export async function onRequestPost(context) {
 
   if (!cfg.serviceKey) return json(503, { error: 'not_configured' });
 
-  const score = Math.min(Number(st.s || 0), MAX_SCORE);
+  const score = Math.min(Number(st.s || 0), st.g === 'penales' ? 100 : MAX_SCORE);
   const column = st.g === 'trivia' ? 'best_streak' : 'best_penal_streak';
 
   let row;

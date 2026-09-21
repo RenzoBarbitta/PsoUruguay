@@ -72,7 +72,10 @@ function penalGuardarRecordLocal(n) {
 }
 
 async function cargarRankingPenales() {
-  if (online) {
+  /* El ranking SIEMPRE se lee del server si hay red: es la fuente de la verdad.
+     La bandera `online` del heartbeat puede quedar vieja y hacía clavar la
+     vista en los datos del navegador aunque la DB tuviera otros valores. */
+  if (AuthState.user) {
     try {
       const data = await rankingApi('/api/ranking/penales');
       return (data.ranking || []).map(u => ({
@@ -81,7 +84,7 @@ async function cargarRankingPenales() {
         racha: u.bestPenalStreak || 0,
         fecha: u.createdAt
       })).filter(e => e.racha > 0);
-    } catch (e) { return []; }
+    } catch (e) { /* sin red → caemos a los locales */ }
   }
   return getLocalUsers()
     .map(u => ({ id: u.id, nombre: u.displayName || u.username, racha: u.bestPenalStreak || 0, fecha: u.createdAt }))
@@ -123,26 +126,25 @@ async function guardarRecordPenales(racha) {
   if (!AuthState.user) return { saved: false, record: false };
   const esRecord = racha > (AuthState.user.bestPenalStreak || 0);
 
-  if (online) {
-    try {
-      const data = await rankingApi('/api/ranking/penales', { bestPenalStreak: racha });
-      if (data.user) {
-        AuthState.user = data.user;
-        localStorage.setItem('pso_user', JSON.stringify(data.user));
-      }
-      return { saved: true, record: esRecord };
-    } catch (e) {
-      return { saved: false, record: false };
+  /* Siempre intentar el server primero (aunque el heartbeat diga offline):
+     si hay red, el puntaje llega a la DB que es la única fuente del ranking. */
+  try {
+    const data = await rankingApi('/api/ranking/penales', { bestPenalStreak: racha });
+    if (data.user) {
+      AuthState.user = data.user;
+      localStorage.setItem('pso_user', JSON.stringify(data.user));
     }
+    return { saved: true, record: esRecord };
+  } catch (e) {
+    /* Sin red: guardado local (legacy) para no perder el récord. */
+    const users = getLocalUsers();
+    const me = users.find(u => u.id === AuthState.user.id);
+    if (me && racha > (me.bestPenalStreak || 0)) {
+      me.bestPenalStreak = racha;
+      saveLocalUsers(users);
+    }
+    return { saved: false, record: esRecord };
   }
-
-  const users = getLocalUsers();
-  const me = users.find(u => u.id === AuthState.user.id);
-  if (me && racha > (me.bestPenalStreak || 0)) {
-    me.bestPenalStreak = racha;
-    saveLocalUsers(users);
-  }
-  return { saved: true, record: esRecord };
 }
 
 /* Actualiza la tarjeta "Mejor racha" con el valor REAL del ranking online.
@@ -153,7 +155,7 @@ async function guardarRecordPenales(racha) {
 async function sincronizarMejorRachaPenales() {
   const val = document.getElementById('penales-mejor-racha-val');
   if (!val) return;
-  if (online && AuthState.user) {
+  if (AuthState.user) {
     try {
       const data = await rankingApi('/api/ranking/penales');
       const yo = (data.ranking || []).find(u => u.id === AuthState.user.id);
@@ -278,6 +280,8 @@ function ejecutarTiroPenales(zona) {
 
   if (esGol) {
     setTimeout(() => {
+      /* Límite de tanda: a los 100 penales convertidos se corta la partida. */
+      if (PenalesState.goles >= 100) return finalizarPenales();
       const sig = document.getElementById('penales-siguiente');
       if (sig) sig.style.display = 'inline-flex';
     }, 900);
@@ -299,7 +303,7 @@ async function finalizarPenales() {
   const prevBest = AuthState.user ? Number(AuthState.user.bestPenalStreak || 0) : 0;
   let esRecordOnline = false;
 
-  if (online && PenalesState.serverMode && PenalesState.sessionToken && !PenalesState.serverError) {
+  if (PenalesState.serverMode && PenalesState.sessionToken && !PenalesState.serverError) {
     try {
       const res = await gameApi('/api/game/finish', { token: PenalesState.sessionToken });
       /* La racha oficial es la que contó el server */

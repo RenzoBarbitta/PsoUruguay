@@ -105,7 +105,10 @@ function loadingSpinnerHtml() {
 }
 
 async function cargarRankingTrivia() {
-  if (online) {
+  /* El ranking SIEMPRE se lee del server si hay red: es la fuente de la verdad.
+     La bandera `online` del heartbeat puede quedar vieja y hacía clavar la
+     vista en los datos del navegador aunque la DB tuviera otros valores. */
+  if (AuthState.user) {
     try {
       const data = await rankingApi('/api/ranking');
       return (data.ranking || []).map(u => ({
@@ -114,9 +117,7 @@ async function cargarRankingTrivia() {
         mejorRacha: u.bestStreak || 0,
         fecha: u.createdAt
       })).filter(e => e.mejorRacha > 0);
-    } catch (e) {
-      return [];
-    }
+    } catch (e) { /* sin red → caemos a los locales */ }
   }
   return getLocalUsers()
     .map(u => ({ id: u.id, nombre: u.displayName || u.username, mejorRacha: u.bestStreak || 0, fecha: u.createdAt }))
@@ -306,27 +307,25 @@ async function avanzarTrasRespuestaTrivia(idx) {
 async function guardarPuntajeTrivia(racha) {
   if (!AuthState.user) return { saved: false, record: false };
 
-  if (online) {
-    try {
-      const data = await rankingApi('/api/ranking', { bestStreak: racha });
-      if (data.user) {
-        AuthState.user = data.user;
-        localStorage.setItem('pso_user', JSON.stringify(data.user));
-      }
-      return { saved: true, record: racha > 0 };
-    } catch (e) {
-      return { saved: false, record: false };
+  /* Siempre intentar el server primero (aunque el heartbeat diga offline):
+     si hay red, el puntaje llega a la DB que es la única fuente del ranking. */
+  try {
+    const data = await rankingApi('/api/ranking', { bestStreak: racha });
+    if (data.user) {
+      AuthState.user = data.user;
+      localStorage.setItem('pso_user', JSON.stringify(data.user));
     }
+    return { saved: true, record: racha > 0 };
+  } catch (e) {
+    // Modo local (sin red): para no perder el récord.
+    const users = getLocalUsers();
+    const me = users.find(u => u.id === AuthState.user.id);
+    if (me && racha > (me.bestStreak || 0)) {
+      me.bestStreak = racha;
+      saveLocalUsers(users);
+    }
+    return { saved: false, record: racha > 0 };
   }
-
-  // Modo local
-  const users = getLocalUsers();
-  const me = users.find(u => u.id === AuthState.user.id);
-  if (me && racha > (me.bestStreak || 0)) {
-    me.bestStreak = racha;
-    saveLocalUsers(users);
-  }
-  return { saved: true, record: racha > 0 };
 }
 
 async function finalizarPartidaTrivia() {
@@ -334,7 +333,7 @@ async function finalizarPartidaTrivia() {
   TriviaState.jugando = false;
   TriviaState.preguntaActual = null;
 
-  if (online && TriviaState.serverMode && TriviaState.sessionToken) {
+  if (TriviaState.serverMode && TriviaState.sessionToken) {
     try {
       const res = await gameApi('/api/game/finish', { token: TriviaState.sessionToken });
       /* La racha oficial es la que contó el server */

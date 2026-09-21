@@ -28,7 +28,10 @@ export async function onRequestPost(context) {
   }
 
   const gol = result === 'gol';
-  const st2 = gol ? { ...st, s: st.s + 1, k: (st.k || 0) + 1, l: now } : { ...st, l: now };
+  const st2 = gol ? { ...st, s: st.s + 1, k: (st.k || 0) + 1, l: now } : { ...st, k: (st.k || 0) + 1, l: now };
+
+  /* Límite de tanda: 100 penales pateados → se corta aunque hayan sido gol. */
+  const maxReached = (st.k || 0) + 1 >= 100;
   const token = await signState(st2, cfg.secret);
-  return json(200, { token, s: st2.s, over: !gol });
+  return json(200, { token, s: st2.s, over: maxReached ? true : !gol, reason: maxReached ? 'max_penales' : undefined });
 }
