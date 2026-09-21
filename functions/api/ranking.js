@@ -4,7 +4,7 @@
 
    GET  → {ranking:[{id,username,displayName,bestStreak,createdAt}]}
    POST (token) {bestStreak} → {user} */
-import { getConfig, verifySupabaseUser, saveStreak, readStreakRanking, userFromRow, MAX_SCORE, json } from '../../lib/game.mjs';
+import { getConfig, verifySupabaseUser, saveStreak, readStreakRanking, userFromRow, MAX_SCORE, json } from '../lib/game.mjs';
 
 export async function onRequestGet(context) {
   const cfg = getConfig(context.env);
