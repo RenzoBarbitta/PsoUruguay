@@ -176,6 +176,18 @@ export function userFromRow(me, row) {
   };
 }
 
+/* Ranking ordenado por la columna indicada (service key, menos límite). */
+export async function readStreakRanking(cfg, column, limit = 50) {
+  const rows = await supaService(cfg, '/rest/v1/users', {
+    query: {
+      select: 'id,username,display_name,created_at,best_streak,best_penal_streak',
+      order: column + '.desc,created_at.asc',
+      limit: String(limit)
+    }
+  });
+  return Array.isArray(rows) ? rows : [];
+}
+
 /* ---------------- helpers de respuesta ---------------- */
 
 export function json(status, obj) {

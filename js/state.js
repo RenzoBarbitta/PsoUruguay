@@ -375,67 +375,10 @@ async function apiRequest(path, options = {}) {
 
   /* ---------------- RANKING TRIVIA ---------------- */
   if (pathStr === '/api/ranking') {
-    if (method === 'POST') {
-      if (!token) throw new Error(tr('err_no_auth'));
-      const me = await supaFetch('/auth/v1/user', { token: token });
-      /* IMPORTANTE: la racha "actual" NUNCA se lee de user_metadata (eso es
-         del JWT de Auth, que solo se pisa al firmar el token y quedaba
-         siempre en el valor del registro: 0). La racha real y actualizada
-         vive en public.users, así que la leemos de ahí antes de comparar,
-         si no siempre "ganaba" el intento nuevo y se perdía el mejor. */
-      let cur = 0;
-      try {
-        const rows = await supaFetch('/rest/v1/users?id=eq.' + encodeURIComponent(me.id), {
-          token: token,
-          query: { select: 'best_streak', limit: '1' }
-        });
-        if (Array.isArray(rows) && rows.length) cur = Number(rows[0].best_streak || 0);
-      } catch (e) { /* si falla la lectura, seguimos con cur=0 y confiamos en el trigger de la DB */ }
-      const next = Math.max(cur, Number(body.bestStreak || 0));
-      await supaUpsertUser(token, { best_streak: next });
-      return { user: mapAuthUser({ ...me, user_metadata: { ...(me.user_metadata || {}), best_streak: next } }) };
-    }
-    const rows = await supaFetch('/rest/v1/users', {
-      query: { select: '*', order: 'best_streak.desc,created_at.asc', limit: '50' }
-    });
-    const ranking = (Array.isArray(rows) ? rows : []).map(r => ({
-      id: r.id,
-      username: r.username,
-      displayName: r.display_name || r.username,
-      bestStreak: Number(r.best_streak || 0),
-      createdAt: r.created_at
-    }));
-    return { ranking };
-  }
-
-  /* ---------------- RANKING PENALES ---------------- */
-  if (pathStr === '/api/ranking/penales') {
-    if (method === 'POST') {
-      if (!token) throw new Error(tr('err_no_auth'));
-      const me = await supaFetch('/auth/v1/user', { token: token });
-      let cur = 0;
-      try {
-        const rows = await supaFetch('/rest/v1/users?id=eq.' + encodeURIComponent(me.id), {
-          token: token,
-          query: { select: 'best_penal_streak', limit: '1' }
-        });
-        if (Array.isArray(rows) && rows.length) cur = Number(rows[0].best_penal_streak || 0);
-      } catch (e) {}
-      const next = Math.max(cur, Number(body.bestPenalStreak || 0));
-      await supaUpsertUser(token, { best_penal_streak: next });
-      return { user: mapAuthUser({ ...me, user_metadata: { ...(me.user_metadata || {}), best_penal_streak: next } }) };
-    }
-    const rows = await supaFetch('/rest/v1/users', {
-      query: { select: '*', order: 'best_penal_streak.desc,created_at.asc', limit: '50' }
-    });
-    const ranking = (Array.isArray(rows) ? rows : []).map(r => ({
-      id: r.id,
-      username: r.username,
-      displayName: r.display_name || r.username,
-      bestPenalStreak: Number(r.best_penal_streak || 0),
-      createdAt: r.created_at
-    }));
-    return { ranking };
+    /* El ranking (GET y POST) ahora lo atienden las Pages Functions
+       /api/ranking y /api/ranking/penales con la service key: la tabla
+       public.users no permite lectura anónima por RLS. */
+    throw new Error('Ruta desconocida: ' + path);
   }
 
   throw new Error('Ruta desconocida: ' + path);
@@ -456,6 +399,29 @@ async function gameApi(path, body) {
     method: 'POST',
     headers,
     body: JSON.stringify(body || {})
+  });
+  let data = null;
+  try { data = await r.json(); } catch (e) { /* sin cuerpo */ }
+  if (!r.ok) {
+    const err = new Error((data && data.error) || ('HTTP ' + r.status));
+    err.code = data && data.error;
+    err.status = r.status;
+    throw err;
+  }
+  return data;
+}
+
+/* Llama a una Pages Function del ranking con el token de usuario si hay.
+   GET si no va body, POST si va. El server usa la service key, así que
+   funciona aunque la RLS no permita acceso anónimo a public.users. */
+async function rankingApi(path, body) {
+  const token = authToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = 'Bearer ' + token;
+  const r = await fetch(path, {
+    method: body !== undefined ? 'POST' : 'GET',
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined
   });
   let data = null;
   try { data = await r.json(); } catch (e) { /* sin cuerpo */ }

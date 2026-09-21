@@ -74,7 +74,7 @@ function penalGuardarRecordLocal(n) {
 async function cargarRankingPenales() {
   if (online) {
     try {
-      const data = await apiRequest('/api/ranking/penales');
+      const data = await rankingApi('/api/ranking/penales');
       return (data.ranking || []).map(u => ({
         id: u.id,
         nombre: u.displayName || u.username,
@@ -120,20 +120,19 @@ async function cargarYRenderizarRankingPenales() {
 }
 
 async function guardarRecordPenales(racha) {
-  if (!AuthState.user) return false;
+  if (!AuthState.user) return { saved: false, record: false };
   const esRecord = racha > (AuthState.user.bestPenalStreak || 0);
 
   if (online) {
     try {
-      const data = await apiRequest('/api/ranking/penales', { method: 'POST', auth: true, body: { bestPenalStreak: racha } });
+      const data = await rankingApi('/api/ranking/penales', { bestPenalStreak: racha });
       if (data.user) {
         AuthState.user = data.user;
         localStorage.setItem('pso_user', JSON.stringify(data.user));
       }
-      return esRecord;
+      return { saved: true, record: esRecord };
     } catch (e) {
-      toast(tr('penales_save_error'), 'error');
-      return false;
+      return { saved: false, record: false };
     }
   }
 
@@ -143,7 +142,7 @@ async function guardarRecordPenales(racha) {
     me.bestPenalStreak = racha;
     saveLocalUsers(users);
   }
-  return esRecord;
+  return { saved: true, record: esRecord };
 }
 
 /* ---------------- Timer de reaccion ---------------- */
@@ -287,15 +286,13 @@ async function finalizarPenales() {
       PenalesState.sessionToken = null;
       esRecordOnline = racha > prevBest && racha > 0;
     } catch (e) {
-      if (e.code === 'not_configured') {
-        /* Server aún sin service key → guardamos como siempre (legacy) */
-        esRecordOnline = await guardarRecordPenales(racha);
-      } else {
-        toast(tr('penales_save_error'), 'error');
-      }
+      /* Si el finish falló por lo que sea, igual intentamos guardar el
+         puntaje directo en el ranking: el score no se tiene que perder. */
+      const r = await guardarRecordPenales(racha);
+      if (e.code !== 'not_configured' && !r.saved) toast(tr('penales_save_error'), 'error');
     }
   } else {
-    esRecordOnline = await guardarRecordPenales(racha);
+    esRecordOnline = (await guardarRecordPenales(racha)).record;
   }
 
   const esRecordLocal = penalGuardarRecordLocal(racha);

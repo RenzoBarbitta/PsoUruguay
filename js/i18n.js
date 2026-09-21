@@ -259,8 +259,8 @@ const I18N = {
     trivia_correcto: { es: '✅ ¡Correcto! Racha: {n}', pt: '✅ Correto! Sequência: {n}' },
     trivia_incorrecto: { es: '❌ Incorrecto. Tu racha fue de {n}.', pt: '❌ Errado. Sua sequência foi de {n}.' },
     trivia_save_error: {
-      es: 'No se pudo guardar tu puntaje online. Revisá la conexión.',
-      pt: 'Não foi possível salvar sua pontuação online. Verifique a conexão.'
+      es: 'No se pudo guardar tu puntaje online.',
+      pt: 'Não foi possível salvar sua pontuação online.'
     },
     trivia_partida_terminada: { es: '¡Partida terminada!', pt: 'Partida encerrada!' },
     trivia_tu_racha: { es: 'Tu racha final fue de', pt: 'Sua sequência final foi de' },
@@ -378,8 +378,8 @@ const I18N = {
     penales_time_reaction: { es: 'tiempo de reacción', pt: 'tempo de reação' },
     penales_seg: { es: '{t}s', pt: '{t}s' },
     penales_save_error: {
-      es: 'No se pudo guardar tu puntaje online. Revisá la conexión.',
-      pt: 'Não foi possível salvar sua pontuação online. Verifique a conexão.'
+      es: 'No se pudo guardar tu puntaje online.',
+      pt: 'Não foi possível salvar sua pontuação online.'
     },
 
     /* ------- Admin: posiciones ------- */

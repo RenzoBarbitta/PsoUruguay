@@ -107,7 +107,7 @@ function loadingSpinnerHtml() {
 async function cargarRankingTrivia() {
   if (online) {
     try {
-      const data = await apiRequest('/api/ranking');
+      const data = await rankingApi('/api/ranking');
       return (data.ranking || []).map(u => ({
         id: u.id,
         nombre: u.displayName || u.username,
@@ -304,19 +304,18 @@ async function avanzarTrasRespuestaTrivia(idx) {
 }
 
 async function guardarPuntajeTrivia(racha) {
-  if (!AuthState.user) return;
+  if (!AuthState.user) return { saved: false, record: false };
 
   if (online) {
     try {
-      const data = await apiRequest('/api/ranking', { method: 'POST', auth: true, body: { bestStreak: racha } });
+      const data = await rankingApi('/api/ranking', { bestStreak: racha });
       if (data.user) {
         AuthState.user = data.user;
         localStorage.setItem('pso_user', JSON.stringify(data.user));
       }
-      return;
+      return { saved: true, record: racha > 0 };
     } catch (e) {
-      toast(tr('trivia_save_error'), 'error');
-      return;
+      return { saved: false, record: false };
     }
   }
 
@@ -327,6 +326,7 @@ async function guardarPuntajeTrivia(racha) {
     me.bestStreak = racha;
     saveLocalUsers(users);
   }
+  return { saved: true, record: racha > 0 };
 }
 
 async function finalizarPartidaTrivia() {
@@ -345,12 +345,10 @@ async function finalizarPartidaTrivia() {
       }
       TriviaState.sessionToken = null;
     } catch (e) {
-      if (e.code === 'not_configured') {
-        /* Server aún sin service key → guardamos como siempre (legacy) */
-        await guardarPuntajeTrivia(rachaFinal);
-      } else {
-        toast(tr('trivia_save_error'), 'error');
-      }
+      /* Si el finish falló por lo que sea, igual intentamos guardar el
+         puntaje directo en el ranking: el score no se tiene que perder. */
+      const r = await guardarPuntajeTrivia(rachaFinal);
+      if (e.code !== 'not_configured' && !r.saved) toast(tr('trivia_save_error'), 'error');
     }
   } else {
     await guardarPuntajeTrivia(rachaFinal);
