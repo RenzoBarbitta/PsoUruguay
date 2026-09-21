@@ -213,7 +213,7 @@ function renderMainContent() {
     case 'fixture': main.innerHTML = viewFixture(); attachFixtureEvents(); break;
     case 'tabla': main.innerHTML = viewTabla(); attachTablaEvents(); break;
     case 'estadisticas': main.innerHTML = viewEstadisticas(); attachEstadisticasEvents(); break;
-    case 'palmares': main.innerHTML = viewPalmares(); break;
+    case 'palmares': main.innerHTML = viewPalmares(); attachPalmaresEvents(); break;
     case 'seleccion': main.innerHTML = viewSeleccion(); break;
     case 'juegos': main.innerHTML = viewJuegos(); attachJuegosEvents(); break;
     case 'trivia': main.innerHTML = viewTrivia(); attachTriviaEvents(); break;

@@ -29,6 +29,7 @@ const State = {
     teams: [],       // {id, name, short, logo, color, players:[{id,name}]}
     matches: [],      // {id, round, homeId, awayId, homeScore, awayScore, played, stats:{playerId:{goals,assists,yellow,red}}, competitionId, competitionFormat, bracket}
     competitions: [], // {id, name, type:'liga'|'copa', teamIds:[], season, createdAt}
+    palmares: [],     // {id, name, year, logo, players:[{id,name}]} — títulos manuales (solo admin)
     settings: { leagueName: 'Pro Soccer Online Uruguay', season: '2026' }
   }
 };
@@ -513,6 +514,7 @@ async function loadLocalFallback() {
       const parsed = JSON.parse(raw);
       State.data.teams = parsed.teams || [];
       State.data.matches = parsed.matches || [];
+      State.data.palmares = parsed.palmares || [];
       State.data.settings = { ...State.data.settings, ...(parsed.settings || {}) };
     }
   } catch (e) {}
@@ -577,11 +579,13 @@ async function refreshFromStorage() {
     const settings = State.data.settings;
     if (settingsRaw) { try { Object.assign(settings, JSON.parse(settingsRaw)); } catch (e) {} }
     const competitions = await getCompetitionsFromStorage();
+    const palmares = await getPalmaresFromStorage();
 
     State.data.teams = teams;
     State.data.matches = matches;
     State.data.settings = settings;
     State.data.competitions = competitions;
+    State.data.palmares = palmares;
     if (typeof renderAll === 'function') renderAll();
   } catch (e) {}
 }
@@ -677,4 +681,35 @@ function getMatchesByCompetition(competitionId) {
 
 function getCompetitionMatchesCount(competitionId) {
   return State.data.matches.filter(m => m.competitionId === competitionId).length;
+}
+
+/* ---------------- Palmarés manual (solo admin) ---------------- */
+
+async function persistPalmaresEntry(entry) {
+  if (online) {
+    const ok = await safeSet('palmares:' + entry.id, JSON.stringify(entry));
+    if (!ok) { toast(tr('toast_save_team_error'), 'error'); return; }
+  }
+  const idx = State.data.palmares.findIndex(e => e.id === entry.id);
+  if (idx >= 0) State.data.palmares[idx] = entry; else State.data.palmares.push(entry);
+  if (!online) saveLocalFallback();
+}
+
+async function deletePalmaresEntryDB(id) {
+  if (online) await safeDelete('palmares:' + id);
+  State.data.palmares = State.data.palmares.filter(e => e.id !== id);
+  if (!online) saveLocalFallback();
+}
+
+async function getPalmaresFromStorage() {
+  if (!online) return State.data.palmares || [];
+  try {
+    const rows = await safeList('palmares:');
+    const out = [];
+    for (const key of rows) {
+      const rec = await safeGet(key);
+      if (rec) { try { out.push(JSON.parse(rec)); } catch (e) {} }
+    }
+    return out;
+  } catch (e) { return []; }
 }

@@ -200,7 +200,20 @@ const I18N = {
       es: 'Todavía ningún equipo salió campeón. Los títulos aparecerán acá cuando se defina un campeón de copa o de liga.',
       pt: 'Ainda nenhuma equipe foi campeã. Os títulos aparecerão aqui quando houver um campeão de copa ou de liga.'
     },
+    palmares_empty_year: { es: 'No hay títulos cargados para {year} todavía.', pt: 'Não há títulos cadastrados para {year} ainda.' },
     palmares_sub: { es: 'Ranking histórico de campeones', pt: 'Ranking histórico de campeões' },
+    palmares_agregar_btn: { es: 'Agregar título', pt: 'Adicionar título' },
+    palmares_modal_title: { es: 'Agregar al Palmarés', pt: 'Adicionar aos Títulos' },
+    palmares_label_nombre: { es: 'Nombre del club / título', pt: 'Nome do clube / título' },
+    palmares_ph_nombre: { es: 'Ej: PSO Uruguay', pt: 'Ex: PSO Uruguai' },
+    palmares_label_year: { es: 'Año', pt: 'Ano' },
+    palmares_year_required: { es: 'Cargá un año válido', pt: 'Informe um ano válido' },
+    palmares_btn_crear: { es: 'Crear título', pt: 'Criar título' },
+    palmares_plantel: { es: 'Plantel', pt: 'Elenco' },
+    toast_palmares_creado: { es: '🏆 {name} ({year}) agregado al Palmarés', pt: '🏆 {name} ({year}) adicionado aos Títulos' },
+    toast_palmares_eliminado: { es: 'Título eliminado del Palmarés', pt: 'Título removido dos Títulos' },
+    confirm_del_palmares: { es: '¿Quitar "{name}" del Palmarés?', pt: 'Remover "{name}" dos Títulos?' },
+    modal_eliminar_palmares: { es: 'Quitar del Palmarés', pt: 'Remover dos Títulos' },
 
     /* ------- Trivia ------- */
     trivia_title: { es: '⚽ Trivia Futbolera', pt: '⚽ Quiz de Futebol' },

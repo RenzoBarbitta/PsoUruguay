@@ -1351,3 +1351,19 @@ table.pso-table td.pts { font-weight: 700; color: var(--accent-dark); }
 @media (max-width: 400px) {
   .sel-grid { grid-template-columns: 1fr; }
 }
+
+/* ===================== PALMARÉS (años) ===================== */
+.pal-years {
+  display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.1rem;
+}
+.pal-year-btn {
+  font-family: var(--font-display); font-weight: 700; font-size: 0.95rem;
+  background: var(--bg-surface-2); border: 1px solid var(--border);
+  color: var(--text-secondary); border-radius: 999px; padding: 0.5rem 1.1rem;
+  cursor: pointer; transition: all 0.15s ease;
+}
+.pal-year-btn:hover { color: var(--text); border-color: var(--accent-dark); }
+.pal-year-btn.active {
+  background: linear-gradient(135deg, #5b9bd5, #2e6bb0); border-color: rgba(91,155,213,0.6);
+  color: #fff; box-shadow: 0 4px 14px rgba(46,107,176,0.35);
+}

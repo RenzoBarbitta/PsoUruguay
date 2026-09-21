@@ -548,44 +548,254 @@ function attachEstadisticasEvents() {
 
 /* ---------------- VIEW: PALMARES ---------------- */
 
+/* Lista completa de títulos: los manuales (cargados por el admin con año,
+   imagen y plantel) + los derivados de torneos (campeones declarados). */
+function palmaresEntries() {
+  const entries = [];
+  (State.data.palmares || []).forEach(p => {
+    entries.push({
+      id: p.id, year: String(p.year || '').trim(), name: p.name,
+      logo: p.logo, players: (p.players || []).map(pl => pl.name),
+      tag: '', source: 'manual'
+    });
+  });
+  State.data.teams.forEach(t => {
+    (t.titles || []).forEach(ti => {
+      entries.push({
+        id: t.id, year: String(ti.year || '').trim(), name: t.name,
+        logo: t.logo, players: (t.players || []).map(pl => pl.name),
+        tag: ti.competitionName || '', source: 'auto'
+      });
+    });
+  });
+  return entries.filter(e => e.year);
+}
+
+function palmaresYears(entries) {
+  return [...new Set(entries.map(e => e.year))].sort((a, b) => Number(b) - Number(a));
+}
+
 function viewPalmares() {
-  const ranking = computePalmares();
-  if (!ranking.length) {
-    return `<div class="view active">
-      <div class="section-head"><h2 class="section-title">${tr('palmares_title')}</h2></div>
-      ${emptyState('ti-trophy-off', tr('palmares_empty'))}
-    </div>`;
-  }
-  return `<div class="view active">
+  const entries = palmaresEntries();
+  const years = palmaresYears(entries);
+
+  const head = `
     <div class="section-head">
       <h2 class="section-title">${tr('palmares_title')}</h2>
       <span class="section-sub">${tr('palmares_sub')}</span>
-    </div>
-    <div class="rank-list">
-      ${ranking.map((t, i) => `
-        <div class="rank-item" style="${i === 0 ? 'border-color: rgba(240,197,66,0.5); background: linear-gradient(135deg, rgba(240,197,66,0.08), transparent);' : ''}">
-          <div class="rank-pos">${i + 1}</div>
-          ${teamDotHtml({ logo: t.logo, name: t.name }, '')}
-          <div class="rank-info">
-            <div class="rank-name">${escapeHtml(t.name)}</div>
-            <div class="rank-team">${t.titles.map(ti => escapeHtml(ti.competitionName + (ti.year ? ' ' + ti.year : ''))).join(' · ')}</div>
-          </div>
-          <div style="display:flex; align-items:center; gap:0.3rem;">
-            <i class="ti ti-trophy" style="color:var(--gold); font-size:1.1rem;"></i>
-            <div class="rank-value">${t.titles.length}</div>
-          </div>
-        </div>
-      `).join('')}
+      ${State.isAdmin ? `<button class="btn btn-primary" id="palmares-add-btn" style="margin-left:auto;"><i class="ti ti-plus"></i> ${tr('palmares_agregar_btn')}</button>` : ''}
+    </div>`;
+
+  if (!years.length) {
+    return `<div class="view active">${head}${emptyState('ti-trophy-off', tr('palmares_empty'))}</div>`;
+  }
+
+  const raw = localStorage.getItem('pso_pal_year') || String(years[0]);
+  const selYear = years.includes(raw) ? raw : String(years[0]);
+  const selEntries = entries.filter(e => e.year === selYear);
+
+  return `<div class="view active">
+    ${head}
+    <div class="pal-years">${years.map(y => `
+      <button class="pal-year-btn ${y === selYear ? 'active' : ''}" data-year="${y}">${escapeHtml(y)}</button>
+    `).join('')}</div>
+    <div id="palmares-year-content">
+      ${selEntries.length ? selEntries.map(e => palmaresWinnerCard(e)).join('') : emptyState('ti-trophy-off', tr('palmares_empty_year', { year: selYear }))}
     </div>
   </div>`;
+}
+
+function palmaresWinnerCard(e) {
+  const admin = State.isAdmin;
+  return `<div class="rank-item" style="${e.tag ? 'border-color: rgba(240,197,66,0.35);' : ''}">
+    ${teamDotHtml({ logo: e.logo, name: e.name }, '')}
+    <div class="rank-info">
+      <div class="rank-name">${escapeHtml(e.name)} ${e.tag ? `<span style="font-size:0.72rem; color:var(--text-muted); font-weight:500;">· ${escapeHtml(e.tag)}</span>` : ''}</div>
+      ${e.players.length ? `<div class="rank-team">${tr('palmares_plantel')}: ${e.players.map(escapeHtml).join(' · ')}</div>` : ''}
+    </div>
+    <div style="display:flex; align-items:center; gap:0.45rem;">
+      <i class="ti ti-trophy" style="color:var(--gold); font-size:1.1rem;"></i>
+      ${admin && e.source === 'manual' ? `<button class="btn btn-icon btn-danger palmares-del-btn" data-pal="${e.id}" title="${tr('btn_eliminar')}" style="width:30px; height:30px;"><i class="ti ti-trash"></i></button>` : ''}
+    </div>
+  </div>`;
+}
+
+function attachPalmaresEvents() {
+  const addBtn = document.getElementById('palmares-add-btn');
+  if (addBtn) addBtn.onclick = openPalmaresFormModal;
+
+  document.querySelectorAll('.pal-year-btn').forEach(b => {
+    b.onclick = () => {
+      localStorage.setItem('pso_pal_year', b.dataset.year);
+      document.querySelectorAll('.pal-year-btn').forEach(x => x.classList.toggle('active', x === b));
+      const entries = palmaresEntries().filter(e => e.year === b.dataset.year);
+      const content = document.getElementById('palmares-year-content');
+      if (content) {
+        content.innerHTML = entries.length ? entries.map(palmaresWinnerCard).join('') : emptyState('ti-trophy-off', tr('palmares_empty_year', { year: b.dataset.year }));
+        attachPalmaresDeleteEvents();
+      }
+    };
+  });
+
+  attachPalmaresDeleteEvents();
+}
+
+function attachPalmaresDeleteEvents() {
+  document.querySelectorAll('.palmares-del-btn').forEach(b => {
+    b.onclick = async () => {
+      const entry = (State.data.palmares || []).find(e => e.id === b.dataset.pal);
+      if (!entry) return;
+      openModal(tr('modal_eliminar_palmares'), `
+        <p style="font-size:0.92rem;">${tr('confirm_del_palmares', { name: escapeHtml(entry.name) })}</p>
+      `, `
+        <button class="btn" id="del-pal-cancel">${tr('btn_cancel')}</button>
+        <button class="btn btn-danger" id="del-pal-confirm"><i class="ti ti-trash"></i> ${tr('btn_eliminar')}</button>
+      `);
+      document.getElementById('del-pal-cancel').onclick = closeModal;
+      document.getElementById('del-pal-confirm').onclick = async () => {
+        await deletePalmaresEntryDB(entry.id);
+        closeModal();
+        renderMainContent();
+        toast(tr('toast_palmares_eliminado'));
+      };
+    };
+  });
+}
+
+/* ---------------- ADMIN: AGREGAR TÍTULO AL PALMARÉS ---------------- */
+
+let palFormState = null;
+
+function openPalmaresFormModal(preserve) {
+  if (!preserve || !palFormState) {
+    palFormState = { logo: null, players: [], name: '' };
+  }
+  const st = palFormState;
+
+  const overlay = openModal(tr('palmares_modal_title'), `
+    <div id="pal-logo-section"></div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>${tr('palmares_label_nombre')}</label>
+        <input type="text" id="pal-name-input" placeholder="${tr('palmares_ph_nombre')}" value="${escapeHtml(st.name)}">
+      </div>
+      <div class="field" style="max-width:130px;">
+        <label>${tr('palmares_label_year')}</label>
+        <input type="number" id="pal-year-input" min="1990" max="2100" value="${new Date().getFullYear()}" placeholder="2026">
+      </div>
+    </div>
+    <div class="field-error" id="pal-name-error" style="display:none;">${tr('err_nombre_valido')}</div>
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin: 1.1rem 0 0.6rem;">
+      <label style="font-size:0.82rem; font-weight:600; color:var(--text-secondary);">${tr('label_plantel')}</label>
+      <button class="btn btn-sm" id="pal-add-player-inline" type="button"><i class="ti ti-user-plus"></i> ${tr('btn_agregar_jugador')}</button>
+    </div>
+    <div id="pal-players-list" style="display:flex; flex-direction:column; gap:0.5rem; max-height:220px; overflow-y:auto;"></div>
+  `, `
+    <button class="btn" id="pal-form-cancel">${tr('btn_cancel')}</button>
+    <button class="btn btn-primary" id="pal-form-save"><i class="ti ti-check"></i> ${tr('palmares_btn_crear')}</button>
+  `);
+
+  function renderLogoSection() {
+    const section = document.getElementById('pal-logo-section');
+    section.innerHTML = `
+      <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.25rem;">
+        <div id="pal-logo-preview" style="width:88px; height:88px; border-radius:50%; background:var(--bg-surface-2); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; font-weight:800; color:var(--accent-dark); font-size:1.4rem;">
+          ${st.logo ? `<img src="${st.logo}" style="width:100%; height:100%; object-fit:cover;">` : teamInitials((document.getElementById('pal-name-input') || {}).value || tr('palmares_title'))}
+        </div>
+        <div>
+          <input type="file" id="pal-logo-input" accept="image/*" style="display:none;">
+          <div style="display:flex; gap:0.4rem;">
+            <button class="btn btn-sm" id="pal-logo-btn" type="button">🖼️ ${st.logo ? tr('btn_cambiar_logo') : tr('btn_subir_logo')}</button>
+            ${st.logo ? `<button class="btn btn-sm btn-danger" id="pal-logo-remove" type="button">${tr('btn_quitar')}</button>` : ''}
+          </div>
+          <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.4rem;">${tr('logo_crop_note')}</div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('pal-logo-btn').onclick = () => document.getElementById('pal-logo-input').click();
+    document.getElementById('pal-logo-input').onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.size > 8 * 1024 * 1024) { toast(tr('toast_logo_pesada'), 'error'); return; }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          // Igual que el logo de club: recorta el centro a un cuadrado 400x400
+          // para que la imagen "se ajuste" al círculo sin distorsionarse.
+          const size = 400;
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          const minSide = Math.min(img.width, img.height);
+          const sx = (img.width - minSide) / 2;
+          const sy = (img.height - minSide) / 2;
+          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+          st.logo = canvas.toDataURL('image/webp', 0.9);
+          renderLogoSection();
+          toast(tr('toast_logo_actualizado'));
+        };
+        img.onerror = () => toast(tr('toast_logo_error'), 'error');
+        img.src = ev.target.result;
+      };
+      reader.onerror = () => toast(tr('toast_logo_leer'), 'error');
+      reader.readAsDataURL(file);
+    };
+    const removeBtn = document.getElementById('pal-logo-remove');
+    if (removeBtn) removeBtn.onclick = () => { st.logo = null; renderLogoSection(); };
+  }
+  renderLogoSection();
+
+  function renderPlayersList() {
+    const list = document.getElementById('pal-players-list');
+    if (!st.players.length) {
+      list.innerHTML = `<p style="font-size:0.8rem; color:var(--text-muted); padding:0.5rem 0;">${tr('sin_jugadores_list')}</p>`;
+      return;
+    }
+    list.innerHTML = st.players.map((p, i) => `
+      <div style="display:flex; align-items:center; gap:0.5rem; background:var(--bg-surface-2); border-radius:8px; padding:0.5rem 0.6rem;">
+        <span style="flex:1; font-size:0.86rem; font-weight:600;">${escapeHtml(p.name)}</span>
+        <button class="btn btn-icon btn-sm" data-pal-remove="${i}" type="button" style="width:28px; height:28px;"><i class="ti ti-x" style="font-size:0.9rem;"></i></button>
+      </div>
+    `).join('');
+    list.querySelectorAll('[data-pal-remove]').forEach(b => {
+      b.onclick = () => { st.players.splice(Number(b.dataset.palRemove), 1); renderPlayersList(); };
+    });
+  }
+  renderPlayersList();
+
+  document.getElementById('pal-add-player-inline').onclick = () => {
+    st.name = document.getElementById('pal-name-input').value.trim();
+    openQuickPlayerModal((name) => {
+      st.players.push({ id: uid('pl'), name });
+    }, () => openPalmaresFormModal(true));
+  };
+
+  document.getElementById('pal-form-cancel').onclick = closeModal;
+  document.getElementById('pal-form-save').onclick = async () => {
+    const name = document.getElementById('pal-name-input').value.trim();
+    const year = String(document.getElementById('pal-year-input').value || '').trim();
+    if (!name) { document.getElementById('pal-name-error').style.display = 'block'; return; }
+    if (!year) { toast(tr('palmares_year_required'), 'error'); return; }
+    const entry = { id: uid('pal'), name, year, logo: st.logo, players: st.players };
+    await persistPalmaresEntry(entry);
+    renderMainContent();
+    closeModal();
+    toast(tr('toast_palmares_creado', { name: entry.name, year: entry.year }));
+  };
+  setTimeout(() => document.getElementById('pal-name-input').focus(), 100);
 }
 /* ---------------- VIEW: SELECCIÓN URUGUAYA ---------------- */
 
 const SELECCION_UY = [
   { pos: 'arqueros', icon: 'ti-hand-stop', players: [{ name: 'Molleja', num: 99 }, { name: 'Benji Price', num: 1 }] },
   { pos: 'defensas', icon: 'ti-shield', players: [{ name: 'Qevale', num: 47 }, { name: 'Sebasuarezz' }, { name: 'Unfav', num: 4 }, { name: 'Taro Misaki', num: 24 }] },
-  { pos: 'medios', icon: 'ti-run', players: [{ name: 'Caseros', num: 64 }, { name: 'Agstn', num: 16 }, { name: 'Marabola', num: 7 }, { name: 'Best666' }] },
-  { pos: 'delanteros', icon: 'ti-ball-football', players: [{ name: 'Fran', num: 69 }, { name: 'Popa' }, { name: 'Parling', num: 17 }, { name: 'Chepas' }, { name: 'Lnfermo' }, { name: 'Alan Velasco' }, { name: 'El Rkt' }, { name: 'Nachodeldanu' }, { name: 'Perssa', num: 5 }] },
+  { pos: 'medios', icon: 'ti-run', players: [{ name: 'Caseros', num: 64 }, { name: 'Agstn', num: 16 }, { name: 'Marabola', num: 7 }, { name: 'Best666', num: 10 }, { name: 'Sant1_Uru', num: 14 }] },
+  { pos: 'delanteros', icon: 'ti-ball-football', players: [{ name: 'Fran', num: 69 }, { name: 'Popa' }, { name: 'Parling', num: 17 }, { name: 'Chepas', num: 21 }, { name: 'Lnfermo' }, { name: 'Alan Velasco' }, { name: 'El Rkt' }, { name: 'Nachodeldanu' }, { name: 'Perssa', num: 5 }] },
 ];
 
 function seleccionPosKey(pos) {
