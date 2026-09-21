@@ -145,6 +145,31 @@ async function guardarRecordPenales(racha) {
   return { saved: true, record: esRecord };
 }
 
+/* Actualiza la tarjeta "Mejor racha" con el valor REAL del ranking online.
+   El récord guardado en pso_penales_record es solo del navegador y quedaba
+   clavado en un máximo viejo aunque el ranking mostrara otro. Cuando hay
+   conexión, también refresca AuthState.user.bestPenalStreak para que los
+   "¿es récord?" de la tanda se comparen contra el valor de la DB. */
+async function sincronizarMejorRachaPenales() {
+  const val = document.getElementById('penales-mejor-racha-val');
+  if (!val) return;
+  if (online && AuthState.user) {
+    try {
+      const data = await rankingApi('/api/ranking/penales');
+      const yo = (data.ranking || []).find(u => u.id === AuthState.user.id);
+      const racha = yo ? yo.bestPenalStreak : 0;
+      if (yo) {
+        AuthState.user.bestPenalStreak = racha;
+        localStorage.setItem('pso_user', JSON.stringify(AuthState.user));
+      }
+      val.innerHTML = racha > 0 ? racha + ' ⚽ ' + tr('penales_goles').toLowerCase() : tr('penales_no_players');
+      return;
+    } catch (e) { /* cae al récord local */ }
+  }
+  const record = penalRecordLocal();
+  val.innerHTML = record > 0 ? record + ' ⚽ ' + tr('penales_goles').toLowerCase() : tr('penales_no_players');
+}
+
 /* ---------------- Timer de reaccion ---------------- */
 
 function actualizarBarraPenal(limite) {
@@ -374,7 +399,7 @@ function viewPenalesInicio() {
       <div style="font-size:2rem;">🎯</div>
       <div style="flex:1;">
         <div style="font-weight:700; font-family:var(--font-display); font-size:1.05rem;">${tr('penales_mejor_racha')}</div>
-        <div style="color:var(--text-muted); font-size:0.82rem;">${record > 0 ? record + ' ⚽ ' + tr('penales_goles').toLowerCase() : tr('penales_no_players')}</div>
+        <div id="penales-mejor-racha-val" style="color:var(--text-muted); font-size:0.82rem;">${record > 0 ? record + ' ⚽ ' + tr('penales_goles').toLowerCase() : tr('penales_no_players')}</div>
       </div>
     </div>
 
@@ -461,9 +486,11 @@ function attachPenalesEvents() {
     const empezar = document.getElementById('penales-empezar');
     if (empezar) empezar.onclick = iniciarPenales;
     cargarYRenderizarRankingPenales();
+    sincronizarMejorRachaPenales();
     penalRankingTimer = setInterval(() => {
       if (document.getElementById('penales-ranking-container')) {
         cargarYRenderizarRankingPenales();
+        sincronizarMejorRachaPenales();
       } else {
         stopPenalesRankingAutoRefresh();
       }
