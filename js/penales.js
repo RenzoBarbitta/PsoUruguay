@@ -216,6 +216,7 @@ async function iniciarPenales() {
   PenalesState.sessionToken = null;
   PenalesState.serverScore = 0;
   PenalesState.serverError = false;
+  PenalesState.finalizando = false;
   renderMainContent();
 
   /* Online: cada tiro lo valida el server (piso de tiempo anti-autoplay).
@@ -271,6 +272,9 @@ function ejecutarTiroPenales(zona) {
     gameApi('/api/game/kick', { token: PenalesState.sessionToken, result: PenalesState.resultado }).then(res => {
       PenalesState.sessionToken = res.token;
       PenalesState.serverScore = res.s;
+      /* too_fast: el server descartó este gol (ritmo) → realineamos el conteo
+         local con el del server para que no quede un gol fantasma. */
+      if (res.reason === 'too_fast') PenalesState.goles = res.s;
     }).catch(() => { PenalesState.serverError = true; });
   }
 
@@ -315,6 +319,8 @@ function siguientePenal() {
 }
 
 async function finalizarPenales() {
+  if (PenalesState.finalizando) return;
+  PenalesState.finalizando = true;
   stopPenalesTimer();
   let racha = PenalesState.goles;
   const prevBest = (PenalesState.prevBest !== undefined ? PenalesState.prevBest : (AuthState.user ? Number(AuthState.user.bestPenalStreak || 0) : 0));

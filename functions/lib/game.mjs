@@ -27,7 +27,7 @@ import { TRIVIA_ANSWERS } from './trivia-answers.mjs';
    penales 900ms hasta que aparece el botón de siguiente. Un envío más
    rápido que el piso cierra la sesión sin sumar (anti-autoplay). */
 export const MIN_GAP_TRIVIA_MS = 1000;
-export const MIN_GAP_KICK_MS = 1000;
+export const MIN_GAP_KICK_MS = 250; /* piso anti-bot; un humano no remata en <250ms */
 
 /* Vida máxima de una sesión y techo de racha (anti-bulos extremos). */
 export const SESSION_TTL_MS = 45 * 60 * 1000;
