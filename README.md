@@ -171,6 +171,27 @@ racha online.
 
 ## Desplegar en internet
 
+### Cómo funciona el build (cache-busting automático)
+
+El sitio **no se depliega directo desde la raíz**: antes hay que correr el
+build porque **versiona los assets automáticamente**.
+
+`npm run build` (→ `scripts/cache-bust.mjs`) hace:
+
+1. Genera `dist/` con el sitio estático (nunca toca `functions/`).
+2. Reescribe `index.html` agregando `?v=<sha1-del-contenido>` a cada
+   `js/*.js` y `css/*.css`. Si un archivo cambia, **cambia su URL** (cache
+   busting por contenido); si no cambia, mantiene la URL (reusa la caché).
+3. Escribe `dist/_headers` con la política de caché:
+   - `index.html` → `Cache-Control: no-cache` (siempre revalida contra el
+     ETag de Pages: un deploy nuevo se ve **sin `Ctrl+Shift+R`**).
+   - `js/`, `css/`, `logo.webp` y `google*.html` →
+     `public, max-age=31536000, immutable` (1 año, pero como la URL cambia
+     con el contenido, nunca queda una versión vieja servida).
+
+> No hay que tocar `?v=` a mano jamás: el build lo calcula solo en cada
+> deploy.
+
 ### Cloudflare Pages (recomendado)
 
 ```bash
@@ -178,23 +199,47 @@ racha online.
 npm install -g wrangler   # si no lo tenemos
 wrangler login
 
-# 2. Publicamos la carpeta actual
+# 2. Build + publicamos la carpeta dist/
 #    --branch main → producción (psouruguay.pages.dev)
 #    cualquier otra rama → preview (*.psouruguay.pages.dev)
-wrangler pages deploy . --project-name psouruguay --branch main
+npm run deploy
+
+#    ... o manualmente:
+npm run build
+wrangler pages deploy dist --project-name psouruguay --branch main
 
 # 3. (Opcional) Auto-deploy en cada push: conectar el repo de GitHub en
 #    Cloudflare Dashboard → Workers & Pages → psouruguay →
 #    Settings → Builds & deployments → Connect to Git
-#    Repo: RenzoBarbitta/PsoUruguay · Rama: main · Build: ninguno
-#    Output directory: / (raíz, sitio estático puro).
+#    Repo: RenzoBarbitta/PsoUruguay · Rama: main
+#    Build command: npm run build
+#    Output directory: /dist
 ```
 
-> `wrangler pages project link --github` **no** sirve: wrangler no expone esa
-> opción, la conexión con Git se hace solo desde el dashboard.
+> `functions/` queda en la raíz del repo (NO dentro de `dist/`): Cloudflare
+> Pages compila las Pages Functions desde la raíz y sube los estáticos desde
+> `dist/`.
 
-Cloudflare Pages sirve `index.html` como entrada y resuelve `.js`, `.css`
-y `logo.webp` automáticamente. Todo queda en `https://<tu-proyecto>.pages.dev`.
+### Dominio propio (psouruguay.uy) — ajuste obligatorio en el dashboard
+
+En **Cloudflare Dashboard → Caching → Configuration → Browser Cache TTL**,
+elegí **"Respect Existing Headers"** (o el valor `0`).
+
+Es la única opción del dashboard que no se puede resolver desde el repo:
+Cloudflare, por defecto, **reemplaza el `Cache-Control` del origen** con el
+TTL configurado en ese ajuste. Si está en 1 hora / 4 horas / 1 año, el
+navegador sirve `index.html` y los assets viejos de caché hasta que venza —
+por eso había que apretar `Ctrl+Shift+R`. Con **Respect Existing Headers** el
+origen (nuestro `_headers`) manda y el comportamiento queda así:
+
+- HTML nuevo en cuanto navegás (revalida rápido con el ETag → `304`).
+- Assets versionados cacheados 1 año en el navegador, pero con **URL nueva
+  cuando el contenido cambió** → siempre baja el nuevo.
+
+> Si preferís no tocar ese ajuste global, podés crear una **Cache Rule** para
+> el mismo dominio con **Browser TTL = Respect origin** y **Cache key** sin
+> ignorar query string (así `?v=` también diferencia en el edge). Lo global
+> es más simple.
 
 ### Otras opciones estáticas
 

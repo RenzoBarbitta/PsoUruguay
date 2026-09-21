@@ -1,0 +1,11 @@
+{
+  "name": "pso-uruguay-site",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sitio de la liga Pro Soccer Online Uruguay (static + Pages Functions)",
+  "scripts": {
+    "build": "node scripts/cache-bust.mjs",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name psouruguay --branch main",
+    "dev": "wrangler pages dev"
+  }
+}
