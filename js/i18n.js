@@ -41,7 +41,7 @@ const I18N = {
     juegos_play: { es: 'Jugar', pt: 'Jogar' },
     juegos_tag_trivia: { es: '⚡ Ranking online', pt: '⚡ Ranking online' },
     juegos_tag_pasapalabra: { es: '📅 Reto diario', pt: '📅 Desafio diário' },
-    juegos_tag_penales: { es: '🥅 10 tiros', pt: '🥅 10 chutes' },
+    juegos_tag_penales: { es: '🥅 Racha online', pt: '🥅 Sequência online' },
 
     /* ------- Planteles ------- */
     planteles_title: { es: 'Planteles', pt: 'Elencos' },

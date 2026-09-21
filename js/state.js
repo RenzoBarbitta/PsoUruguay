@@ -273,6 +273,36 @@ function authToken() {
   } catch (e) { return null; }
 }
 
+/* Refresca el access token de Supabase si está por expirar. Los tokens duran
+   1 hora y si no se refrescan, el jugador con sesión vieja ya no puede
+   guardar puntaje: todo devolvía 401 y el ranking quedaba clavado. */
+async function asegurarSesion() {
+  const tok = authToken();
+  if (!tok) return;
+  let expires = 0;
+  try { expires = Number(localStorage.getItem('pso_expires') || 0); } catch (e) {}
+  if (expires && Date.now() < expires - 5 * 60 * 1000) return;
+  let ref = null;
+  try { ref = localStorage.getItem('pso_refresh'); } catch (e) {}
+  if (!ref) return;
+  try {
+    const data = await supaFetch('/auth/v1/token?grant_type=refresh', {
+      method: 'POST',
+      body: { refresh_token: ref }
+    });
+    if (!data || !data.access_token) return;
+    localStorage.setItem('pso_token', data.access_token);
+    AuthState.token = data.access_token;
+    if (data.refresh_token) localStorage.setItem('pso_refresh', data.refresh_token);
+    localStorage.setItem('pso_expires', String(Date.now() + (Number(data.expires_in) || 3600) * 1000));
+    if (data.user) {
+      const u = mapAuthUser(data.user);
+      AuthState.user = u;
+      localStorage.setItem('pso_user', JSON.stringify(u));
+    }
+  } catch (e) { /* sin red o refresh inválido */ }
+}
+
 /* upserta la fila en public.users (para que el ranking lo vea) */
 async function supaUpsertUser(token, extra) {
   try {
@@ -351,7 +381,12 @@ async function apiRequest(path, options = {}) {
       throw new Error(tr('err_signup_failed'));
     }
     await supaUpsertUser(data.access_token, {});
-    return { user: mapAuthUser(data.user), token: data.access_token };
+    return {
+      user: mapAuthUser(data.user),
+      token: data.access_token,
+      refreshToken: data.refresh_token || null,
+      expiresAt: Date.now() + (Number(data.expires_in) || 3600) * 1000
+    };
   }
 
   if (pathStr === '/api/auth/login') {
@@ -361,7 +396,12 @@ async function apiRequest(path, options = {}) {
     });
     if (!data || !data.access_token) throw new Error(tr('err_bad_credentials'));
     await supaUpsertUser(data.access_token, {});
-    return { user: mapAuthUser(data.user), token: data.access_token };
+    return {
+      user: mapAuthUser(data.user),
+      token: data.access_token,
+      refreshToken: data.refresh_token || null,
+      expiresAt: Date.now() + (Number(data.expires_in) || 3600) * 1000
+    };
   }
 
   if (pathStr === '/api/me') {
@@ -392,6 +432,7 @@ async function apiRequest(path, options = {}) {
    al flujo legacy de siempre.
    ====================================================================== */
 async function gameApi(path, body) {
+  await asegurarSesion();
   const token = authToken();
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = 'Bearer ' + token;
@@ -415,6 +456,7 @@ async function gameApi(path, body) {
    GET si no va body, POST si va. El server usa la service key, así que
    funciona aunque la RLS no permita acceso anónimo a public.users. */
 async function rankingApi(path, body) {
+  await asegurarSesion();
   const token = authToken();
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = 'Bearer ' + token;

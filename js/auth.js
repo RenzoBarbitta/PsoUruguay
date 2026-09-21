@@ -12,10 +12,17 @@ const AuthState = {
   })()
 };
 
-function saveAuth(user, token) {
+function saveAuth(user, token, extra) {
   AuthState.user = user;
   AuthState.token = token;
   if (token) localStorage.setItem('pso_token', token); else localStorage.removeItem('pso_token');
+  /* Sesión extendida para poder refrescar el token cuando expire (1h). */
+  if (extra && extra.refreshToken) localStorage.setItem('pso_refresh', extra.refreshToken);
+  if (extra && extra.expiresAt) localStorage.setItem('pso_expires', String(extra.expiresAt));
+  if (!token) {
+    localStorage.removeItem('pso_refresh');
+    localStorage.removeItem('pso_expires');
+  }
   if (user) localStorage.setItem('pso_user', JSON.stringify(user)); else localStorage.removeItem('pso_user');
 }
 
@@ -89,7 +96,7 @@ async function doSignup(email, username, password, displayName) {
     const data = await apiRequest('/api/auth/signup', { method: 'POST', body: { email, username, password, displayName } });
     if (data && data.pendingConfirmation) return { pendingConfirmation: true, email: data.email };
     user = data.user;
-    saveAuth(user, data.token);
+    saveAuth(user, data.token, { refreshToken: data.refreshToken, expiresAt: data.expiresAt });
   } else {
     user = localUserSignup(username, password, displayName, email);
   }
@@ -103,7 +110,7 @@ async function doLoginUser(email, password) {
   if (online) {
     const data = await apiRequest('/api/auth/login', { method: 'POST', body: { email, password } });
     user = data.user;
-    saveAuth(user, data.token);
+    saveAuth(user, data.token, { refreshToken: data.refreshToken, expiresAt: data.expiresAt });
   } else {
     user = localUserLogin(email, password);
   }
@@ -146,7 +153,10 @@ async function handleAuthRedirect() {
   try {
     const me = await supaFetch('/auth/v1/user', { token });
     const user = mapAuthUser(me);
-    saveAuth(user, token);
+    saveAuth(user, token, {
+      refreshToken: params.get('refresh_token') || null,
+      expiresAt: Date.now() + (Number(params.get('expires_in')) || 3600) * 1000
+    });
     /* Alta en public.users para que apararezca en el ranking. Si falla, la
        sesión igual queda iniciada (no queremos perder el login por esto). */
     try { await supaUpsertUser(token, {}); } catch (e) { console.warn('no se pudo crear la fila del ranking', e); }
