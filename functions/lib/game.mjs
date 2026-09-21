@@ -130,9 +130,12 @@ async function supaService(cfg, path, opts = {}) {
     body: body !== undefined ? JSON.stringify(body) : undefined
   });
   if (!r.ok) throw new Error('supabase_' + r.status);
+  /* OJO: no volver a consumir el body. Los POST/PATCH de PostgREST con
+     Prefer: resolution=merge-duplicates responden 200 con CUERPO VACÍO:
+     aquí hay que devolver null, no llamar a r.json() sobre un stream ya
+     consumido (crashaba con supabase_error y el ranking nunca se escribía). */
   const text = typeof r.text === 'function' ? await r.text() : '';
-  if (text) return JSON.parse(text);
-  return typeof r.json === 'function' ? await r.json() : null;
+  return text ? JSON.parse(text) : null;
 }
 
 /* Guarda la racha en public.users tomando el MÁXIMO con lo que ya había
