@@ -374,6 +374,7 @@ button { font-family: inherit; cursor: pointer; }
   top: 58px;
   z-index: 90;
   overflow-x: auto;
+  overflow-y: visible;
   scrollbar-width: none;
 }
 .tabs-nav::-webkit-scrollbar { display: none; }
@@ -668,6 +669,11 @@ table.pso-table td.pts { font-weight: 700; color: var(--accent-dark); }
 }
 .match-score.pending { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; font-family: var(--font-body); }
 .match-meta { text-align: center; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.5rem; }
+.match-sched {
+  text-align: center; font-size: 0.78rem; font-weight: 600; color: var(--accent-dark);
+  margin-top: 0.25rem; background: rgba(91,155,213,0.12); border-radius: 8px; padding: 0.25rem 0.5rem;
+}
+[data-theme="dark"] .match-sched { color: var(--uy-sky-light); }
 
 /* ============ Stats table jugadores ============ */
 .stats-filter-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
@@ -1160,4 +1166,188 @@ table.pso-table td.pts { font-weight: 700; color: var(--accent-dark); }
   .pso-table { font-size: 0.78rem; }
   .pso-table th, .pso-table td { padding: 0.4rem 0.3rem; }
   .pso-table thead th { font-size: 0.65rem; }
+}
+
+/* ===================== DISCORD (topbar) ===================== */
+.discord-btn {
+  text-decoration: none;
+  background: linear-gradient(135deg, #5865F2, #404EED);
+  border-color: rgba(255,255,255,0.25);
+  font-size: 1.25rem;
+  animation: discordGlow 2.6s ease-in-out infinite;
+}
+.discord-btn:hover { background: linear-gradient(135deg, #6b77ff, #5865F2); transform: translateY(-1px); }
+@keyframes discordGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(88,101,242,0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(88,101,242,0); }
+}
+
+/* ===================== HUB JUEGOS (hero + tarjetas arcade) ===================== */
+.juegos-hero {
+  position: relative; overflow: hidden; border-radius: 18px;
+  background: linear-gradient(135deg, #0a1128 0%, #1a3a6e 55%, #7c3aed 130%);
+  color: #fff; margin-bottom: 1.25rem; box-shadow: var(--shadow-lg);
+}
+.juegos-hero-glow {
+  position: absolute; inset: 0; opacity: 0.35;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(240,197,66,0.35), transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(124,58,237,0.5), transparent 45%);
+}
+.juegos-hero-inner { position: relative; z-index: 1; padding: 1.5rem 1.5rem 1.35rem; text-align: center; }
+.juegos-hero-badge {
+  display: inline-block; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.22em;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3);
+  padding: 0.3rem 0.85rem; border-radius: 20px; margin-bottom: 0.5rem;
+}
+.juegos-hero-title { font-family: var(--font-display); font-weight: 700; font-size: 2rem; line-height: 1; }
+.juegos-hero-sub { color: var(--uy-sky-light); font-size: 0.88rem; margin-top: 0.3rem; }
+.juegos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+.juegos-card {
+  border: 1px solid rgba(255,255,255,0.16); border-radius: 20px; padding: 1.6rem 1.2rem 1.35rem;
+  color: #fff; text-align: center; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 0.45rem;
+  background: var(--jc-bg);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  position: relative; overflow: hidden; min-height: 300px;
+}
+.juegos-card:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 16px 40px rgba(0,0,0,0.45), 0 0 0 2px var(--jc-glow); }
+.juegos-card-art {
+  font-size: 4.2rem; line-height: 1; margin: 0.4rem 0 0.1rem;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.5));
+  transition: transform 0.16s ease;
+}
+.juegos-card:hover .juegos-card-art { transform: scale(1.12) rotate(-4deg); }
+.juegos-card-tag {
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+  background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28);
+  padding: 0.28rem 0.7rem; border-radius: 20px;
+}
+.juegos-card-icon {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.3);
+  display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-top: 0.2rem;
+}
+.juegos-card-title { font-family: var(--font-display); font-weight: 700; font-size: 1.45rem; letter-spacing: 0.01em; }
+.juegos-card-desc { font-size: 0.85rem; opacity: 0.85; line-height: 1.45; max-width: 26ch; }
+.juegos-card-play {
+  margin-top: auto; display: inline-flex; align-items: center; gap: 0.45rem;
+  font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; letter-spacing: 0.04em;
+  background: #f0c542; color: #0a1128; border-radius: 999px; padding: 0.55rem 1.3rem;
+  box-shadow: 0 4px 14px rgba(240,197,66,0.4);
+  transition: transform 0.15s ease;
+}
+.juegos-card:hover .juegos-card-play { transform: scale(1.06); }
+@media (max-width: 760px) {
+  .juegos-grid { grid-template-columns: 1fr; }
+  .juegos-card { min-height: 0; padding: 1.35rem 1.1rem; }
+  .juegos-card-art { font-size: 3rem; }
+}
+
+/* ===================== SELECCIÓN URUGUAYA ===================== */
+.sel-hero {
+  position: relative; overflow: hidden; border-radius: 18px;
+  background: linear-gradient(135deg, #0a1128 0%, #1a3a6e 55%, #2e6bb0 100%);
+  color: #fff; margin-bottom: 1.5rem; box-shadow: var(--shadow-lg);
+}
+.sel-hero-stripes {
+  position: absolute; inset: 0; opacity: 0.16;
+  background: repeating-linear-gradient(180deg, #fff 0 14px, #5b9bd5 14px 28px);
+}
+.sel-hero-inner { position: relative; z-index: 1; padding: 1.75rem 1.5rem; }
+.sel-badge {
+  display: inline-block; background: rgba(240,197,66,0.18);
+  border: 1px solid rgba(240,197,66,0.55); color: var(--gold);
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 0.18em;
+  padding: 0.3rem 0.8rem; border-radius: 20px; margin-bottom: 0.6rem;
+}
+.sel-title {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 1.9rem; letter-spacing: 0.01em; line-height: 1.1;
+}
+.sel-sub { color: var(--uy-sky-light); font-size: 0.9rem; margin-top: 0.3rem; }
+.sel-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.9rem; }
+.sel-meta-chip {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: rgba(255,255,255,0.1); border: 0.5px solid rgba(255,255,255,0.2);
+  font-size: 0.78rem; font-weight: 600; padding: 0.35rem 0.75rem; border-radius: 20px;
+}
+.sel-meta-chip.gold { background: rgba(240,197,66,0.18); border-color: rgba(240,197,66,0.5); color: var(--gold); }
+.sel-group {
+  background: var(--bg-surface); border: 0.5px solid var(--border);
+  border-radius: 16px; padding: 1.1rem 1.1rem 1.25rem; margin-bottom: 1.25rem;
+  box-shadow: var(--shadow); position: relative; overflow: hidden;
+}
+.sel-group::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+  background: linear-gradient(180deg, #5b9bd5, #0a1128);
+}
+.sel-group-delanteros::before { background: linear-gradient(180deg, #f0c542, #c9a233); }
+.sel-group-arqueros::before { background: linear-gradient(180deg, #2e9e5b, #1a3a6e); }
+.sel-group-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.9rem; }
+.sel-group-icon {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #0a1128, #2e6bb0); color: #fff; font-size: 1.15rem;
+  box-shadow: 0 0 0 3px rgba(91,155,213,0.2);
+}
+.sel-group-delanteros .sel-group-icon { background: linear-gradient(135deg, #c9a233, #f0c542); color: #0a1128; }
+.sel-group h3 {
+  font-family: var(--font-display); font-weight: 700; font-size: 1.15rem;
+  text-transform: uppercase; letter-spacing: 0.06em; flex: 1;
+}
+.sel-group-count {
+  font-family: var(--font-display); font-weight: 700; font-size: 0.8rem;
+  background: var(--bg-surface-2); border: 0.5px solid var(--border);
+  border-radius: 20px; padding: 0.25rem 0.7rem; color: var(--text-secondary);
+}
+.sel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.7rem; }
+.sel-player {
+  display: flex; align-items: center; gap: 0.65rem;
+  background: linear-gradient(135deg, #5b9bd5, #2e6bb0);
+  border: 1px solid rgba(255,255,255,0.35);
+  color: #fff;
+  border-radius: 14px; padding: 0.65rem 0.75rem; position: relative;
+  box-shadow: 0 4px 14px rgba(46,107,176,0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.sel-player:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(46,107,176,0.45); }
+.sel-player-num {
+  position: absolute; top: -8px; left: -6px; width: 26px; height: 26px;
+  border-radius: 50%; background: rgba(255,255,255,0.22); color: #fff;
+  font-family: var(--font-display); font-weight: 700; font-size: 0.75rem;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid #fff;
+}
+.sel-player-avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; color: #fff;
+  background: #5b9bd5;
+  border: 2px solid rgba(255,255,255,0.9);
+}
+.sel-player-info { flex: 1; min-width: 0; }
+.sel-player-name { font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+.sel-player-dorsal { font-size: 0.72rem; color: rgba(255,255,255,0.85); font-weight: 600; }
+.sel-player-star { color: #fff; font-size: 1rem; opacity: 0.9; }
+.sel-cta {
+  display: flex; align-items: center; gap: 0.9rem;
+  background: linear-gradient(135deg, #5865F2, #404EED);
+  color: #fff; border-radius: 16px; padding: 1.1rem 1.25rem;
+  text-decoration: none; box-shadow: var(--shadow-lg);
+  transition: transform 0.15s;
+}
+.sel-cta:hover { transform: translateY(-2px); }
+.sel-cta > i:first-child { font-size: 2rem; flex-shrink: 0; }
+.sel-cta > i:last-child { margin-left: auto; font-size: 1.2rem; }
+.sel-cta span { display: flex; flex-direction: column; gap: 0.15rem; }
+.sel-cta strong { font-family: var(--font-display); font-size: 1.05rem; }
+.sel-cta small { font-size: 0.8rem; opacity: 0.85; }
+@media (max-width: 640px) {
+  .sel-title { font-size: 1.5rem; }
+  .sel-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 400px) {
+  .sel-grid { grid-template-columns: 1fr; }
 }

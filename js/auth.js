@@ -318,8 +318,8 @@ function openLoginModal() {
       <p style="color:var(--text-muted); font-size:0.85rem;">${tr('login_modal_desc')}</p>
     </div>
     <div class="field">
-      <label>${tr('label_user')}</label>
-      <input type="text" id="login-user" autocomplete="username" placeholder="admin">
+      <label>${tr('label_email')}</label>
+      <input type="email" id="login-user" autocomplete="email" placeholder="${tr('ph_email')}">
     </div>
     <div class="field" style="margin-bottom:0.25rem;">
       <label>${tr('label_password')}</label>
@@ -344,6 +344,8 @@ function openLoginModal() {
     const u = document.getElementById('login-user').value.trim();
     const p = document.getElementById('login-pass').value;
     if (!u || !p) { errorEl.style.display = 'block'; return; }
+
+    /* ---------- LOGIN CON SUPABASE AUTH (cuenta real marcada admin) ---------- */
     try {
       const data = await supaFetch('/auth/v1/token?grant_type=password', {
         method: 'POST',

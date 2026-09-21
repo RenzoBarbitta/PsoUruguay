@@ -10,7 +10,24 @@ function setSplashLogo() {
 async function initApp() {
   saveTheme();
   setSplashLogo();
-  syncLangUI();
+  if (typeof syncLangUI === 'function') {
+    syncLangUI();
+  } else {
+    console.error('[PSO] i18n.js no cargó (syncLangUI ausente). Revisá la ruta js/i18n.js o hacé Ctrl+F5.');
+    // Reintento: recargar i18n.js dinámicamente y seguir
+    try {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'js/i18n.js?v=' + Date.now();
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('no se pudo cargar js/i18n.js'));
+        document.head.appendChild(s);
+      });
+      if (typeof syncLangUI === 'function') syncLangUI();
+    } catch (e) {
+      console.error('[PSO]', e.message);
+    }
+  }
   renderShell();
   renderMainContent();
 

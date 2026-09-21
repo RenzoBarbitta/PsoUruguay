@@ -401,9 +401,11 @@ function matchRoundBadge(m) {
 function pendingMatchRow(m) {
   const home = getTeamById(m.homeId), away = getTeamById(m.awayId);
   if (!home || !away) return '';
+  const sched = (typeof matchScheduledLabel === 'function' ? matchScheduledLabel(m) : '');
   return `<div class="card" style="padding:0.8rem 1rem; display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
     <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700; background:var(--bg-surface-2); padding:0.2rem 0.5rem; border-radius:6px;">${matchRoundBadge(m)}</span>
-    <span style="flex:1; font-weight:600; min-width:160px;">${escapeHtml(home.name)} vs ${escapeHtml(away.name)}</span>
+    <span style="flex:1; font-weight:600; min-width:160px;">${escapeHtml(home.name)} vs ${escapeHtml(away.name)}${sched ? `<br><span style="font-size:0.75rem; color:var(--text-muted); font-weight:400;">${sched}</span>` : ''}</span>
+    <button class="btn btn-sm" data-schedule="${m.id}"><i class="ti ti-calendar-event"></i> ${typeof tr === 'function' ? tr('btn_programar') : 'Programar'}</button>
     <button class="btn btn-sm btn-primary btn-load-result" data-match="${m.id}"><i class="ti ti-clipboard-check"></i> ${tr('btn_cargar_resultado')}</button>
     <button class="btn btn-icon btn-danger btn-delete-match" data-match="${m.id}"><i class="ti ti-trash"></i></button>
   </div>`;
@@ -423,8 +425,50 @@ function playedMatchRow(m) {
 function attachResultadosEvents() {
   const btnNew = document.getElementById('btn-new-match');
   if (btnNew) btnNew.onclick = () => openNewMatchModal();
+  document.querySelectorAll('[data-schedule]').forEach(b => b.onclick = () => openScheduleModal(b.dataset.schedule));
   document.querySelectorAll('.btn-load-result').forEach(b => b.onclick = () => openResultFormModal(b.dataset.match));
   document.querySelectorAll('.btn-delete-match').forEach(b => b.onclick = () => confirmDeleteMatch(b.dataset.match));
+}
+
+/* Programar día y horario de un partido (solo informativo: si pasa el día no pasa nada) */
+function openScheduleModal(matchId) {
+  const m = State.data.matches.find(x => x.id === matchId);
+  if (!m) return;
+  const home = getTeamById(m.homeId), away = getTeamById(m.awayId);
+  const overlay = openModal(`${typeof tr === 'function' ? tr('modal_programar') : 'Programar partido'}`, `
+    <div class="mini-note" style="margin-bottom:1rem;"><i class="ti ti-calendar-event"></i> ${home ? escapeHtml(home.name) : ''} vs ${away ? escapeHtml(away.name) : ''}</div>
+    <div class="field-row">
+      <div class="field">
+        <label>${typeof tr === 'function' ? tr('label_dia') : 'Día'}</label>
+        <input type="date" id="sched-date" value="${m.scheduledDate || ''}">
+      </div>
+      <div class="field">
+        <label>${typeof tr === 'function' ? tr('label_horario') : 'Horario'}</label>
+        <input type="time" id="sched-time" value="${m.scheduledTime || ''}">
+      </div>
+    </div>
+    <div class="mini-note"><i class="ti ti-info-circle"></i> ${typeof tr === 'function' ? tr('sched_note') : 'Si pasa el día no pasa nada: es solo informativo para el fixture.'}</div>
+  `, `
+    ${m.scheduledDate || m.scheduledTime ? `<button class="btn btn-danger" id="sched-clear"><i class="ti ti-trash"></i> ${typeof tr === 'function' ? tr('btn_quitar_programacion') : 'Quitar'}</button>` : ''}
+    <button class="btn" id="sched-cancel">${tr('btn_cancel')}</button>
+    <button class="btn btn-primary" id="sched-save"><i class="ti ti-device-floppy"></i> ${tr('btn_guardar')}</button>
+  `);
+  document.getElementById('sched-cancel').onclick = closeModal;
+  const clearBtn = document.getElementById('sched-clear');
+  if (clearBtn) clearBtn.onclick = async () => {
+    await persistMatch({ ...m, scheduledDate: '', scheduledTime: '' });
+    renderAdminPanel();
+    closeModal();
+    toast(tr('toast_programacion_quitada'));
+  };
+  document.getElementById('sched-save').onclick = async () => {
+    const d = document.getElementById('sched-date').value || '';
+    const h = document.getElementById('sched-time').value || '';
+    await persistMatch({ ...m, scheduledDate: d, scheduledTime: h });
+    renderAdminPanel();
+    closeModal();
+    toast(tr('toast_programado'));
+  };
 }
 
 function openNewMatchModal() {

@@ -35,7 +35,8 @@ function rankItem(s, i, key, emoji) {
 }
 
 function viewInicio() {
-  const standings = computeStandings();
+  const showTop = typeof hasActiveLigas === 'function' ? hasActiveLigas() : true;
+  const standings = showTop ? computeStandings() : [];
   const top3 = standings.slice(0, 3);
   const scorers = computeTopScorers().slice(0, 3);
   const upcoming = State.data.matches.filter(m => !m.played).slice(0, 3);
@@ -65,8 +66,10 @@ function viewInicio() {
           ${upcoming.length ? `<div class="match-grid">${upcoming.map(matchCard).join('')}</div>` : emptyState('ti-calendar-off', tr('home_no_matches'))}
         </div>
         <div>
+          ${showTop ? `
           <div class="section-head"><h2 class="section-title">${tr('home_top')}</h2></div>
           ${top3.length ? `<div class="card" style="padding: 0.5rem;">${top3.map((t, i) => miniStandingRow(t, i)).join('')}</div>` : emptyState('ti-table-off', tr('home_no_results'))}
+          ` : ''}
 
           <div class="section-head" style="margin-top: 1.5rem;"><h2 class="section-title">${tr('home_goleadores')}</h2></div>
           ${scorers.length ? `<div class="rank-list">${scorers.map((s, i) => rankItem(s, i, 'goals', '⚽')).join('')}</div>` : emptyState('ti-ball-off', tr('home_no_goals'))}
@@ -79,10 +82,24 @@ function viewInicio() {
 
 /* ---------------- VIEW: FIXTURE ---------------- */
 
+/* Fecha/hora programada de un partido: texto "12/10 · 21:30" o "" si no hay.
+   El admin la carga en Gestionar resultados; si pasa el día no pasa nada:
+   es solo informativa y se muestra en el fixture debajo del resultado. */
+function matchScheduledLabel(m) {
+  const d = (m.scheduledDate || '').trim();
+  const h = (m.scheduledTime || '').trim();
+  if (!d && !h) return '';
+  let datePart = d;
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (iso) datePart = `${iso[3]}/${iso[2]}/${iso[1].slice(2)}`;
+  return '📅 ' + [datePart, h].filter(Boolean).join(' · ');
+}
+
 function matchCard(m) {
   const home = getTeamById(m.homeId);
   const away = getTeamById(m.awayId);
   if (!home || !away) return '';
+  const sched = matchScheduledLabel(m);
   return `<div class="match-card">
     <div class="match-teams">
       <div class="match-team">
@@ -96,6 +113,7 @@ function matchCard(m) {
       </div>
     </div>
     <div class="match-meta">${m.played ? tr('match_finalizado') : tr('match_por_jugar')}${m.date ? ' · ' + m.date : ''}</div>
+    ${sched ? `<div class="match-sched">${sched}</div>` : ''}
   </div>`;
 }
 
@@ -559,5 +577,74 @@ function viewPalmares() {
         </div>
       `).join('')}
     </div>
+  </div>`;
+}
+/* ---------------- VIEW: SELECCIÓN URUGUAYA ---------------- */
+
+const SELECCION_UY = [
+  { pos: 'arqueros', icon: 'ti-hand-stop', players: [{ name: 'Molleja', num: 99 }, { name: 'Benji Price', num: 1 }] },
+  { pos: 'defensas', icon: 'ti-shield', players: [{ name: 'Qevale', num: 47 }, { name: 'Sebasuarezz' }, { name: 'Unfav', num: 4 }, { name: 'Taro Misaki', num: 24 }] },
+  { pos: 'medios', icon: 'ti-run', players: [{ name: 'Caseros', num: 64 }, { name: 'Agstn', num: 16 }, { name: 'Marabola', num: 7 }, { name: 'Best666' }] },
+  { pos: 'delanteros', icon: 'ti-ball-football', players: [{ name: 'Fran', num: 69 }, { name: 'Popa' }, { name: 'Parling', num: 17 }, { name: 'Chepas' }, { name: 'Lnfermo' }, { name: 'Alan Velasco' }, { name: 'El Rkt' }, { name: 'Nachodeldanu' }, { name: 'Perssa', num: 5 }] },
+];
+
+function seleccionPosKey(pos) {
+  if (pos === 'arqueros') return 'sel_pos_arqueros';
+  if (pos === 'defensas') return 'sel_pos_defensas';
+  if (pos === 'medios') return 'sel_pos_medios';
+  return 'sel_pos_delanteros';
+}
+
+function seleccionPlayerCard(name, n) {
+  return `<div class="sel-player">
+    <div class="sel-player-avatar">${n}</div>
+    <div class="sel-player-info">
+      <div class="sel-player-name">${escapeHtml(name)}</div>
+    </div>
+    <i class="ti ti-star-filled sel-player-star"></i>
+  </div>`;
+}
+
+function viewSeleccion() {
+  const used = new Set();
+  SELECCION_UY.forEach(g => g.players.forEach(p => { if (p && typeof p === 'object' && p.num != null) used.add(p.num); }));
+  let nextFree = 1;
+  const nextNumber = () => { while (used.has(nextFree)) nextFree += 1; used.add(nextFree); return nextFree; };
+  const total = SELECCION_UY.reduce((s, g) => s + g.players.length, 0);
+  const groups = SELECCION_UY.map(g => {
+    const cards = g.players.map(p => {
+      const dorsal = (p && typeof p === 'object' && p.num != null) ? p.num : nextNumber();
+      const nombre = (p && typeof p === 'object') ? p.name : p;
+      return seleccionPlayerCard(nombre, dorsal);
+    }).join('');
+    return `<section class="sel-group sel-group-${g.pos}">
+      <div class="sel-group-head">
+        <span class="sel-group-icon"><i class="ti ${g.icon}"></i></span>
+        <h3>${tr(seleccionPosKey(g.pos))}</h3>
+        <span class="sel-group-count">${g.players.length}</span>
+      </div>
+      <div class="sel-grid">${cards}</div>
+    </section>`;
+  }).join('');
+
+  return `<div class="view active">
+    <div class="sel-hero">
+      <div class="sel-hero-stripes" aria-hidden="true"></div>
+      <div class="sel-hero-inner">
+        <span class="sel-badge">${tr('sel_badge')}</span>
+        <h2 class="sel-title">${tr('sel_title')}</h2>
+        <p class="sel-sub">${tr('sel_sub')}</p>
+        <div class="sel-meta">
+          <span class="sel-meta-chip"><i class="ti ti-shirt"></i>${tr('sel_squad_label')}</span>
+          <span class="sel-meta-chip gold"><i class="ti ti-users"></i>${tr('sel_count', { n: total })}</span>
+        </div>
+      </div>
+    </div>
+    ${groups}
+    <a class="sel-cta" href="https://discord.gg/3HymNM8XB3" target="_blank" rel="noopener">
+      <i class="ti ti-brand-discord"></i>
+      <span><strong>${tr('sel_cta_join')}</strong><small>${tr('sel_cta_join_sub')}</small></span>
+      <i class="ti ti-arrow-right"></i>
+    </a>
   </div>`;
 }
