@@ -683,16 +683,14 @@ function viewPalmares() {
 
 function palmaresWinnerCard(e) {
   const admin = State.isAdmin;
-  return `<div class="rank-item" style="${e.tag ? 'border-color: rgba(240,197,66,0.35);' : ''}">
-    ${teamDotHtml({ logo: e.logo, name: e.name }, '')}
-    <div class="rank-info">
-      <div class="rank-name">${escapeHtml(e.name)} ${e.tag ? `<span style="font-size:0.72rem; color:var(--text-muted); font-weight:500;">· ${escapeHtml(e.tag)}</span>` : ''}</div>
-      ${e.players.length ? `<div class="rank-team">${tr('palmares_plantel')}: ${e.players.map(escapeHtml).join(' · ')}</div>` : ''}
+  return `<div class="palmares-winner" style="${e.tag ? 'border-color: rgba(240,197,66,0.5);' : ''}">
+    <div class="palmares-winner-crest">${teamDotHtml({ logo: e.logo, name: e.name }, 'pal-winner-dot')}</div>
+    <div class="palmares-winner-info">
+      <div class="palmares-winner-name">${escapeHtml(e.name)}</div>
+      ${e.tag ? `<div class="palmares-winner-tag"><i class="ti ti-trophy" style="font-size:0.8rem;"></i> ${escapeHtml(e.tag)}</div>` : ''}
+      ${(e.players || []).length ? `<div class="palmares-winner-plantel">${tr('palmares_plantel')}: ${e.players.map(escapeHtml).join(' · ')}</div>` : ''}
     </div>
-    <div style="display:flex; align-items:center; gap:0.45rem;">
-      <i class="ti ti-trophy" style="color:var(--gold); font-size:1.1rem;"></i>
-      ${admin && e.source === 'manual' ? `<button class="btn btn-icon btn-danger palmares-del-btn" data-pal="${e.id}" title="${tr('btn_eliminar')}" style="width:30px; height:30px;"><i class="ti ti-trash"></i></button>` : ''}
-    </div>
+    ${admin && e.source === 'manual' ? `<button class="btn btn-icon btn-danger palmares-del-btn" data-pal="${e.id}" title="${tr('btn_eliminar')}" style="width:34px; height:34px;"><i class="ti ti-trash"></i></button>` : ''}
   </div>`;
 }
 
