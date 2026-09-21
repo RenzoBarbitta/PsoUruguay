@@ -327,6 +327,7 @@ function bracketMatchCard(m) {
   const away = m.awayId ? getTeamById(m.awayId) : null;
   const homeWon = m.played && home && away && Number(m.homeScore) > Number(m.awayScore);
   const awayWon = m.played && home && away && Number(m.awayScore) > Number(m.homeScore);
+  const sched = matchScheduledLabel(m);
 
   return `<div class="match-card" style="padding:0.6rem 0.75rem;">
     <div style="display:flex; align-items:center; justify-content:space-between; padding:0.3rem 0; ${homeWon ? 'font-weight:700;' : 'opacity:0.75;'}">
@@ -339,6 +340,7 @@ function bracketMatchCard(m) {
       <span style="font-family:var(--font-display); font-weight:700; font-size:0.9rem;">${m.played ? m.awayScore : ''}</span>
     </div>
     ${m.isBye ? `<div class="match-meta">${tr('pase_libre')}</div>` : `<div class="match-meta">${m.played ? tr('match_finalizado') : tr('match_por_jugar')}</div>`}
+    ${sched ? `<div class="match-sched" style="text-align:center;">${sched}</div>` : ''}
   </div>`;
 }
 
