@@ -71,6 +71,9 @@ SUPABASE_ANON_KEY: "sb_publishable_xxxx",
 
 4. Ejecutamos el SQL de `supabase-schema.sql` en:
    **Supabase Dashboard → SQL Editor → Run**.
+4b. Después, ejecutamos `supabase-hardening.sql` (idempotente):
+   bloquea la escritura del ranking desde el cliente (solo el server de
+   partidas puede sumar puntos vía service key) y refuerza la RLS de `kv`.
 5. Activamos **Row Level Security (RLS)** en las tablas `users` y `kv`
    (el script ya lo hace).
 6. En **Authentication → Sign In / Providers → Email** dejamos **Email** activado

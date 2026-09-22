@@ -122,15 +122,17 @@ async function cargarYRenderizarRankingPenales() {
   </div>`;
 }
 
-async function guardarRecordPenales(racha, prevBest) {
+async function guardarRecordPenales(racha, prevBest, gameToken) {
   if (!AuthState.user) return { saved: false, record: false };
   const base = prevBest !== undefined ? prevBest : (AuthState.user.bestPenalStreak || 0);
   const esRecord = racha > base;
 
   /* Siempre intentar el server primero (aunque el heartbeat diga offline):
-     si hay red, el puntaje llega a la DB que es la única fuente del ranking. */
+     si hay red, el puntaje llega a la DB que es la única fuente del ranking.
+     El server solo acepta la racha que él mismo contó en la sesión de
+     partida (token firmado): el cliente no puede declararla libre. */
   try {
-    const data = await rankingApi('/api/ranking/penales', { bestPenalStreak: racha });
+    const data = await rankingApi('/api/ranking/penales', { token: gameToken });
     if (data.user) {
       AuthState.user = data.user;
       localStorage.setItem('pso_user', JSON.stringify(data.user));
@@ -339,8 +341,10 @@ async function finalizarPenales() {
       esRecordOnline = racha > prevBest && racha > 0;
     } catch (e) {
       /* Si el finish falló por lo que sea, igual intentamos guardar el
-         puntaje directo en el ranking: el score no se tiene que perder. */
-      const r = await guardarRecordPenales(racha, prevBest);
+         puntaje directo en el ranking: el score no se tiene que perder.
+         Se manda el token de sesión (todavía válido) para que el server
+         valide la racha en vez de aceptar la que declaremos nosotros. */
+      const r = await guardarRecordPenales(racha, prevBest, PenalesState.sessionToken);
       if (e.code !== 'not_configured' && !r.saved) toast(tr('penales_save_error'), 'error');
     }
   } else {
