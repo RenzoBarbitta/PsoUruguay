@@ -152,9 +152,10 @@ function responder(idx) {
   S.estado[letra] = esCorrecta ? 'acierta' : 'falla'
   if (esCorrecta) S.aciertos++
   else S.fallas++
-  S.cola.shift()
   guardar()
   setTimeout(() => {
+    if (!S.jugando) return
+    S.cola.shift()
     S.respondida = false
     avanzar()
     forceRender()

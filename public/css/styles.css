@@ -2138,6 +2138,8 @@ select:focus, textarea:focus {
 .rosco-chip.estado-falla { background: var(--loss); border-color: var(--loss); color: #fff; }
 .rosco-chip.estado-pasada { background: var(--gold); border-color: var(--gold); color: #101728; }
 .rosco-chip.actual { border-color: var(--accent-dark); box-shadow: 0 0 0 3px rgba(91,155,213,.3); }
+.rosco-chip.estado-acierta span, .rosco-chip.estado-falla span { animation: chipPop 0.45s ease; }
+@keyframes chipPop { 0% { transform: scale(1); } 40% { transform: scale(1.45); } 100% { transform: scale(1); } }
 .rosco-panel { padding: 1.2rem; }
 .rosco-q-head { display: flex; align-items: center; gap: 0.7rem; }
 .rosco-letra-badge { width: 42px; height: 42px; border-radius: 10px; background: var(--bg-header); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; }
