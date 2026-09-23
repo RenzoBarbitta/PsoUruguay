@@ -254,7 +254,7 @@ function TriviaHome({ ranking, user, onStart }) {
         <span className="section-sub">{t('trivia_jugando_como', { name: nombre })}</span>
       </div>
 
-      <motion.div className="card game-hero" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+      <motion.div className="card game-hero game-hero--trivia" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <div className="game-hero-emoji">🏆</div>
         <h3>{t('trivia_modo_racha')}</h3>
         <p>{t('trivia_modo_racha_desc')}</p>

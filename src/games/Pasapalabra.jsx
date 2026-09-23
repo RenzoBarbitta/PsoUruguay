@@ -311,10 +311,11 @@ function Home({ count, record, onStart }) {
         <span className="section-sub">{t('pasap_desc')}</span>
       </div>
 
-      <motion.div className="card game-hero" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+      <motion.div className="card game-hero game-hero--pasapalabra" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <div className="game-hero-emoji">🔠</div>
         <h3>{t('pasap_hoy')} · {hoy()}</h3>
-        <p>{t('pasap_banco', { n: count })} · ⏱ {t('pasap_tiempo')}: {TIEMPO}s</p>
+        <p>{t('pasap_desc')}</p>
+        <div className="game-hero-meta">{t('pasap_banco', { n: count })} · ⏱ {t('pasap_tiempo')}: {TIEMPO}s</div>
         <button className="btn btn-gold btn-lg" onClick={onStart}><Play size={18} /> {t('pasap_jugar')}</button>
       </motion.div>
 

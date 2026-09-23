@@ -238,10 +238,10 @@ const I18N = {
     trivia_jugando_como: { es: 'Jugando como {name}', pt: 'Jogando como {name}' },
     trivia_modo_racha: { es: 'Modo Racha', pt: 'Modo Sequência' },
     trivia_modo_racha_desc: {
-      es: 'Respondé preguntas de fútbol mundial y uruguayo. Seguís sumando hasta el primer error. ¿Hasta dónde llegás?',
-      pt: 'Responda perguntas do futebol mundial e uruguaio. Você continua somando até o primeiro erro. Até onde você vai?'
+      es: 'Preguntas de fútbol mundial y uruguayo, una detrás de otra. Cada acierto alarga tu racha y la prueba se corta con el primer error. ¿Aguantás hasta el top del ranking?',
+      pt: 'Perguntas do futebol mundial e uruguaio, uma atrás da outra. Cada acerto estica sua sequência e o desafio termina no primeiro erro. Você aguenta até o topo do ranking?'
     },
-    trivia_jugar_ahora: { es: '▶️ Jugar ahora', pt: '▶️ Jogar agora' },
+    trivia_jugar_ahora: { es: 'Jugar ahora', pt: 'Jogar agora' },
     trivia_ranking: { es: '🏅 Ranking online', pt: '🏅 Ranking online' },
     trivia_autorefresh: { es: 'Se actualiza solo', pt: 'Atualiza automaticamente' },
     trivia_cargando: { es: 'Cargando ranking...', pt: 'Carregando ranking...' },
@@ -279,11 +279,11 @@ const I18N = {
     tab_pasapalabra: { es: 'Pasapalabra', pt: 'Passapalabra' },
     pasap_title: { es: '🔠 Pasapalabra', pt: '🔠 Passapalabra' },
     pasap_desc: {
-      es: 'La rosca del día: definiciones de fútbol y de la celeste con 4 opciones. Una letra por vez, de la A a la Z y las que saltás vuelven.',
-      pt: 'A rosca do dia: definições de futebol e da Celeste com 4 opções. Uma letra por vez, de A a Z, e as que você passar voltam.'
+      es: 'La rosca del día ya está lista: 26 letras, 4 opciones y 120 segundos. Definiciones de fútbol y de la celeste. Las que salteás vuelven en la segunda vuelta. ¿Las encadenás todas?',
+      pt: 'A rosca do dia já está pronta: 26 letras, 4 opções e 120 segundos. Definições de futebol e da Celeste. As que você passar voltam na segunda volta. Consegue completar todas?'
     },
     pasap_hoy: { es: 'Rosca de hoy', pt: 'Rosca de hoje' },
-    pasap_jugar: { es: '▶️ Jugar la rosca de hoy', pt: '▶️ Jogar a rosca de hoje' },
+    pasap_jugar: { es: 'Jugar la rosca de hoy', pt: 'Jogar a rosca de hoje' },
     pasap_banco: { es: '{n} preguntas en el banco', pt: '{n} perguntas no banco' },
     pasap_tu_record: { es: 'Tu récord', pt: 'Seu recorde' },
     pasap_sin_record: { es: 'Todavía no jugaste ninguna rosca. ¡La de hoy es la primera!', pt: 'Você ainda não jogou nenhuma rosca. A de hoje é a primeira!' },
@@ -321,8 +321,8 @@ const I18N = {
     tab_penales: { es: 'Penales', pt: 'Pênaltis' },
     penales_title: { es: '🥅 Penales', pt: '🥅 Pênaltis' },
     penales_desc: {
-      es: 'El arquero se tira al azar y vos rematás a un palo. Convertí penales seguidos: cada gol sube el nivel y te deja menos tiempo de reacción.',
-      pt: 'O goleiro salta aleatoriamente e você chuta para um dos cantos. Faça pênaltis seguidos: cada gol sobe o nível e deixa menos tempo de reação.'
+      es: 'El arquero se tira a un palo y el reloj corre. Encadená goles: cada gol sube el nivel y te deja menos tiempo de reacción. ¿Cuántos penales seguidos convertís?',
+      pt: 'O goleiro escolhe um canto e o relógio corre. Encaixe gols: cada gol sobe o nível e deixa menos tempo de reação. Quantos pênaltis seguidos você converte?'
     },
     penales_need_account_title: { es: 'Creá tu cuenta para patear', pt: 'Crie sua conta para chutar' },
     penales_need_account_desc: {
@@ -334,7 +334,7 @@ const I18N = {
       pt: 'O ranking é online e é compartilhado com todos os jogadores.'
     },
     penales_jugando_como: { es: 'Jugando como {name}', pt: 'Jogando como {name}' },
-    penales_jugar: { es: '▶️ Patear mis penales', pt: '▶️ Bater meus pênaltis' },
+    penales_jugar: { es: 'Patear mis penales', pt: 'Bater meus pênaltis' },
     penales_ranking: { es: '🏅 Ranking online de penales', pt: '🏅 Ranking online de pênaltis' },
     penales_autorefresh: { es: 'Se actualiza solo', pt: 'Atualiza automaticamente' },
     penales_cargando: { es: 'Cargando ranking...', pt: 'Carregando ranking...' },

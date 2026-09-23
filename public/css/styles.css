@@ -1983,8 +1983,25 @@ select:focus, textarea:focus {
 .juegos-card-play { margin-top: auto; }
 
 /* Trivia / games comunes */
-.game-hero { text-align: center; padding: 1.6rem; margin-bottom: 1rem; }
-.game-hero-emoji { font-size: 2.4rem; margin-bottom: 0.4rem; }
+.game-hero { position: relative; overflow: hidden; text-align: center; padding: 2.4rem 1.5rem 2.2rem; margin-bottom: 1rem; }
+.game-hero::before {
+  content: '';
+  position: absolute; left: 50%; top: -36%; transform: translateX(-50%);
+  width: 80%; height: 250px; pointer-events: none;
+  background: radial-gradient(ellipse at center, var(--hero-glow, rgba(240,197,66,.15)), transparent 68%);
+}
+.game-hero--trivia { --hero-glow: rgba(240,197,66,.17); }
+.game-hero--penales { --hero-glow: rgba(107,198,133,.16); }
+.game-hero--pasapalabra { --hero-glow: rgba(97,161,219,.16); }
+.game-hero > * { position: relative; z-index: 1; }
+.game-hero-emoji { display: block; font-size: 3.1rem; line-height: 1.1; margin-bottom: 0.7rem; animation: heroFloat 3.2s ease-in-out infinite; }
+@keyframes heroFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+.game-hero h3 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.25rem, 4vw, 1.6rem); margin: 0 auto 0.5rem; max-width: 30ch; }
+.game-hero p { max-width: 42ch; margin: 0 auto; color: var(--text-muted); font-size: 0.98rem; line-height: 1.6; }
+.game-hero-meta { margin-top: 0.55rem; font-size: 0.8rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); opacity: .85; }
+.game-hero .btn-lg { min-width: 240px; margin-top: 1.25rem; font-size: 1rem; }
+.game-hero .btn-lg:hover { box-shadow: 0 8px 22px rgba(240,197,66,.28); }
+.game-hero .penal-como { margin-top: 1.2rem; max-width: 42ch; margin-left: auto; margin-right: auto; }
 .game-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }
 .dif-chip { display: inline-block; font-size: 0.68rem; font-weight: 700; border-radius: 999px; padding: 0.2rem 0.6rem; text-transform: uppercase; }
 .trivia-question { font-size: 1.15rem; }

@@ -1,6 +1,6 @@
 import React, { useEffect, useReducer, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { RotateCcw, ArrowLeft, RefreshCw, Timer, Flame } from 'lucide-react'
+import { RotateCcw, ArrowLeft, RefreshCw, Timer, Flame, Play } from 'lucide-react'
 import { useApp } from '../core/app.jsx'
 import { LoginModal } from '../admin/AuthModal.jsx'
 import { t, EmptyState } from '../core/ui.jsx'
@@ -399,11 +399,11 @@ function Home({ ranking, mejorRacha, onStart }) {
         <span className="section-sub">{t('penales_jugando_como', { name: nombre })}</span>
       </div>
 
-      <motion.div className="card game-hero" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+      <motion.div className="card game-hero game-hero--penales" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <div className="game-hero-emoji">🥅</div>
         <h3>{t('penales_title')}</h3>
         <p>{t('penales_desc')}</p>
-        <button className="btn btn-gold btn-lg" onClick={onStart}>{t('penales_jugar')}</button>
+        <button className="btn btn-gold btn-lg" onClick={onStart}><Play size={18} /> {t('penales_jugar')}</button>
         <details className="penal-como">
           <summary>{t('penales_como_funciona_t')}</summary>
           <p>{t('penales_como_funciona_p')}</p>
