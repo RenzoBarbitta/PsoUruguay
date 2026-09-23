@@ -14,8 +14,14 @@
 <meta name="apple-mobile-web-app-title" content="PSO Uruguay">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
+<!-- Tema antes del primer paint: aplica pso_theme (default dark) para que el
+     CSS [data-theme=...] sepa en qué modo pintar desde el inicio. -->
+<script>
+try { document.documentElement.setAttribute('data-theme', localStorage.getItem('pso_theme') || 'dark'); } catch (e) {}
+</script>
+
 <!-- Open Graph (Facebook, WhatsApp, Instagram) -->
-<meta property="og:type" content="website">
+<meta property="og:type" content="wdaebsite">
 <meta property="og:site_name" content="PSO Uruguay">
 <meta property="og:title" content="PSO Uruguay | Pro Soccer Online Uruguay">
 <meta property="og:description" content="Liga, estadísticas, trivia futbolera, pasapalabra diario y penales uruguayos con ranking online. ¡Creá tu cuenta y entrá al ranking!">
@@ -32,13 +38,12 @@
 <meta name="twitter:image" content="https://psouruguay.uy/logo.webp">
 
 <link rel="canonical" href="https://psouruguay.uy/">
-<link rel="icon" type="image/webp" href="logo.webp">
-<link rel="apple-touch-icon" href="logo.webp">
+<link rel="icon" type="image/webp" href="/logo.webp">
+<link rel="apple-touch-icon" href="/logo.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.46.0/tabler-icons.min.css">
-<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="/css/styles.css">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -69,27 +74,23 @@
   <div class="splash-caption">PRO SOCCER ONLINE</div>
 </div>
 
-<div id="app">
-  <!-- El contenido se inyecta via JS -->
-</div>
+<div id="root"></div>
 
-<div id="toast-wrap"></div>
+<!-- Capa legacy: datos, lógica de negocio y SDK. NO bundlearla: se sirve
+     verbatim y expone globals (State, AuthState, tr, compute*, gameApi,
+     rankingApi, persist*, TRIVIA_QUESTIONS, PASAPALABRA_QUESTIONS...)
+     que la app React consume a través de window. -->
+<script src="/js/logo.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/i18n.js"></script>
+<script src="/js/competencias.js"></script>
+<script src="/js/trivia-data.js"></script>
+<script src="/js/pasapalabra-data.js"></script>
+<script src="/js/state.js"></script>
+<script src="/js/compute.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/bridge.js"></script>
 
-<script src="js/logo.js"></script>
-<script src="js/config.js"></script>
-<script src="js/i18n.js"></script>
-<script src="js/competencias.js"></script>
-<script src="js/trivia-data.js"></script>
-<script src="js/pasapalabra-data.js"></script>
-<script src="js/state.js"></script>
-<script src="js/compute.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/ui.js"></script>
-<script src="js/views.js"></script>
-<script src="js/trivia.js"></script>
-<script src="js/pasapalabra.js"></script>
-<script src="js/penales.js"></script>
-<script src="js/admin.js"></script>
-<script src="js/main.js"></script>
+<script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

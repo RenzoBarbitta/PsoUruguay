@@ -4,8 +4,25 @@
   "version": "1.0.0",
   "description": "Sitio de la liga Pro Soccer Online Uruguay (static + Pages Functions)",
   "scripts": {
-    "build": "node scripts/cache-bust.mjs",
-    "deploy": "npm run build && wrangler pages deploy dist --project-name psouruguay --branch main",
-    "dev": "wrangler pages dev"
+    "dev": "vite",
+    "dev:full": "npm run build && wrangler pages dev dist",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name psouruguay --branch main"
+  },
+  "dependencies": {
+    "lucide-react": "^1.47.0",
+    "motion": "^13.4.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.3.0",
+    "wrangler": "^4.136.3"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "workerd@1.20260921.1": true
   }
 }

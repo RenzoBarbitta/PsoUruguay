@@ -1,0 +1,22 @@
+# index.html siempre revalida contra el ETag: un deploy nuevo se ve solo.
+/index.html
+  Cache-Control: no-cache
+
+# Assets versionados por contenido (hashes de Vite): immutable por 1 año.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Capa legacy: NO lleva version en la URL (Vite la sirve verbatim desde
+# public/). Se servía immutable antes con ?v=sha; ahora revalidar por ETag
+# para que un deploy con i18n/trivia-data actualizado llegue sí o sí.
+/js/*
+  Cache-Control: no-cache
+
+/css/*
+  Cache-Control: no-cache
+
+/logo.webp
+  Cache-Control: public, max-age=31536000, immutable
+
+/google*.html
+  Cache-Control: public, max-age=31536000, immutable
