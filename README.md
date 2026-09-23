@@ -35,7 +35,9 @@ PsoUruguay/
 
 ## Stack actual
 
-- **Frontend 100% estático** (JS vanilla, sin build, sin Node)
+- **Frontend**: app **React + Vite** (`src/`) sobre una capa legacy en `public/js*`
+  (datos, Supabase y lógica de negocio que la app consume vía `window`).
+  Se builda con `npm run build` → `dist/`.
 - **Backend**: Supabase (Postgres + Auth vía REST directo desde el navegador)
 - **Hosting recomendado**: Cloudflare Pages (ver sección de deploy abajo)
 - **RLS**: las políticas de seguridad viven en Supabase (véase `supabase-schema.sql`)
@@ -174,26 +176,27 @@ racha online.
 
 ## Desplegar en internet
 
-### Cómo funciona el build (cache-busting automático)
+### Cómo funciona el build (hashes automáticos)
 
-El sitio **no se depliega directo desde la raíz**: antes hay que correr el
-build porque **versiona los assets automáticamente**.
+El sitio es una **app React montada con Vite**: no se sube el repo directo,
+hay que correr el build porque genera `dist/` con todo lo que se va a servir.
 
-`npm run build` (→ `scripts/cache-bust.mjs`) hace:
+`npm run build` (→ `vite build`) hace:
 
-1. Genera `dist/` con el sitio estático (nunca toca `functions/`).
-2. Reescribe `index.html` agregando `?v=<sha1-del-contenido>` a cada
-   `js/*.js` y `css/*.css`. Si un archivo cambia, **cambia su URL** (cache
-   busting por contenido); si no cambia, mantiene la URL (reusa la caché).
-3. Escribe `dist/_headers` con la política de caché:
-   - `index.html` → `Cache-Control: no-cache` (siempre revalida contra el
-     ETag de Pages: un deploy nuevo se ve **sin `Ctrl+Shift+R`**).
-   - `js/`, `css/`, `logo.webp` y `google*.html` →
-     `public, max-age=31536000, immutable` (1 año, pero como la URL cambia
-     con el contenido, nunca queda una versión vieja servida).
+1. Compila `src/` a `dist/assets/index-<hash>.js`, donde el **hash cambia con
+   el contenido**: si cambia el código cambia la URL, y el navegador baja la
+   versión nueva (cache relief automático del bundle).
+2. Copia `public/` verbatim: la capa legacy (`js/`, `css/`, `logo.webp`,
+   `google*.html`) y `_headers`.
+3. `dist/_headers` (viene de `public/_headers`) define la política de caché:
+   - `index.html` y la capa legacy (`/js/*`, `/css/*`) →
+     `no-cache` (siempre revalidan contra el ETag de Pages: un deploy nuevo se
+     ve **sin `Ctrl+Shift+R`**).
+   - `/assets/*` (bundle hasheado), `logo.webp` y `google*.html` →
+     `public, max-age=31536000, immutable` (1 año, pero como la URL cambia con
+     el contenido, nunca se sirve una versión vieja).
 
-> No hay que tocar `?v=` a mano jamás: el build lo calcula solo en cada
-> deploy.
+> No hay que tocar hashes a mano jamás: Vite los calcula solo en cada build.
 
 ### Cloudflare Pages (recomendado)
 
@@ -219,6 +222,11 @@ wrangler pages deploy dist --project-name psouruguay --branch main
 #    Output directory: /dist
 ```
 
+> ⚠ **`Output directory` tiene que ser `/dist` sí o sí.** Si el dashboard la
+> deja en `/` (raíz), Cloudflare publica el `index.html` del repo — que apunta
+> a `/src/main.jsx`, el fuente de Vite que no existe en producción — y el sitio
+> queda en blanco. Con `/dist` se sirve el build correcto.
+>
 > `functions/` queda en la raíz del repo (NO dentro de `dist/`): Cloudflare
 > Pages compila las Pages Functions desde la raíz y sube los estáticos desde
 > `dist/`.

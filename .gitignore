@@ -6,5 +6,5 @@ data/
 # Cloudflare Pages (wrangler)
 .wrangler/
 
-# Build local (generado por scripts/cache-bust.mjs)
+# Build local (vite build)
 dist/
