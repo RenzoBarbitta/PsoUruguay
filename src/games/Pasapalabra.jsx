@@ -62,10 +62,11 @@ const normLetra = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]
 
 const opcionesDe = (q, letra) => {
   const pool = (PASAPALABRA_OPTS[I18N.lang] && PASAPALABRA_OPTS[I18N.lang][letra]) || []
-  const elegibles = pool.filter(w => normLetra(w) !== normLetra(q.w))
+  const correcta = q.opts[q.c] || q.w
+  const elegibles = pool.filter(w => normLetra(w) !== normLetra(correcta))
   const rot = hash(hoy() + letra + '·') % Math.max(elegibles.length, 1)
-  const base = [q.w]
-  const vistos = new Set([normLetra(q.w)])
+  const base = [correcta]
+  const vistos = new Set([normLetra(correcta)])
   for (let i = 0; i < elegibles.length && base.length < 4; i++) {
     const key = normLetra(elegibles[(rot + i) % elegibles.length])
     if (vistos.has(key)) continue
@@ -75,7 +76,7 @@ const opcionesDe = (q, letra) => {
   for (const w of q.opts) {
     if (base.length >= 4) break
     const key = normLetra(w)
-    if (vistos.has(key)) continue
+    if (key === normLetra(correcta) || vistos.has(key)) continue
     vistos.add(key)
     base.push(w)
   }
