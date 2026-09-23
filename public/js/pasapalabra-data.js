@@ -304,3 +304,71 @@ const PASAPALABRA_QUESTIONS = {
     ]
   }
 };
+
+/* ======================================================================
+   POOL DE DISTRACTORES POR LETRA (pasapalabra)
+   Cuando la app arma las opciones de una pregunta, reemplaza los
+   distractores que NO empiecen con la letra por palabras de este pool que
+   SÍ empiecen con ella. Así elegir no es "ver cuál empieza con la letra"
+   (obvio), sino leer la pista y decidir entre opciones de la misma letra.
+   Se agregan palabras de fútbol (o cercanas) por cada letra e idioma.
+   ====================================================================== */
+
+const PASAPALABRA_OPTS = {
+  es: {
+    A: ['Amistoso', 'Atajada', 'Antena', 'Abanderado'],
+    B: ['Banderín', 'Bancada', 'Berretín', 'Balcón'],
+    C: ['Córner', 'Cancha', 'Clásico', 'Contragolpe'],
+    D: ['Dorsal', 'Descenso', 'Descuento', 'Delantera'],
+    E: ['Estadio', 'Expulsión', 'Extremo', 'Esguince'],
+    F: ['Finta', 'Figura', 'Formación', 'Favorito'],
+    G: ['Gambeta', 'Goleada', 'Gancho', 'Gradas'],
+    H: ['Hinchas', 'Hábil', 'Héroe', 'Hechizo'],
+    I: ['Inicio', 'Imperio', 'Interior', 'Infracción'],
+    J: ['Juez', 'Justicia', 'Juego limpio', 'Juntada'],
+    K: ['Kiosco', 'Kilómetro', 'Karateca', 'Karting'],
+    L: ['Línea', 'Llave', 'Ladrillo', 'Lesión'],
+    M: ['Marcaje', 'Mediapunta', 'Muro', 'Mundialito'],
+    N: ['Nivel', 'Nudo', 'Núcleo', 'Nocaut'],
+    O: ['Ofensiva', 'Octavos', 'Objetivo', 'Oportunidad'],
+    P: ['Pelota', 'Prórroga', 'Puntero', 'Presión'],
+    Q: ['Quiebre', 'Quite', 'Quórum', 'Quimera'],
+    R: ['Racha', 'Recuperación', 'Rueda', 'Rincón'],
+    S: ['Saque', 'Samba', 'Suspensión', 'Superclásico'],
+    T: ['Tabla', 'Tiempo', 'Tribuna', 'Trampa'],
+    U: ['Unido', 'Ultra', 'Urgente', 'Universidad'],
+    V: ['Ventaja', 'Victoria', 'Verde', 'Viaje'],
+    W: ['Waterpolo', 'Windsurf', 'Web', 'Whisky'],
+    X: ['Xeneize', 'Xilófono', 'Xenón'],
+    Y: ['Yerry', 'Yoga', 'Yate', 'Yanqui'],
+    Z: ['Zapatazo', 'Zapatilla', 'Zipizape', 'Zen']
+  },
+  pt: {
+    A: ['Atacada', 'Aviso', 'Apoio', 'Adversário'],
+    B: ['Barra', 'Bola parada', 'Baliza', 'Bastidor'],
+    C: ['Cabeçada', 'Chute', 'Carrinho', 'Capitão'],
+    D: ['Desarme', 'Duelo', 'Dirigente', 'Disciplina'],
+    E: ['Esquema', 'Extremo', 'Explosão', 'Emoção'],
+    F: ['Frango', 'Formação', 'Faixa', 'Favorito'],
+    G: ['Giro', 'Grande', 'Galera', 'Glória'],
+    H: ['Herói', 'Habilidade', 'Horizonte', 'Hipnose'],
+    I: ['Início', 'Ídolo', 'Invasão', 'Instante'],
+    J: ['Jogada', 'Jeito', 'Jornada', 'Júbilo'],
+    K: ['Kimono', 'Karatê', 'Karaokê'],
+    L: ['Linha', 'Líder', 'Lance', 'Levantamento'],
+    M: ['Marcação', 'Mata-mata', 'Miolo', 'Medalha'],
+    N: ['Nível', 'Nulo', 'Noite', 'Neblina'],
+    O: ['Oponente', 'Ousadia', 'Objetivo', 'Origem'],
+    P: ['Posse', 'Pressão', 'Primeiro', 'Período'],
+    Q: ['Quente', 'Quórum', 'Quintal', 'Quimera'],
+    R: ['Rebaixamento', 'Rasteiro', 'Ritmo', 'Recuo'],
+    S: ['Saque', 'Samba', 'Símbolo', 'Substituto'],
+    T: ['Tiro', 'Treino', 'Tabela', 'Tempo'],
+    U: ['Único', 'Urgente', 'Ultras', 'Unânime'],
+    V: ['Volta', 'Velocidade', 'Valente', 'Visita'],
+    W: ['Web', 'Waterpolo', 'Windsurf'],
+    X: ['Xadrez', 'Xampu', 'Xilofone'],
+    Y: ['Yoga', 'Yate', 'Yakisoba'],
+    Z: ['Zebra', 'Zape', 'Zênite', 'Zerado']
+  }
+};

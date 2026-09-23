@@ -58,12 +58,37 @@ const seedIndex = letra => {
   return hash(hoy() + letra) % banco.length
 }
 
+const normLetra = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+
+const opcionesDe = (q, letra) => {
+  const pool = (PASAPALABRA_OPTS[I18N.lang] && PASAPALABRA_OPTS[I18N.lang][letra]) || []
+  const elegibles = pool.filter(w => normLetra(w) !== normLetra(q.w))
+  const rot = hash(hoy() + letra + '·') % Math.max(elegibles.length, 1)
+  const base = [q.w]
+  const vistos = new Set([normLetra(q.w)])
+  for (let i = 0; i < elegibles.length && base.length < 4; i++) {
+    const key = normLetra(elegibles[(rot + i) % elegibles.length])
+    if (vistos.has(key)) continue
+    vistos.add(key)
+    base.push(elegibles[(rot + i) % elegibles.length])
+  }
+  for (const w of q.opts) {
+    if (base.length >= 4) break
+    const key = normLetra(w)
+    if (vistos.has(key)) continue
+    vistos.add(key)
+    base.push(w)
+  }
+  return base
+}
+
 const rotarOpciones = (q, letra) => {
-  const n = q.opts.length
+  const base = opcionesDe(q, letra)
+  const n = base.length
   const offset = hash(hoy() + letra + '°') % n
   const opts = []
-  for (let i = 0; i < n; i++) opts.push(q.opts[(i + offset) % n])
-  return { ...q, opts, c: (q.c - offset + n) % n }
+  for (let i = 0; i < n; i++) opts.push(base[(i + offset) % n])
+  return { ...q, opts, c: (n - offset) % n }
 }
 
 const buildPerg = () => {
@@ -366,16 +391,14 @@ function Juego({ tiempoRef, onTerminar }) {
           const actual = esActual(letraB)
           const angle = (360 / ABC.length) * i - 90
           return (
-            <motion.button
+            <button
               key={letraB}
               className={`rosco-chip estado-${est} ${actual ? 'actual' : ''}`}
               style={{ '--i': i, transform: `rotate(${angle}deg) translateY(-var(--rosco-size)) rotate(${-angle}deg)` }}
               aria-label={letraB}
-              animate={actual ? { scale: [1, 1.12, 1] } : undefined}
-              transition={{ duration: 0.45 }}
             >
               <span>{letraB}</span>
-            </motion.button>
+            </button>
           )
         })}
       </div>
