@@ -53,9 +53,13 @@ function generateRoundRobin(teamIds, idaVuelta = true) {
   return rounds
 }
 
-async function maybeAdvanceCopaRounds() {
-  if (State.data.settings.competitionFormat !== 'copa') return
-  const bracketMatches = State.data.matches.filter(m => m.bracket)
+async function maybeAdvanceCopaRounds(forMatch) {
+  let bracketMatches = State.data.matches.filter(m => m.bracket)
+  if (!bracketMatches.length) return
+  const isLegacy = bracketMatches.some(m => !m.competitionId)
+  if (!isLegacy && forMatch && forMatch.competitionId) {
+    bracketMatches = bracketMatches.filter(m => m.competitionId === forMatch.competitionId)
+  }
   if (!bracketMatches.length) return
   const maxRound = Math.max(...bracketMatches.map(m => m.bracketRound || 1))
   const totalRounds = bracketMatches[0].totalBracketRounds || maxRound
@@ -66,7 +70,8 @@ async function maybeAdvanceCopaRounds() {
     if (finalMatch && finalMatch.played && !finalMatch.championDeclared) {
       const winnerId = Number(finalMatch.homeScore) > Number(finalMatch.awayScore) ? finalMatch.homeId : finalMatch.awayId
       if (winnerId) {
-        await declareChampion(winnerId)
+        const comp = (State.data.competitions || []).find(c => c.id === finalMatch.competitionId)
+        await declareChampion(winnerId, comp || null)
         await persistMatch({ ...finalMatch, championDeclared: true })
       }
     }
@@ -85,22 +90,23 @@ async function maybeAdvanceCopaRounds() {
       homeId: homeId || null, awayId: awayId || null,
       homeScore: hasBye && homeId ? 1 : 0, awayScore: hasBye && awayId ? 1 : 0,
       played: hasBye, isBye: hasBye, stats: {},
+      competitionId: isLegacy ? undefined : (forMatch && forMatch.competitionId),
       totalBracketRounds: totalRounds, competitionFormat: 'copa'
     })
   }
   for (const m of nextMatches) await persistMatch(m)
   toast(t('toast_ronda_generada', { n: maxRound + 1 }))
   window.psoBus.emit('data-updated')
-  await maybeAdvanceCopaRounds()
+  await maybeAdvanceCopaRounds(forMatch)
 }
 
-async function declareChampion(teamId) {
+async function declareChampion(teamId, comp) {
   const team = getTeamById(teamId)
   if (!team) return
   const title = {
-    competitionName: State.data.settings.competitionName || t('copa_default_name'),
-    format: State.data.settings.competitionFormat,
-    year: State.data.settings.season
+    competitionName: comp ? comp.name : (State.data.settings.competitionName || t('copa_default_name')),
+    format: comp ? comp.type : State.data.settings.competitionFormat,
+    year: comp ? (comp.season || State.data.settings.season) : State.data.settings.season
   }
   await persistTeam({ ...team, titles: [...(team.titles || []), title] })
 }
@@ -483,7 +489,7 @@ function ResultModal({ match, onDone }) {
     }
     closeModal()
     showToast(t('toast_resultado_guardado'))
-    if (match.bracket) await maybeAdvanceCopaRounds()
+    if (match.bracket) await maybeAdvanceCopaRounds(match)
     onDone()
   }
 
