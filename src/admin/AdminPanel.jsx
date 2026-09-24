@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import {
   Users, ClipboardList, Trophy, Settings, Plus, Trash2, Save, Shield,
@@ -61,43 +61,65 @@ async function maybeAdvanceCopaRounds(forMatch) {
     bracketMatches = bracketMatches.filter(m => m.competitionId === forMatch.competitionId)
   }
   if (!bracketMatches.length) return
-  const maxRound = Math.max(...bracketMatches.map(m => m.bracketRound || 1))
-  const totalRounds = bracketMatches[0].totalBracketRounds || maxRound
-  const currentRoundMatches = bracketMatches.filter(m => m.bracketRound === maxRound)
-  if (!currentRoundMatches.every(m => m.played)) return
-  if (maxRound >= totalRounds || currentRoundMatches.length === 1) {
-    const finalMatch = currentRoundMatches[0]
+  const totalRounds = bracketMatches[0].totalBracketRounds || Math.max(...bracketMatches.map(m => m.bracketRound || 1))
+  const competitionId = isLegacy ? undefined : (forMatch && forMatch.competitionId)
+
+  let changed = true
+  let guard = 0
+  let createdAny = false
+  let createdRound = 0
+  while (changed && guard++ < 20) {
+    changed = false
+    /* Avance incremental: por cada llave jugada, su ganador sube a la
+       siguiente ronda. Si el otro cruce aún no se jugó, aparece igual con
+       "por definir" esperándolo. */
+    for (let r = 1; r < totalRounds; r++) {
+      const playedRound = bracketMatches.filter(m => m.bracketRound === r && m.played)
+      for (const m of playedRound) {
+        const winner = m.isBye ? (m.homeId || m.awayId) : (Number(m.homeScore) > Number(m.awayScore) ? m.homeId : m.awayId)
+        if (!winner) continue
+        const nextSlot = Math.floor(m.bracketSlot / 2)
+        const side = m.bracketSlot % 2 === 0 ? 'homeId' : 'awayId'
+        let next = bracketMatches.find(x => x.bracketRound === r + 1 && x.bracketSlot === nextSlot)
+        if (!next) {
+          next = {
+            id: uid('match'), round: r + 1, bracket: true, bracketRound: r + 1, bracketSlot: nextSlot,
+            homeId: null, awayId: null, homeScore: 0, awayScore: 0, played: false, isBye: false, stats: {},
+            competitionId, totalBracketRounds: totalRounds, competitionFormat: 'copa'
+          }
+          await persistMatch(next)
+          bracketMatches.push(next)
+          changed = true
+          createdAny = true
+          createdRound = Math.max(createdRound, r + 1)
+        }
+        if (next[side] !== winner) { next[side] = winner; await persistMatch(next); changed = true }
+        /* Si el cruce hermano nunca tendrá equipo (bye real), esta llave
+           queda jugada con el único ganador. */
+        const brotherSlot = nextSlot * 2 + (next.homeId === winner ? 1 : 0)
+        const brother = bracketMatches.find(x => x.bracketRound === r && x.bracketSlot === brotherSlot)
+        if (!brother && next.homeId && !next.awayId) { next.played = true; next.isBye = true; next.homeScore = 1; next.awayScore = 0; await persistMatch(next) }
+        else if (!brother && !next.homeId && next.awayId) { next.played = true; next.isBye = true; next.homeScore = 0; next.awayScore = 1; await persistMatch(next) }
+      }
+    }
+    /* Final jugada → declarar campeón */
+    const finalMatch = bracketMatches.find(m => m.bracketRound === totalRounds)
     if (finalMatch && finalMatch.played && !finalMatch.championDeclared) {
       const winnerId = Number(finalMatch.homeScore) > Number(finalMatch.awayScore) ? finalMatch.homeId : finalMatch.awayId
       if (winnerId) {
         const comp = (State.data.competitions || []).find(c => c.id === finalMatch.competitionId)
         await declareChampion(winnerId, comp || null)
-        await persistMatch({ ...finalMatch, championDeclared: true })
+        finalMatch.championDeclared = true
+        await persistMatch(finalMatch)
+        changed = true
+        createdAny = true
       }
     }
-    return
   }
-  if (bracketMatches.some(m => m.bracketRound === maxRound + 1)) return
-  const winners = currentRoundMatches
-    .sort((a, b) => a.bracketSlot - b.bracketSlot)
-    .map(m => m.isBye ? (m.homeId || m.awayId) : Number(m.homeScore) > Number(m.awayScore) ? m.homeId : m.awayId)
-  const nextMatches = []
-  for (let i = 0; i < winners.length; i += 2) {
-    const homeId = winners[i], awayId = winners[i + 1] || null
-    const hasBye = !homeId || !awayId
-    nextMatches.push({
-      id: uid('match'), round: maxRound + 1, bracket: true, bracketRound: maxRound + 1, bracketSlot: i / 2,
-      homeId: homeId || null, awayId: awayId || null,
-      homeScore: hasBye && homeId ? 1 : 0, awayScore: hasBye && awayId ? 1 : 0,
-      played: hasBye, isBye: hasBye, stats: {},
-      competitionId: isLegacy ? undefined : (forMatch && forMatch.competitionId),
-      totalBracketRounds: totalRounds, competitionFormat: 'copa'
-    })
+  if (createdAny) {
+    toast(t('toast_ronda_generada', { n: createdRound }))
+    window.psoBus.emit('data-updated')
   }
-  for (const m of nextMatches) await persistMatch(m)
-  toast(t('toast_ronda_generada', { n: maxRound + 1 }))
-  window.psoBus.emit('data-updated')
-  await maybeAdvanceCopaRounds(forMatch)
 }
 
 async function declareChampion(teamId, comp) {
@@ -610,6 +632,21 @@ function AdminCompetencias({ data, showToast, refresh }) {
   const { openModal } = useApp()
   const cups = data.competitions || []
   const teams = data.teams || []
+
+  /* Auto-avance: si un ganador quedó esperando (copa donde no se jugó toda
+     la ronda), al entrar al panel sube solo a su próxima llave. */
+  useEffect(() => {
+    (async () => {
+      if (!data.matches || !data.matches.length) return
+      for (const comp of (data.competitions || [])) {
+        if (comp.type !== 'copa') continue
+        if (!data.matches.some(m => m.bracket && m.competitionId === comp.id)) continue
+        await maybeAdvanceCopaRounds({ competitionId: comp.id })
+      }
+      refresh()
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const nuevo = () => openModal(<CompFormModal comp={null} onDone={refresh} />)
   const editar = comp => openModal(<CompFormModal comp={comp} onDone={refresh} />)
