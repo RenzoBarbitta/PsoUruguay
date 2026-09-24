@@ -167,6 +167,36 @@ function CopaBracket({ rounds, roundKeys, totalRounds }) {
   )
 }
 
+/* Deriva en la vista las llaves que aún no se generaron en la base: cada
+   ganador jugado sube a la próxima ronda (el cruce que falta queda como
+   "por definir"). Es de solo lectura: no escribe partidos. */
+function deriveNextRoundMatches(rounds, totalRounds) {
+  if (!totalRounds || totalRounds < 2) return rounds
+  const winners = {}
+  const count = r => Math.pow(2, totalRounds - r)
+  for (let r = 1; r <= totalRounds; r++) {
+    winners[r] = {}
+    ;(rounds[r] || []).forEach(m => {
+      const w = !m.played ? null : (m.isBye ? (m.homeId || m.awayId) : (Number(m.homeScore) > Number(m.awayScore) ? m.homeId : m.awayId))
+      if (w) winners[r][m.bracketSlot] = w
+    })
+  }
+  for (let r = 2; r <= totalRounds; r++) {
+    const existing = {}
+    ;(rounds[r] || []).forEach(m => { existing[m.bracketSlot] = m })
+    const prev = winners[r - 1]
+    for (let s = 0; s < count(r); s++) {
+      if (existing[s]) continue
+      const homeW = prev[s * 2]
+      const awayW = prev[s * 2 + 1]
+      if (!homeW && !awayW) continue
+      existing[s] = { id: 'fd-' + r + '-' + s, bracket: true, bracketRound: r, bracketSlot: s, homeId: homeW || null, awayId: awayW || null, homeScore: 0, awayScore: 0, played: false, isBye: false, stats: {}, derived: true }
+    }
+    rounds[r] = Object.values(existing).sort((a, b) => a.bracketSlot - b.bracketSlot)
+  }
+  return rounds
+}
+
 function renderCopa(comp) {
   let bracketMatches = State.data.matches.filter(m => m.competitionId === comp.id)
   if (!bracketMatches.length) bracketMatches = State.data.matches.filter(m => m.bracket)
@@ -191,7 +221,7 @@ function renderCopa(comp) {
           <div className="champ-sub">{t('champion_badge')}</div>
         </div>
       ) : null}
-      <CopaBracket rounds={rounds} roundKeys={roundKeys} totalRounds={totalRounds} />
+      <CopaBracket rounds={deriveNextRoundMatches(rounds, totalRounds)} roundKeys={roundKeys} totalRounds={totalRounds} />
     </div>
   )
 }
@@ -224,7 +254,7 @@ function LegacyCopaFixture() {
           <div className="champ-sub">{t('champion_badge')}</div>
         </div>
       ) : null}
-      <CopaBracket rounds={rounds} roundKeys={roundKeys} totalRounds={totalRounds} />
+      <CopaBracket rounds={deriveNextRoundMatches(rounds, totalRounds)} roundKeys={roundKeys} totalRounds={totalRounds} />
     </>
   )
 }
