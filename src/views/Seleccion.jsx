@@ -7,7 +7,7 @@ import { t } from '../core/ui.jsx'
 
 const SELECCION_UY = [
   { pos: 'arqueros', icon: <Hand size={18} />, players: [{ name: 'Molleja', num: 99 }, { name: 'Benji Price', num: 1 }] },
-  { pos: 'defensas', icon: <Shield size={18} />, players: [{ name: 'Qevale', num: 47 }, { name: 'Sebasuarezz', num: 80 }, { name: 'Unfav', num: 4 }, { name: 'Taro Misaki', num: 24 }, { name: 'K1ng', num: 6 }] },
+  { pos: 'defensas', icon: <Shield size={18} />, players: [{ name: 'Sebasuarezz', num: 80 }, { name: 'Unfav', num: 4 }, { name: 'Taro Misaki', num: 24 }, { name: 'K1ng', num: 6 }] },
   { pos: 'medios', icon: <Footprints size={18} />, players: [{ name: 'Caseros', num: 64 }, { name: 'Agstn', num: 16 }, { name: 'Marabola', num: 7 }, { name: 'Best666', num: 10 }] },
   { pos: 'delanteros', icon: <Star size={18} />, players: [{ name: 'Fran', num: 69 }, { name: 'Popa', num: 14 }, { name: 'Parling', num: 17 }, { name: 'Chepas', num: 21 }, { name: 'Lnfermo', num: 9 }, { name: 'Alan Velasco', num: 15 }, { name: 'El Rkt', num: 30 }, { name: 'Nachodeldanu', num: 11 }, { name: 'Perssa', num: 5 }] },
 ]
