@@ -381,7 +381,7 @@ export default function QueNoCaiga() {
         <p className="quenocaiga-sub">{t('quenocaiga_sub')}</p>
 
         <div className="quenocaiga-canvas-wrap" onPointerDown={handlePointerDown}>
-          <canvas ref={canvasRef} className="quenocaiga-canvas" />
+          <canvas ref={canvasRef} className="quenocaiga-canvas" style={{ touchAction: 'none' }} />
           {playing && <div className="tap-hint">{t('quenocaiga_toca')}</div>}
           {!playing && count === 0 && <div className="start-hint"><MousePointer size={28} /><Smartphone size={28} /> {t('quenocaiga_inicio')}</div>}
           {!playing && count > 0 && <div className="restart-hint"><RotateCcw size={22} /> {t('quenocaiga_reintentar')}</div>}

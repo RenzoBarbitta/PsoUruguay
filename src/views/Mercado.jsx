@@ -6,10 +6,19 @@ import { t, TeamDot, EmptyState } from '../core/ui.jsx'
 
 const MERCADO_STORAGE_KEY = 'pso_mercado_feed'
 
+function validateFeedItem(item) {
+  if (!item || typeof item !== 'object') return false
+  if (!item.id || !item.type || !item.titleKey) return false
+  if (item.titleVars && typeof item.titleVars !== 'object') return false
+  return true
+}
+
 function getFeed() {
   try {
     const raw = localStorage.getItem(MERCADO_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
+    const parsed = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(validateFeedItem)
   } catch (e) {
     return []
   }
@@ -106,48 +115,57 @@ function formatTime(ts) {
 }
 
 function FeedItem({ item }) {
+  // Extra safeguard: validate item structure before rendering
+  if (!item || !item.id || !item.type || !item.titleKey) {
+    return null
+  }
   const Icon = item.icon || Activity
   // Safeguard: ensure titleVars is an object
   const titleVars = item.titleVars && typeof item.titleVars === 'object' ? item.titleVars : {}
-  return (
-    <motion.div
-      key={item.id}
-      className={`mercado-item mercado-${item.type}`}
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="mercado-icon-wrap">
-        <Icon size={20} className="mercado-icon" />
-      </div>
-      <div className="mercado-content">
-        <div className="mercado-header">
-          <span className="mercado-type">{t(item.titleKey)}</span>
-          <span className="mercado-time">{formatTime(item.timestamp)}</span>
+  try {
+    return (
+      <motion.div
+        key={item.id}
+        className={`mercado-item mercado-${item.type}`}
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="mercado-icon-wrap">
+          <Icon size={20} className="mercado-icon" />
         </div>
-        <div className="mercado-text">
-          {t(item.titleKey, titleVars)}
-        </div>
-        {(item.homeLogo || item.awayLogo || item.teamLogo) && (
-          <div className="mercado-teams">
-            {item.homeLogo && <TeamDot team={{ logo: item.homeLogo, name: item.homeName }} size={32} />}
-            {item.homeScore !== undefined && item.awayScore !== undefined && (
-              <span className="mercado-score">{item.homeScore} - {item.awayScore}</span>
-            )}
-            {item.awayLogo && <TeamDot team={{ logo: item.awayLogo, name: item.awayName }} size={32} />}
-            {item.fromLogo && <TeamDot team={{ logo: item.fromLogo, name: item.fromTeam }} size={28} />}
-            {item.toLogo && (
-              <>
-                <ArrowRightLeft size={16} className="mercado-arrow" />
-                <TeamDot team={{ logo: item.toLogo, name: item.toTeam }} size={28} />
-              </>
-            )}
-            {item.teamLogo && !item.homeLogo && !item.awayLogo && <TeamDot team={{ logo: item.teamLogo, name: item.teamName }} size={32} />}
+        <div className="mercado-content">
+          <div className="mercado-header">
+            <span className="mercado-type">{t(item.titleKey)}</span>
+            <span className="mercado-time">{formatTime(item.timestamp)}</span>
           </div>
-        )}
-      </div>
-    </motion.div>
-  )
+          <div className="mercado-text">
+            {t(item.titleKey, titleVars)}
+          </div>
+          {(item.homeLogo || item.awayLogo || item.teamLogo) && (
+            <div className="mercado-teams">
+              {item.homeLogo && <TeamDot team={{ logo: item.homeLogo, name: item.homeName }} size={32} />}
+              {item.homeScore !== undefined && item.awayScore !== undefined && (
+                <span className="mercado-score">{item.homeScore} - {item.awayScore}</span>
+              )}
+              {item.awayLogo && <TeamDot team={{ logo: item.awayLogo, name: item.awayName }} size={32} />}
+              {item.fromLogo && <TeamDot team={{ logo: item.fromLogo, name: item.fromTeam }} size={28} />}
+              {item.toLogo && (
+                <>
+                  <ArrowRightLeft size={16} className="mercado-arrow" />
+                  <TeamDot team={{ logo: item.toLogo, name: item.toTeam }} size={28} />
+                </>
+              )}
+              {item.teamLogo && !item.homeLogo && !item.awayLogo && <TeamDot team={{ logo: item.teamLogo, name: item.teamName }} size={32} />}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    )
+  } catch (e) {
+    console.warn('FeedItem render error:', e)
+    return null
+  }
 }
 
 export default function Mercado() {

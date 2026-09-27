@@ -705,7 +705,7 @@ export default function Encara() {
         </div>
 
         <div className="encara-canvas-wrap" onTouchStart={(e) => { if (dead) start(); else if (!playing) start(); }} onTouchEnd={(e) => {}}>
-          <canvas ref={canvasRef} className="encara-canvas" tabIndex={0} />
+          <canvas ref={canvasRef} className="encara-canvas" tabIndex={0} style={{ touchAction: 'none' }} />
           {playing && <div className="tap-hint">{activePowerup && <span className="powerup-active">{POWERUPS.find(p => p.id === activePowerup)?.icon} {t(POWERUPS.find(p => p.id === activePowerup)?.name)}</span>}</div>}
           {!playing && !dead && <div className="start-hint"><Keyboard size={24} /> {t('encara_inicio')}</div>}
           {dead && <motion.div className="dead-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>

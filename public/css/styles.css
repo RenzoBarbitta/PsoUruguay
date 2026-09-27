@@ -2319,11 +2319,11 @@ select:focus, textarea:focus {
   pointer-events: none;
   z-index: 1;
 }
-/* Goal posts - arco más chico y centrado */
-.goal-post { position: absolute; top: 0; width: 4px; height: 100%; background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.6); z-index: 10; }
-.goal-post.left { left: 30%; }
-.goal-post.right { right: 30%; }
-.goal-crossbar { position: absolute; top: 0; left: 30%; right: 30%; height: 4px; background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.6); z-index: 10; }
+/* Goal posts - arco más ancho (50% ancho) y más bajo */
+.goal-post { position: absolute; top: 0; width: 4px; height: 65%; background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.6); z-index: 10; }
+.goal-post.left { left: 25%; }
+.goal-post.right { right: 25%; }
+.goal-crossbar { position: absolute; top: 0; left: 25%; right: 25%; height: 4px; background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.6); z-index: 10; }
 /* Goal net with 3D effect */
 .goal-net { position: absolute; inset: 0; 
   background-image: 
@@ -2331,7 +2331,7 @@ select:focus, textarea:focus {
     repeating-linear-gradient(-45deg, rgba(255,255,255,.08), rgba(255,255,255,.08) 6px, transparent 6px, transparent 12px);
   pointer-events: none; z-index: 2;
   opacity: 0.6;
-  clip-path: polygon(30% 0, 70% 0, 70% 100%, 30% 100%);
+  clip-path: polygon(25% 0, 75% 0, 75% 65%, 25% 65%);
 }
 /* Wall - Barrera a 9.15m (aprox 35% desde abajo) */
 .wall { position: absolute; bottom: 35%; left: 50%; transform: translateX(-50%); width: 260px; height: 1px; z-index: 5; }
@@ -2371,8 +2371,8 @@ select:focus, textarea:focus {
   70% { transform: translateY(-8px) scaleY(0.95); }
   100% { transform: translateY(0) scaleY(1); }
 }
-/* Keeper - Arquero en la línea de gol (top del frame) */
-.keeper { position: absolute; top: 0; left: 50%; transform: translateX(-50%) translateY(-50%); width: 44px; height: 88px; z-index: 4; transition: all 0.4s cubic-bezier(0.3, 0.9, 0.3, 1.05); }
+/* Keeper - Arquero en la línea de gol (65% desde arriba = top 35%) */
+.keeper { position: absolute; top: 35%; left: 50%; transform: translateX(-50%) translateY(-50%); width: 44px; height: 88px; z-index: 4; transition: all 0.4s cubic-bezier(0.3, 0.9, 0.3, 1.05); }
 .keeper-body {
   position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 36px; height: 72px;

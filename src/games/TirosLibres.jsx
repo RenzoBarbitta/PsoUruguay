@@ -132,6 +132,11 @@ const TIRO_CONFIG = {
   potencia: { min: 30, max: 100, step: 10, label: 'tiroslibres_potencia' }
 }
 
+function getWallPosition() {
+  const basePositions = ['10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%']
+  return Array.from({ length: 5 }, () => basePositions[Math.floor(Math.random() * basePositions.length)])
+}
+
 function calcularResultado(config) {
   const { angulo, efecto, potencia } = config
   const anguloAbs = Math.abs(angulo)
@@ -174,8 +179,11 @@ export default function TirosLibres() {
   const [config, setConfig] = useState({ angulo: 0, efecto: 'recto', potencia: 70 })
   const [lastResult, setLastResult] = useState(null)
   const [showResult, setShowResult] = useState(false)
+  const [wallPositions, setWallPositions] = useState(getWallPosition())
 
   const refresh = () => force()
+
+  const newWallPositions = () => setWallPositions(getWallPosition())
 
   useEffect(() => {
     if (S.jugando || S.mostrarResultado || !AuthState.user) return
@@ -206,6 +214,7 @@ export default function TirosLibres() {
   const handleTiro = async () => {
     if (S.respondida) return
     S.respondida = true
+    newWallPositions()
     refresh()
     const result = calcularResultado(config)
     S.racha += result.points
@@ -272,11 +281,9 @@ export default function TirosLibres() {
             <div className="goal-crossbar" />
             <div className="goal-net" />
             <div className={`wall ${showResult && lastResult?.result === 'barrera' ? 'animate-jump' : ''}`}>
-              <div className="wall-player" style={{ left: '10%' }} />
-              <div className="wall-player" style={{ left: '28%' }} />
-              <div className="wall-player" style={{ left: '42%' }} />
-              <div className="wall-player" style={{ left: '58%' }} />
-              <div className="wall-player" style={{ left: '72%' }} />
+              {wallPositions.map((pos, i) => (
+                <div key={i} className="wall-player" style={{ left: pos }} />
+              ))}
             </div>
             <div className={`keeper ${showResult ? (lastResult?.result === 'atajada' ? (config.angulo < 0 ? 'animate-save animate-save-left' : config.angulo > 0 ? 'animate-save animate-save-right' : 'animate-save animate-save-center') : '') : ''}`}>
               <div className="keeper-body" />
