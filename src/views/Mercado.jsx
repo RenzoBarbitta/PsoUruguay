@@ -114,14 +114,27 @@ function formatTime(ts) {
   return `hace ${days}d`
 }
 
+function sanitizeTitleVars(vars) {
+  if (!vars || typeof vars !== 'object') return {}
+  const clean = {}
+  for (const k in vars) {
+    const v = vars[k]
+    if (v === null || v === undefined) continue
+    if (typeof v === 'string' || typeof v === 'number') {
+      clean[k] = String(v)
+    }
+  }
+  return clean
+}
+
 function FeedItem({ item }) {
   // Extra safeguard: validate item structure before rendering
   if (!item || !item.id || !item.type || !item.titleKey) {
     return null
   }
   const Icon = item.icon || Activity
-  // Safeguard: ensure titleVars is an object
-  const titleVars = item.titleVars && typeof item.titleVars === 'object' ? item.titleVars : {}
+  // Safeguard: ensure titleVars is an object with only string/number values
+  const titleVars = sanitizeTitleVars(item.titleVars)
   try {
     return (
       <motion.div
@@ -144,19 +157,19 @@ function FeedItem({ item }) {
           </div>
           {(item.homeLogo || item.awayLogo || item.teamLogo) && (
             <div className="mercado-teams">
-              {item.homeLogo && <TeamDot team={{ logo: item.homeLogo, name: item.homeName }} size={32} />}
+              {item.homeLogo && typeof item.homeLogo === 'string' && <TeamDot team={{ logo: item.homeLogo, name: item.homeName || '' }} size={32} />}
               {item.homeScore !== undefined && item.awayScore !== undefined && (
-                <span className="mercado-score">{item.homeScore} - {item.awayScore}</span>
+                <span className="mercado-score">{String(item.homeScore)} - {String(item.awayScore)}</span>
               )}
-              {item.awayLogo && <TeamDot team={{ logo: item.awayLogo, name: item.awayName }} size={32} />}
-              {item.fromLogo && <TeamDot team={{ logo: item.fromLogo, name: item.fromTeam }} size={28} />}
-              {item.toLogo && (
+              {item.awayLogo && typeof item.awayLogo === 'string' && <TeamDot team={{ logo: item.awayLogo, name: item.awayName || '' }} size={32} />}
+              {item.fromLogo && typeof item.fromLogo === 'string' && <TeamDot team={{ logo: item.fromLogo, name: item.fromTeam || '' }} size={28} />}
+              {item.toLogo && typeof item.toLogo === 'string' && (
                 <>
                   <ArrowRightLeft size={16} className="mercado-arrow" />
-                  <TeamDot team={{ logo: item.toLogo, name: item.toTeam }} size={28} />
+                  <TeamDot team={{ logo: item.toLogo, name: item.toTeam || '' }} size={28} />
                 </>
               )}
-              {item.teamLogo && !item.homeLogo && !item.awayLogo && <TeamDot team={{ logo: item.teamLogo, name: item.teamName }} size={32} />}
+              {item.teamLogo && typeof item.teamLogo === 'string' && !item.homeLogo && !item.awayLogo && <TeamDot team={{ logo: item.teamLogo, name: item.teamName || '' }} size={32} />}
             </div>
           )}
         </div>
@@ -171,18 +184,33 @@ function FeedItem({ item }) {
 export default function Mercado() {
   const { v } = useApp()
   void v
-  const [feed, setFeed] = useState(() => {
-    const raw = getFeed()
-    // Filter out any corrupted items
-    return Array.isArray(raw) ? raw.filter(item => item && typeof item === 'object' && item.id && item.type) : []
-  })
+  
+  // One-time cleanup of corrupted localStorage data
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('pso_mercado_feed')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter(item => 
+            item && typeof item === 'object' && 
+            item.id && item.type && item.titleKey &&
+            (!item.titleVars || typeof item.titleVars === 'object')
+          )
+          if (valid.length !== parsed.length) {
+            localStorage.setItem('pso_mercado_feed', JSON.stringify(valid.slice(0, 100)))
+          }
+        }
+      }
+    } catch (e) {
+      localStorage.removeItem('pso_mercado_feed')
+    }
+  }, [])
+
+  const [feed, setFeed] = useState(() => getFeed())
 
   useEffect(() => {
-    const handler = () => {
-      const raw = getFeed()
-      const filtered = Array.isArray(raw) ? raw.filter(item => item && typeof item === 'object' && item.id && item.type) : []
-      setFeed(filtered)
-    }
+    const handler = () => setFeed(getFeed())
     let unsub = () => {}
     if (typeof window !== 'undefined' && window.psoBus) {
       unsub = window.psoBus.on('mercado-updated', handler)
