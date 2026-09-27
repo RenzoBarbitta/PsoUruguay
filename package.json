@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:full": "npm run build && wrangler pages dev dist",
-    "build": "vite build",
+    "build": "node scripts/check-i18n.mjs && vite build",
+    "check": "node scripts/check-i18n.mjs",
     "preview": "vite preview",
     "deploy": "npm run build && wrangler pages deploy dist --project-name psouruguay --branch main"
   },

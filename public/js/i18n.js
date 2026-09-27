@@ -515,6 +515,7 @@ const I18N = {
     toast_equipo_creado: { es: 'Equipo creado', pt: 'Equipe criada' },
     label_nombre_jugador: { es: 'Nombre del jugador', pt: 'Nome do jogador' },
     ph_jugador: { es: 'Ej: Juan Pérez', pt: 'Ex: Juan Pérez' },
+    ph_player_name: { es: 'Nombre del jugador', pt: 'Nome do jogador' },
     modal_eliminar_equipo: { es: 'Eliminar equipo', pt: 'Excluir equipe' },
     confirm_del_team: {
       es: '¿Seguro que querés eliminar {name}? Esta acción no se puede deshacer y también afectará los partidos relacionados.',
@@ -856,12 +857,15 @@ const I18N = {
     perfil_ranking_predicciones: { es: 'Tu posición: #{n} ({pts} pts)', pt: 'Sua posição: #{n} ({pts} pts)' },
 
     /* ------- Tiros Libres (Free Kicks) ------- */
+    tiroslibres_desc: {
       es: 'Elegí ángulo, efecto y potencia. La barrera salta y el arquero reacciona. Puntos por precisión: ángulo superior = gloria.',
       pt: 'Escolha ângulo, efeito e força. A barreira pula e o goleiro reage. Pontos por precisão: ângulo superior = glória.'
     },
+    tiroslibres_terminar_modal_p: {
       es: 'Llevás {n} pts. Si terminás ahora, tu puntaje se guarda en el ranking. ¿Confirmás?',
       pt: 'Você vai com {n} pts. Se encerrar agora, sua pontuação é salva no ranking. Confirma?'
     },
+    tiroslibres_save_error: {
       es: 'No se pudo guardar tu puntaje online.',
       pt: 'Não foi possível salvar sua pontuação online.'
     },
