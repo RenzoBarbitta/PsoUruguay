@@ -19,14 +19,26 @@ function getTeamById(id) {
   return State.data.teams.find(t => t.id === id)
 }
 
+function predsStorageKey() {
+  return AuthState.user ? 'pso_predicciones_' + AuthState.user.id : null
+}
 function getUserPreds() {
   if (!AuthState.user) return {}
-  return S.preds[AuthState.user.id] || {}
+  if (S.preds[AuthState.user.id]) return S.preds[AuthState.user.id]
+  try {
+    const raw = localStorage.getItem(predsStorageKey())
+    const parsed = raw ? JSON.parse(raw) : {}
+    S.preds[AuthState.user.id] = (parsed && typeof parsed === 'object') ? parsed : {}
+  } catch {
+    S.preds[AuthState.user.id] = {}
+  }
+  return S.preds[AuthState.user.id]
 }
 
 function saveUserPreds(preds) {
   if (!AuthState.user) return
   S.preds[AuthState.user.id] = preds
+  try { localStorage.setItem(predsStorageKey(), JSON.stringify(preds)) } catch {}
   if (typeof saveLocalFallback === 'function') saveLocalFallback()
 }
 
@@ -50,18 +62,21 @@ function getLocalPrediccionesRanking() {
     .sort((a, b) => b.puntos - a.puntos || a.fecha - b.fecha)
 }
 
-function computePrediccionesPoints() {
-  const preds = getUserPreds()
+function computePointsFrom(preds) {
   let total = 0
   State.data.matches.filter(m => m.played).forEach(m => {
     const p = preds[m.id]
     if (!p) return
     if (p.home === m.homeScore && p.away === m.awayScore) total += 3
     else if ((p.home > p.away && m.homeScore > m.awayScore) ||
-             (p.home < p.away && m.homeScore < m.awayScore) ||
-             (p.home === p.away && m.homeScore === m.awayScore)) total += 1
+      (p.home < p.away && m.homeScore < m.awayScore) ||
+      (p.home === p.away && m.homeScore === m.awayScore)) total += 1
   })
   return total
+}
+
+function computePrediccionesPoints() {
+  return computePointsFrom(getUserPreds())
 }
 
 export function stopPredicciones() {
@@ -107,6 +122,14 @@ export default function Predicciones() {
     const newPreds = { ...userPreds, [matchId]: { home, away } }
     setUserPreds(newPreds)
     saveUserPreds(newPreds)
+    try {
+      const users = getLocalUsers()
+      const me = users.find(u => u.id === AuthState.user.id)
+      if (me) {
+        me.prediccionesPoints = computePointsFrom(newPreds)
+        saveLocalUsers(users)
+      }
+    } catch {}
     toast(t('predicciones_toast_guardado'))
     refresh()
   }
@@ -135,31 +158,7 @@ export default function Predicciones() {
             const home = getTeamById(m.homeId)
             const away = getTeamById(m.awayId)
             if (!home || !away) return null
-            const pred = userPreds[m.id] || { home: '', away: '' }
-            const [hVal, setHVal] = useState(pred.home)
-            const [aVal, setAVal] = useState(pred.away)
-            return (
-              <motion.div key={m.id} className="prediccion-card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                <div className="prediccion-header">
-                  <span className="prediccion-round">{t('admin_round', { n: m.round })}</span>
-                  {m.scheduledDate && <span className="prediccion-date">{m.scheduledDate}{m.scheduledTime ? ' ' + m.scheduledTime : ''}</span>}
-                </div>
-                <div className="prediccion-teams">
-                  <div className="prediccion-team">
-                    <div className="prediccion-team-name">{home.name}</div>
-                    <input type="number" min="0" max="20" className="prediccion-input" value={hVal} onChange={e => setHVal(e.target.value)} placeholder="?" />
-                  </div>
-                  <span className="prediccion-vs">VS</span>
-                  <div className="prediccion-team">
-                    <div className="prediccion-team-name">{away.name}</div>
-                    <input type="number" min="0" max="20" className="prediccion-input" value={aVal} onChange={e => setAVal(e.target.value)} placeholder="?" />
-                  </div>
-                </div>
-                <button className="btn btn-sm btn-primary prediccion-btn" onClick={() => handleSave(m.id, Number(hVal) || 0, Number(aVal) || 0)} disabled={hVal === '' || aVal === ''}>
-                  <Target size={14} /> {t('predicciones_btn_guardar')}
-                </button>
-              </motion.div>
-            )
+            return <PrediccionCard key={m.id} m={m} home={home} away={away} pred={userPreds[m.id]} onSave={handleSave} />
           })}
         </div>
       )}
@@ -190,6 +189,43 @@ function LoginRequired({ openModal }) {
         <span className="auth-link">{t('trivia_online_note')}</span>
       </motion.div>
     </>
+  )
+}
+
+/* Cada partido es su propio componente: antes los useState vivían dentro
+   del .map() y al cambiar la lista React reasignaba los hooks entre
+   partidos, así que las predicciones se perdían al guardar. */
+function PrediccionCard({ m, home, away, pred, onSave }) {
+  const [hVal, setHVal] = useState(pred && pred.home !== undefined ? String(pred.home) : '')
+  const [aVal, setAVal] = useState(pred && pred.away !== undefined ? String(pred.away) : '')
+
+  useEffect(() => {
+    if (pred && pred.home !== undefined) setHVal(String(pred.home))
+    if (pred && pred.away !== undefined) setAVal(String(pred.away))
+  }, [pred && pred.home, pred && pred.away])
+
+  const ready = hVal !== '' && aVal !== ''
+  return (
+    <motion.div className="prediccion-card" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+      <div className="prediccion-header">
+        <span className="prediccion-round">{t('admin_round', { n: m.round })}</span>
+        {m.scheduledDate && <span className="prediccion-date">{m.scheduledDate}{m.scheduledTime ? ' ' + m.scheduledTime : ''}</span>}
+      </div>
+      <div className="prediccion-teams">
+        <div className="prediccion-team">
+          <div className="prediccion-team-name">{home.name}</div>
+          <input type="number" min="0" max="20" className="prediccion-input" value={hVal} onChange={e => setHVal(e.target.value)} placeholder="?" />
+        </div>
+        <span className="prediccion-vs">VS</span>
+        <div className="prediccion-team">
+          <div className="prediccion-team-name">{away.name}</div>
+          <input type="number" min="0" max="20" className="prediccion-input" value={aVal} onChange={e => setAVal(e.target.value)} placeholder="?" />
+        </div>
+      </div>
+      <button className="btn btn-sm btn-primary prediccion-btn" onClick={() => onSave(m.id, Number(hVal) || 0, Number(aVal) || 0)} disabled={!ready}>
+        <Target size={14} /> {t('predicciones_btn_guardar')}
+      </button>
+    </motion.div>
   )
 }
 

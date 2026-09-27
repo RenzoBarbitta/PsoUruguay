@@ -51,6 +51,7 @@ const I18N = {
     /* ------- Qué No Caiga ------- */
     quenocaiga_title: { es: '⚽ ¡QUÉ NO CAIGA!', pt: '⚽ NÃO DEIXE CAIR!' },
     quenocaiga_desc: { es: 'Mantené la pelota en el aire. Un toque, física real, trucos emergen solos. ¿Cuántos lográs?', pt: 'Mantenha a bola no ar. Um toque, física real, truques surgem sozinhos. Quantos consegues?' },
+    quenocaiga_sub: { es: 'Hacé click y soltá bajo la pelota para pegarle. Apretá rápido para que suba más.', pt: 'Clique e solte sob a bola para bater. Aperte rápido para subir mais.' },
     quenocaiga_tag: { es: '🧘 Zen', pt: '🧘 Zen' },
     quenocaiga_toques: { es: 'toques', pt: 'toques' },
     quenocaiga_mejor: { es: 'Mejor', pt: 'Melhor' },
@@ -77,7 +78,6 @@ const I18N = {
     encara_mejor: { es: 'Mejor', pt: 'Melhor' },
     encara_volver: { es: 'Volver a Juegos', pt: 'Voltar aos Jogos' },
     encara_arrastra: { es: 'Arrastrá para driblar', pt: 'Arraste para driblar' },
-    encara_inicio: { es: 'Click para empezar', pt: 'Clique para começar' },
     encara_chocaste: { es: '¡Chocaste!', pt: 'Bateste!' },
     encara_nuevo_record: { es: '¡Nuevo récord!', pt: 'Novo recorde!' },
     encara_cercanos: { es: 'cercanos', pt: 'perigos' },

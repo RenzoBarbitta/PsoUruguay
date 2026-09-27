@@ -71,6 +71,8 @@ export default function Encara() {
   const [score, setScore] = useState(0)
   const [multiplier, setMultiplier] = useState(1)
   const raf = useRef(null)
+  const loopRef = useRef(null)
+  const playingRef = useRef(false)
   const lastTime = useRef(0)
   const canvasRef = useRef(null)
   const ctxRef = useRef(null)
@@ -162,7 +164,7 @@ export default function Encara() {
   }, [])
 
   const gameLoop = useCallback((timestamp) => {
-    if (!playing) return
+    if (!playingRef.current) return
     const dt = Math.min(32, timestamp - lastTime.current)
     lastTime.current = timestamp
 
@@ -235,7 +237,7 @@ export default function Encara() {
 
     setTrail(t => {
       const py = 180 - (isJumping ? Math.sin(jumpProgress * Math.PI) * 60 : 0) - (isSliding ? 15 : 0)
-      const nt = [{ x: playerX.current || LANES[lane] * LANE_WIDTH, y: py, t: timestamp, speed: effectiveSpeed, lane }, ...t.slice(0, 150)]
+      const nt = [{ x: playerX || LANES[lane] * LANE_WIDTH, y: py, t: timestamp, speed: effectiveSpeed, lane }, ...t.slice(0, 150)]
       return nt
     })
 
@@ -300,6 +302,7 @@ export default function Encara() {
     }
 
     if (hit) {
+      playingRef.current = false
       setPlaying(false)
       setDead(true)
       const finalDist = Math.floor(distance + effectiveSpeed * 0.12 * dt)
@@ -310,11 +313,17 @@ export default function Encara() {
       return
     }
 
-    raf.current = requestAnimationFrame(gameLoop)
-  }, [playing, lane, distance, speed, enemies, powerups, activePowerup, powerupTimer, isJumping, jumpProgress, isSliding, slideProgress, trail, multiplier, combo, nearMisses, best, nextEnemyType, isJumping, isSliding])
+    if (loopRef.current) raf.current = requestAnimationFrame(loopRef.current)
+  }, [playing, lane, distance, speed, enemies, powerups, activePowerup, powerupTimer, isJumping, jumpProgress, isSliding, slideProgress, trail, multiplier, combo, nearMisses, best, nextEnemyType])
+
+  useEffect(() => { loopRef.current = gameLoop }, [gameLoop])
+  useEffect(() => { playingRef.current = playing }, [playing])
+  useEffect(() => () => { if (raf.current) cancelAnimationFrame(raf.current) }, [])
 
   const start = useCallback(() => {
     try { if (canvasRef.current && canvasRef.current.focus) canvasRef.current.focus() } catch {}
+    if (raf.current) cancelAnimationFrame(raf.current)
+    playingRef.current = true
     setPlaying(true)
     setDead(false)
     setDistance(0)
@@ -339,7 +348,7 @@ export default function Encara() {
     setPowerupTimer(0)
     setMultiplier(1)
     lastTime.current = performance.now()
-    raf.current = requestAnimationFrame(gameLoop)
+    if (loopRef.current) raf.current = requestAnimationFrame(loopRef.current)
   }, [gameLoop])
 
   const handleKeyDown = useCallback((e) => {
@@ -389,37 +398,6 @@ export default function Encara() {
     }
   }, [handleKeyDown, handleKeyUp])
 
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const handleTouchStart = (e) => {
-      if (dead) { start(); return }
-      if (!playing) { start(); return }
-      swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }
-    }
-    const handleTouchEnd = (e) => {
-      if (!playing || dead || !swipeStart.current) return
-      const touch = e.changedTouches[0]
-      const dx = touch.clientX - swipeStart.current.x
-      const dy = touch.clientY - swipeStart.current.y
-      const dt = Date.now() - swipeStart.current.t
-      swipeStart.current = null
-      if (dt > 300) return
-      if (Math.abs(dx) > Math.abs(dy)) {
-        if (dx > 40) { setLane(l => Math.min(2, l + 1)); setCombo(c => Math.max(c - 2, 0)) }
-        else if (dx < -40) { setLane(l => Math.max(0, l - 1)); setCombo(c => Math.max(c - 2, 0)) }
-      } else {
-        if (dy < -40 && !isJumping && !isSliding) { setIsJumping(true); setJumpProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#60a5fa', 8, 4) }
-        else if (dy > 40 && !isSliding && !isJumping) { setIsSliding(true); setSlideProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#fbbf24', 6, 2) }
-      }
-    }
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: true })
-    canvas.addEventListener('touchend', handleTouchEnd)
-    return () => {
-      canvas.removeEventListener('touchstart', handleTouchStart)
-      canvas.removeEventListener('touchend', handleTouchEnd)
-    }
-  }, [playing, dead, lane, isJumping, isSliding, addParticles])
 
   const draw = useCallback(() => {
     const ctx = ctxRef.current
@@ -558,7 +536,7 @@ export default function Encara() {
     })
 
     const py = 180 - (isJumping ? Math.sin(jumpProgress * Math.PI) * 60 : 0) - (isSliding ? 15 : 0)
-    const px = (playerX.current || LANES[lane] * LANE_WIDTH) * scale
+    const px = (playerX || LANES[lane] * LANE_WIDTH) * scale
     const playerY = (180 - py) * scale
     const boost = speed > MAX_SPEED * 0.7 || activePowerup === 'double'
 
@@ -615,11 +593,16 @@ export default function Encara() {
     ctx.fill()
 
     ctx.restore()
-
-    requestAnimationFrame(draw)
   }, [playerX, lane, enemies, powerups, particles, trail, activePowerup, isJumping, jumpProgress, isSliding, slideProgress, speed, showGhost, distance])
 
-  useEffect(() => { draw() }, [draw])
+  const drawRef = useRef(draw)
+  drawRef.current = draw
+  useEffect(() => {
+    let id = null
+    const tick = () => { id = requestAnimationFrame(tick); if (drawRef.current) drawRef.current() }
+    id = requestAnimationFrame(tick)
+    return () => { if (id) cancelAnimationFrame(id) }
+  }, [])
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown)
@@ -633,34 +616,13 @@ export default function Encara() {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const handleTouchStart = (e) => {
-      if (dead) { start(); return }
-      if (!playing) { start(); return }
-      swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }
-    }
-    const handleTouchEnd = (e) => {
-      if (!playing || dead || !swipeStart.current) return
-      const touch = e.changedTouches[0]
-      const dx = touch.clientX - swipeStart.current.x
-      const dy = touch.clientY - swipeStart.current.y
-      const dt = Date.now() - swipeStart.current.t
-      swipeStart.current = null
-      if (dt > 300) return
-      if (Math.abs(dx) > Math.abs(dy)) {
-        if (dx > 40) { setLane(l => Math.min(2, l + 1)); setCombo(c => Math.max(c - 2, 0)) }
-        else if (dx < -40) { setLane(l => Math.max(0, l - 1)); setCombo(c => Math.max(c - 2, 0)) }
-      } else {
-        if (dy < -40 && !isJumping && !isSliding) { setIsJumping(true); setJumpProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#60a5fa', 8, 4) }
-        else if (dy > 40 && !isSliding && !isJumping) { setIsSliding(true); setSlideProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#fbbf24', 6, 2) }
-      }
-    }
     canvas.addEventListener('touchstart', handleTouchStart, { passive: true })
     canvas.addEventListener('touchend', handleTouchEnd)
     return () => {
       canvas.removeEventListener('touchstart', handleTouchStart)
       canvas.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [playing, dead, lane, isJumping, isSliding, addParticles])
+  }, [handleTouchStart, handleTouchEnd])
 
   const finalDist = Math.floor(distance)
 
