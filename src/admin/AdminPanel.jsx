@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import {
   Users, ClipboardList, Trophy, Settings, Plus, Trash2, Save, Shield,
-  UserPlus, Pencil, X, CalendarClock, Shuffle, Eye, RotateCcw
+  UserPlus, Pencil, X, CalendarClock, Shuffle, Eye, RotateCcw, ArrowRightLeft
 } from 'lucide-react'
 import { useApp, ConfirmModal } from '../core/app.jsx'
 import { useData, t, TeamDot, EmptyState, fadeUp } from '../core/ui.jsx'
@@ -131,6 +131,7 @@ async function declareChampion(teamId, comp) {
     year: comp ? (comp.season || State.data.settings.season) : State.data.settings.season
   }
   await persistTeam({ ...team, titles: [...(team.titles || []), title] })
+  return true
 }
 
 const TABS = [
@@ -191,18 +192,28 @@ function AdminEquipos({ data, showToast, refresh }) {
       <QuickPlayerForm
         onSave={async name => {
           const updated = { ...team, players: [...(team.players || []), { id: uid('pl'), name, position: null }] }
-          await persistTeam(updated)
-          showToast(t('toast_jugador_agregado'))
-          refresh()
+          const ok = await persistTeam(updated)
+          if (ok) {
+            showToast(t('toast_jugador_agregado'))
+            refresh()
+          }
         }}
       />
     </div>
   )
 
   const sacarJugador = async (team, playerId) => {
-    await persistTeam({ ...team, players: (team.players || []).filter(p => p.id !== playerId) })
-    showToast(t('toast_jugador_eliminado'))
-    refresh()
+    const ok = await persistTeam({ ...team, players: (team.players || []).filter(p => p.id !== playerId) })
+    if (ok) {
+      showToast(t('toast_jugador_eliminado'))
+      refresh()
+    }
+  }
+
+  const transferirJugador = (team, playerId) => {
+    const player = team.players.find(p => p.id === playerId)
+    if (!player) return
+    openModal(<TransferModal sourceTeam={team} player={player} teams={teams} onDone={refresh} />)
   }
 
   const eliminar = team => openModal(
@@ -252,6 +263,7 @@ function AdminEquipos({ data, showToast, refresh }) {
               <span key={p.id} className="player-chip">
                 {p.name}
                 {p.position ? <em>{positionShort(p.position)}</em> : null}
+                <button className="btn-transfer-player" onClick={() => transferirJugador(team, p.id)} title={t('btn_transferir')}><ArrowRightLeft size={12} /></button>
                 <button className="btn-remove-player" onClick={() => sacarJugador(team, p.id)}><X size={12} /></button>
               </span>
             )) : <span className="muted-sm">{t('sin_jugadores')}</span>}
@@ -281,10 +293,12 @@ function TeamFormModal({ team, onDone }) {
     const teamObj = isEdit
       ? { ...team, name: name.trim(), players }
       : { id: uid('team'), name: name.trim(), short: name.trim().slice(0, 3).toUpperCase(), logo: null, players }
-    await persistTeam(teamObj)
-    showToast(isEdit ? t('toast_equipo_actualizado') : t('toast_equipo_creado'))
-    closeModal()
-    onDone()
+    const ok = await persistTeam(teamObj)
+    if (ok) {
+      showToast(isEdit ? t('toast_equipo_actualizado') : t('toast_equipo_creado'))
+      closeModal()
+      onDone()
+    }
   }
 
   return (
@@ -330,6 +344,57 @@ function QuickPlayerForm({ onSave }) {
         <button className="btn btn-primary" onClick={save}><Plus size={14} /> {t('btn_agregar')}</button>
       </div>
     </>
+  )
+}
+
+function TransferModal({ sourceTeam, player, teams, onDone }) {
+  const { closeModal, showToast } = useApp()
+  const [destTeamId, setDestTeamId] = useState('')
+  const destTeams = teams.filter(t => t.id !== sourceTeam.id)
+  const destTeam = destTeams.find(t => t.id === destTeamId)
+
+  const save = async () => {
+    if (!destTeamId) { showToast(t('err_seleccionar_equipo'), 'error'); return }
+    const updatedSource = { ...sourceTeam, players: (sourceTeam.players || []).filter(p => p.id !== player.id) }
+    const updatedDest = { ...destTeam, players: [...(destTeam.players || []), { ...player }] }
+    const ok1 = await persistTeam(updatedSource)
+    if (!ok1) return
+    const ok2 = await persistTeam(updatedDest)
+    if (!ok2) return
+    showToast(t('toast_jugador_transferido', { jugador: player.name, origen: sourceTeam.name, destino: destTeam.name }))
+    closeModal()
+    onDone()
+  }
+
+  return (
+    <div className="modal-pad">
+      <div className="modal-title-text">{t('modal_transferir_jugador', { nombre: player.name })}</div>
+      <div className="mini-note">{t('transfer_note', { origen: sourceTeam.name })}</div>
+      <label>{t('label_equipo_destino')}</label>
+      <select value={destTeamId} onChange={e => setDestTeamId(e.target.value)}>
+        <option value="">{t('ph_seleccionar_equipo')}</option>
+        {destTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+      </select>
+      {destTeam && (
+        <div className="transfer-preview">
+          <div className="transfer-team">
+            <span className="transfer-label">{t('label_equipo_origen')}</span>
+            <TeamDot team={sourceTeam} size={28} />
+            <span>{sourceTeam.name}</span>
+          </div>
+          <ArrowRightLeft size={20} className="transfer-arrow" />
+          <div className="transfer-team">
+            <span className="transfer-label">{t('label_equipo_destino')}</span>
+            <TeamDot team={destTeam} size={28} />
+            <span>{destTeam.name}</span>
+          </div>
+        </div>
+      )}
+      <div className="modal-footer-actions">
+        <button className="btn" onClick={closeModal}>{t('btn_cancel')}</button>
+        <button className="btn btn-gold" onClick={save} disabled={!destTeamId}><Save size={15} /> {t('btn_transferir')}</button>
+      </div>
+    </div>
   )
 }
 
@@ -887,9 +952,11 @@ function AdminConfig({ data, showToast, refresh }) {
         tone="gold"
         onConfirm={async () => {
           const title = { competitionName: settings.leagueName || t('copa_default_name'), format: 'liga', year: settings.season || '2026' }
-          await persistTeam({ ...team, titles: [...(team.titles || []), title] })
-          showToast(t('toast_campeon_sumado', { team: team.name }))
-          refresh()
+          const ok = await persistTeam({ ...team, titles: [...(team.titles || []), title] })
+          if (ok) {
+            showToast(t('toast_campeon_sumado', { team: team.name }))
+            refresh()
+          }
         }}
       />
     )

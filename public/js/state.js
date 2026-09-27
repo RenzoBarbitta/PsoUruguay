@@ -605,27 +605,30 @@ async function refreshFromStorage() {
 async function persistTeam(team) {
   if (online) {
     const ok = await safeSet('teams:' + team.id, JSON.stringify(team));
-    if (!ok) { toast(tr('toast_save_team_error'), 'error'); return; }
+    if (!ok) { toast(tr('toast_save_team_error'), 'error'); return false; }
   }
   const idx = State.data.teams.findIndex(t => t.id === team.id);
   if (idx >= 0) State.data.teams[idx] = team; else State.data.teams.push(team);
   if (!online) saveLocalFallback();
+  return true;
 }
 
 async function deleteTeamDB(id) {
   if (online) await safeDelete('teams:' + id);
   State.data.teams = State.data.teams.filter(t => t.id !== id);
   if (!online) saveLocalFallback();
+  return true;
 }
 
 async function persistMatch(match) {
   if (online) {
     const ok = await safeSet('matches:' + match.id, JSON.stringify(match));
-    if (!ok) { toast(tr('toast_save_match_error'), 'error'); return; }
+    if (!ok) { toast(tr('toast_save_match_error'), 'error'); return false; }
   }
   const idx = State.data.matches.findIndex(m => m.id === match.id);
   if (idx >= 0) State.data.matches[idx] = match; else State.data.matches.push(match);
   if (!online) saveLocalFallback();
+  return true;
 }
 
 function getCompetitionByMatchMatchId(matchId) {

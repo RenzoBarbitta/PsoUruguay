@@ -42,6 +42,8 @@ const I18N = {
     juegos_tag_trivia: { es: '⚡ Ranking online', pt: '⚡ Ranking online' },
     juegos_tag_pasapalabra: { es: '📅 Reto diario', pt: '📅 Desafio diário' },
     juegos_tag_penales: { es: '🥅 Racha online', pt: '🥅 Sequência online' },
+    juegos_tag_predicciones: { es: '🔮 Quinielas', pt: '🔮 Bolão' },
+    juegos_tag_tiroslibres: { es: '⚡ Skill shot', pt: '⚡ Chute técnico' },
 
     /* ------- Planteles ------- */
     planteles_title: { es: 'Planteles', pt: 'Elencos' },
@@ -50,6 +52,10 @@ const I18N = {
     planteles_volver: { es: 'Volver a planteles', pt: 'Voltar aos elencos' },
     planteles_jugadores: { es: 'jugadores', pt: 'jogadores' },
     tab_trivia: { es: 'Trivia', pt: 'Quiz' },
+    tab_pasapalabra: { es: 'Pasapalabra', pt: 'Passapalavra' },
+    tab_penales: { es: 'Penales', pt: 'Pênaltis' },
+    tab_predicciones: { es: 'Predicciones', pt: 'Previsões' },
+    tab_tiroslibres: { es: 'Tiros Libres', pt: 'Cobranças' },
     aria_discord: { es: 'Unirse al Discord de PSO Uruguay', pt: 'Entrar no Discord do PSO Uruguai' },
     tab_admin: { es: 'Administrar', pt: 'Administrar' },
     aria_theme: { es: 'Cambiar tema', pt: 'Trocar tema' },
@@ -431,6 +437,15 @@ const I18N = {
     modal_add_player_to: { es: 'Agregar jugador a {name}', pt: 'Adicionar jogador a {name}' },
     toast_jugador_agregado: { es: 'Jugador agregado', pt: 'Jogador adicionado' },
     toast_jugador_eliminado: { es: 'Jugador eliminado', pt: 'Jogador removido' },
+    btn_transferir: { es: 'Transferir', pt: 'Transferir' },
+    modal_transferir_jugador: { es: 'Transferir {nombre}', pt: 'Transferir {nombre}' },
+    transfer_note: { es: 'Trasladar a {origen} → otro equipo. Se mantienen las estadísticas.', pt: 'Transferir de {origen} → outra equipe. As estatísticas são mantidas.' },
+    label_equipo_destino: { es: 'Equipo destino', pt: 'Equipe destino' },
+    ph_seleccionar_equipo: { es: 'Seleccioná un equipo...', pt: 'Selecione uma equipe...' },
+    label_equipo_origen: { es: 'Equipo de origen', pt: 'Equipe de origem' },
+    err_seleccionar_equipo: { es: 'Seleccioná un equipo destino.', pt: 'Selecione uma equipe destino.' },
+    toast_jugador_transferido: { es: '{jugador} transferido de {origen} a {destino}', pt: '{jugador} transferido de {origen} para {destino}' },
+    btn_transferir_jugador: { es: 'Transferir jugador', pt: 'Transferir jogador' },
 
     /* ------- Admin: resultados ------- */
     resultados_need_teams: {
@@ -714,6 +729,92 @@ const I18N = {
     copa_sin_llave: { es: 'La copa no tiene la llave sorteada todavía.', pt: 'A copa ainda não tem o chaveamento sorteado.' },
     copa_hint: { es: 'Entrá al Panel y tocá "Sortear" en la competencia para generar la llave eliminatoria.', pt: 'Acesse o Painel e clique em "Sortear" na competição para gerar o chaveamento.' },
     liga_nota_copa: { es: 'Tipo Liga (todos contra todos). Para una llave eliminatoria estilo Copa, creá una competencia de tipo Copa en el Panel y sortreala.', pt: 'Tipo Liga (todos contra todos). Para um chaveamento estilo Copa, crie uma competição do tipo Copa no Painel e sorteie.' },
+
+    /* ------- Predicciones (Quinielas) ------- */
+    tab_predicciones: { es: 'Predicciones', pt: 'Previsões' },
+    predicciones_title: { es: '🔮 Predicciones', pt: '🔮 Previsões' },
+    predicciones_desc: {
+      es: 'Pronosticá los resultados de la próxima fecha. Puntos por acierto exacto o ganador. ¿Quién la tiene más clara?',
+      pt: 'Palpite os resultados da próxima rodada. Pontos por acerto exato ou vencedor. Quem tem a bola de cristal?'
+    },
+    predicciones_jugando_como: { es: 'Jugando como {name}', pt: 'Jogando como {name}' },
+    predicciones_no_matches: { es: 'No hay partidos pendientes para pronosticar.', pt: 'Não há jogos pendentes para palpitar.' },
+    predicciones_label_local: { es: 'Local', pt: 'Casa' },
+    predicciones_label_visitante: { es: 'Visitante', pt: 'Visitante' },
+    predicciones_btn_guardar: { es: 'Guardar pronósticos', pt: 'Salvar palpites' },
+    predicciones_toast_guardado: { es: 'Pronósticos guardados', pt: 'Palpites salvos' },
+    predicciones_toast_ya_jugado: { es: 'Este partido ya se jugó', pt: 'Este jogo já foi disputado' },
+    predicciones_ranking: { es: 'Ranking de visionarios', pt: 'Ranking de visionários' },
+    predicciones_pts_exacto: { es: 'Pts exacto: {n}', pt: 'Pts exato: {n}' },
+    predicciones_pts_ganador: { es: 'Pts ganador: {n}', pt: 'Pts vencedor: {n}' },
+    predicciones_tu_prediccion: { es: 'Tu pronóstico', pt: 'Seu palpite' },
+    predicciones_resultado_real: { es: 'Resultado real', pt: 'Resultado real' },
+    predicciones_pendiente: { es: 'Pendiente', pt: 'Pendente' },
+    predicciones_acierto: { es: '✅ Acierto', pt: '✅ Acerto' },
+    predicciones_fallo: { es: '❌ Fallo', pt: '❌ Erro' },
+    predicciones_puntos: { es: '+{n} pts', pt: '+{n} pts' },
+
+    /* ------- Perfil / Foto ------- */
+    perfil_title: { es: 'Mi Perfil', pt: 'Meu Perfil' },
+    perfil_foto: { es: 'Foto de perfil', pt: 'Foto do perfil' },
+    perfil_subir_foto: { es: 'Subir foto', pt: 'Enviar foto' },
+    perfil_cambiar_foto: { es: 'Cambiar foto', pt: 'Trocar foto' },
+    perfil_quitar_foto: { es: 'Quitar foto', pt: 'Remover foto' },
+    perfil_ajustar: { es: 'Ajustar', pt: 'Ajustar' },
+    perfil_crop_note: { es: 'Arrastrá y hacé zoom para encuadrar. Cuadrado 1:1.', pt: 'Arraste e dê zoom para enquadrar. Quadrado 1:1.' },
+    perfil_foto_guardada: { es: 'Foto actualizada', pt: 'Foto atualizada' },
+    perfil_foto_error: { es: 'No se pudo guardar la foto', pt: 'Não foi possível salvar a foto' },
+    perfil_tus_predicciones: { es: 'Tus predicciones', pt: 'Suas previsões' },
+    perfil_sin_predicciones: { es: 'Aún no hiciste predicciones.', pt: 'Você ainda não fez previsões.' },
+    perfil_ranking_predicciones: { es: 'Tu posición: #{n} ({pts} pts)', pt: 'Sua posição: #{n} ({pts} pts)' },
+
+    /* ------- Tiros Libres (Free Kicks) ------- */
+    tab_tiroslibres: { es: 'Tiros Libres', pt: 'Cobranças' },
+    tiroslibres_title: { es: '⚽ Tiros Libres', pt: '⚽ Cobranças de Falta' },
+    tiroslibres_desc: {
+      es: 'Elegí ángulo, efecto y potencia. La barrera salta y el arquero reacciona. Puntos por precisión: ángulo superior = gloria.',
+      pt: 'Escolha ângulo, efeito e força. A barreira pula e o goleiro reage. Pontos por precisão: ângulo superior = glória.'
+    },
+    tiroslibres_jugando_como: { es: 'Jugando como {name}', pt: 'Jogando como {name}' },
+    tiroslibres_jugar: { es: 'Patear falta', pt: 'Bater falta' },
+    tiroslibres_ranking: { es: '🏅 Ranking online de tiros libres', pt: '🏅 Ranking online de cobranças' },
+    tiroslibres_cargando: { es: 'Cargando ranking...', pt: 'Carregando ranking...' },
+    tiroslibres_no_players: { es: 'Nadie pateó todavía. ¡Sé el primero!', pt: 'Ninguém bateu ainda. Seja o primeiro!' },
+    tiroslibres_vos: { es: '(vos)', pt: '(você)' },
+    tiroslibres_mejor_puntaje: { es: 'Mejor puntaje', pt: 'Melhor pontuação' },
+    tiroslibres_nivel: { es: 'Nivel {n}', pt: 'Nível {n}' },
+    tiroslibres_puntaje: { es: 'Puntaje', pt: 'Pontuação' },
+    tiroslibres_racha_actual: { es: 'racha actual', pt: 'sequência atual' },
+    tiroslibres_apuntar: { es: '¡Apuntá! Elegí ángulo y efecto ⚽', pt: '¡Mire! Escolha ângulo e efeito ⚽' },
+    tiroslibres_angulo: { es: 'Ángulo', pt: 'Ângulo' },
+    tiroslibres_efecto: { es: 'Efecto', pt: 'Efeito' },
+    tiroslibres_potencia: { es: 'Potencia', pt: 'Força' },
+    tiroslibres_efecto_recto: { es: 'Recto', pt: 'Reto' },
+    tiroslibres_efecto_in: { es: 'Hacia adentro (in)', pt: 'Para dentro (in)' },
+    tiroslibres_efecto_out: { es: 'Hacia afuera (out)', pt: 'Para fora (out)' },
+    tiroslibres_gol: { es: '⚽ ¡GOLAZO!', pt: '⚽ GOLAÇO!' },
+    tiroslibres_atajada: { es: '🧤 ¡Atada! El arquero la sacó', pt: '🧤 Defesa! O goleiro pegou' },
+    tiroslibres_palo: { es: '😱 ¡AL PALO!', pt: '😱 NA TRAVE!' },
+    tiroslibres_fuera: { es: '😔 Afuera', pt: '😔 Para fora' },
+    tiroslibres_barrera: { es: '🧱 Bloqueada por la barrera', pt: '🧱 Bloqueada pela barreira' },
+    tiroslibres_siguiente: { es: 'Siguiente tiro', pt: 'Próxima cobrança' },
+    tiroslibres_fin: { es: '¡Terminó la tanda!', pt: 'Tanda encerrada!' },
+    tiroslibres_tu_puntaje: { es: 'Hiciste {n} puntos', pt: 'Você fez {n} pontos' },
+    tiroslibres_ver_ranking: { es: 'Ver ranking', pt: 'Ver ranking' },
+    tiroslibres_jugar_de_nuevo: { es: '🔁 Patear de nuevo', pt: '🔁 Bater de novo' },
+    tiroslibres_nuevo_record: { es: '🎉 ¡Nuevo récord personal!', pt: '🎉 Novo recorde pessoal!' },
+    tiroslibres_terminar: { es: '✋ Terminar', pt: '✋ Encerrar' },
+    tiroslibres_terminar_modal_t: { es: 'Terminar tanda', pt: 'Encerrar tanda' },
+    tiroslibres_terminar_modal_p: {
+      es: 'Llevás {n} pts. Si terminás ahora, tu puntaje se guarda en el ranking. ¿Confirmás?',
+      pt: 'Você vai com {n} pts. Se encerrar agora, sua pontuação é salva no ranking. Confirma?'
+    },
+    tiroslibres_seguir_jugando: { es: 'Seguir pateando', pt: 'Continuar batendo' },
+    tiroslibres_confirmar_terminar: { es: 'Terminar', pt: 'Encerrar' },
+    tiroslibres_save_error: {
+      es: 'No se pudo guardar tu puntaje online.',
+      pt: 'Não foi possível salvar sua pontuação online.'
+    },
   }
 };
 
