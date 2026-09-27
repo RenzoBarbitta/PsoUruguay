@@ -24,18 +24,18 @@ const JUMP_DURATION = 450
 const SLIDE_DURATION = 400
 
 const ENEMY_TYPES = [
-  { id: 'static', name: 't.encara_static', color: '#ef4444', h: 36, w: 28, behavior: 'static' },
-  { id: 'mover', name: 't.encara_mover', color: '#f97316', h: 32, w: 28, behavior: 'mover', speed: 2.5 },
-  { id: 'jumper', name: 't.encara_jumper', color: '#22c55e', h: 30, w: 26, behavior: 'jumper', jumpInterval: 1800 },
-  { id: 'slider', name: 't.encara_slider', color: '#3b82f6', h: 22, w: 36, behavior: 'slider' },
-  { id: 'giant', name: 't.encara_giant', color: '#a855f7', h: 48, w: 40, behavior: 'static' },
+  { id: 'static', name: 'encara_static', color: '#ef4444', h: 36, w: 28, behavior: 'static' },
+  { id: 'mover', name: 'encara_mover', color: '#f97316', h: 32, w: 28, behavior: 'mover', speed: 2.5 },
+  { id: 'jumper', name: 'encara_jumper', color: '#22c55e', h: 30, w: 26, behavior: 'jumper', jumpInterval: 1800 },
+  { id: 'slider', name: 'encara_slider', color: '#3b82f6', h: 22, w: 36, behavior: 'slider' },
+  { id: 'giant', name: 'encara_giant', color: '#a855f7', h: 48, w: 40, behavior: 'static' },
 ]
 
 const POWERUPS = [
-  { id: 'shield', name: 't.encara_shield', color: '#fbbf24', icon: '🛡️', duration: 5000 },
-  { id: 'magnet', name: 't.encara_magnet', color: '#60a5fa', icon: '🧲', duration: 5000 },
-  { id: 'slowmo', name: 't.encara_slowmo', color: '#a78bfa', icon: '⏱️', duration: 4000 },
-  { id: 'double', name: 't.encara_double', color: '#f472b6', icon: '2️⃣', duration: 5000 },
+  { id: 'shield', name: 'encara_shield', color: '#fbbf24', icon: '🛡️', duration: 5000 },
+  { id: 'magnet', name: 'encara_magnet', color: '#60a5fa', icon: '🧲', duration: 5000 },
+  { id: 'slowmo', name: 'encara_slowmo', color: '#a78bfa', icon: '⏱️', duration: 4000 },
+  { id: 'double', name: 'encara_double', color: '#f472b6', icon: '2️⃣', duration: 5000 },
 ]
 
 export default function Encara() {
@@ -63,6 +63,9 @@ export default function Encara() {
   const [combo, setCombo] = useState(0)
   const [nearMisses, setNearMisses] = useState(0)
   const [spawnTimer, setSpawnTimer] = useState(0)
+  useEffect(() => { laneRef.current = lane }, [lane])
+  useEffect(() => { isJumpingRef.current = isJumping }, [isJumping])
+  useEffect(() => { isSlidingRef.current = isSliding }, [isSliding])
   const [nextEnemyType, setNextEnemyType] = useState(0)
   const [speed, setSpeed] = useState(BASE_SPEED)
   const [score, setScore] = useState(0)
@@ -72,6 +75,9 @@ export default function Encara() {
   const canvasRef = useRef(null)
   const ctxRef = useRef(null)
   const ghostData = useRef(null)
+  const laneRef = useRef(1)
+  const isJumpingRef = useRef(false)
+  const isSlidingRef = useRef(false)
   const keysPressed = useRef(new Set())
   const swipeStart = useRef(null)
 
@@ -144,7 +150,7 @@ export default function Encara() {
     const pr = PLAYER_RADIUS * (isSliding ? 0.6 : 1)
     const er = (ew || ENEMY_RADIUS)
     return dx * dx + dy * dy < (pr + er) ** 2
-  }, [lane, isSliding])
+  }, [isSliding])
 
   const activatePowerup = useCallback((type) => {
     const pu = POWERUPS.find(p => p.id === type)
@@ -164,7 +170,7 @@ export default function Encara() {
     setDistance(d => d + effectiveSpeed * 0.12 * dt)
     setScore(s => s + Math.floor(effectiveSpeed * multiplier * 0.02 * dt))
 
-    const currentLaneX = LANES[lane] * LANE_WIDTH
+    const currentLaneX = LANES[laneRef.current] * LANE_WIDTH
     setPlayerX(p => p + (currentLaneX - p) * 0.15)
 
     if (isJumping) {
@@ -308,6 +314,7 @@ export default function Encara() {
   }, [playing, lane, distance, speed, enemies, powerups, activePowerup, powerupTimer, isJumping, jumpProgress, isSliding, slideProgress, trail, multiplier, combo, nearMisses, best, nextEnemyType, isJumping, isSliding])
 
   const start = useCallback(() => {
+    try { if (canvasRef.current && canvasRef.current.focus) canvasRef.current.focus() } catch {}
     setPlaying(true)
     setDead(false)
     setDistance(0)
@@ -336,12 +343,13 @@ export default function Encara() {
   }, [gameLoop])
 
   const handleKeyDown = useCallback((e) => {
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].includes(e.code)) { try { e.preventDefault() } catch {} }
     if (!playing || dead) return
     keysPressed.current.add(e.code)
     if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); setLane(l => Math.max(0, l - 1)); setCombo(c => Math.max(c - 2, 0)) }
     if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); setLane(l => Math.min(2, l + 1)); setCombo(c => Math.max(c - 2, 0)) }
-    if ((e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') && !isJumping && !isSliding) { e.preventDefault(); setIsJumping(true); setJumpProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#60a5fa', 8, 4) }
-    if ((e.code === 'ArrowDown' || e.code === 'KeyS') && !isSliding && !isJumping) { e.preventDefault(); setIsSliding(true); setSlideProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#fbbf24', 6, 2) }
+    if ((e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') && !isJumpingRef.current && !isSlidingRef.current) { e.preventDefault(); setIsJumping(true); setJumpProgress(0); addParticles(LANES[laneRef.current] * LANE_WIDTH, 180, '#60a5fa', 8, 4) }
+    if ((e.code === 'ArrowDown' || e.code === 'KeyS') && !isSlidingRef.current && !isJumpingRef.current) { e.preventDefault(); setIsSliding(true); setSlideProgress(0); addParticles(LANES[laneRef.current] * LANE_WIDTH, 180, '#fbbf24', 6, 2) }
   }, [playing, dead, lane, isJumping, isSliding, addParticles])
 
   const handleKeyUp = useCallback((e) => {
@@ -686,7 +694,7 @@ export default function Encara() {
         </div>
 
         <div className="encara-canvas-wrap" onTouchStart={(e) => { if (dead) start(); else if (!playing) start(); }} onTouchEnd={(e) => {}}>
-          <canvas ref={canvasRef} className="encara-canvas" tabIndex={0} style={{ touchAction: 'none' }} />
+          <canvas ref={canvasRef} className="encara-canvas" tabIndex={0} style={{ touchAction: 'none' }} onClick={(e) => { try { e.currentTarget.focus() } catch {} }} />
           {playing && <div className="tap-hint">{activePowerup && <span className="powerup-active">{POWERUPS.find(p => p.id === activePowerup)?.icon} {t(POWERUPS.find(p => p.id === activePowerup)?.name)}</span>}</div>}
           {!playing && !dead && <div className="start-hint"><Keyboard size={24} /> {t('encara_inicio')}</div>}
           {dead && <motion.div className="dead-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>

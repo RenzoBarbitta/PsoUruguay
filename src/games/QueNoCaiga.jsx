@@ -44,6 +44,8 @@ export default function QueNoCaiga() {
   const footXRef = useRef(0)
   const footYRef = useRef(0)
   const touchIdRef = useRef(null)
+  const yRef = useRef(0)
+  const vyRef = useRef(0)
 
   useEffect(() => { playingRef.current = playing }, [playing])
   useEffect(() => { countRef.current = count }, [count])
@@ -93,6 +95,7 @@ export default function QueNoCaiga() {
   }
 
   const detectGesture = () => {
+    const gesture = gestureRef.current || []
     if (gesture.length < 3) return
     const points = gesture
     const dx = points[points.length - 1].x - points[0].x
@@ -107,54 +110,72 @@ export default function QueNoCaiga() {
       for (const p of points) {
         if (Math.abs(Math.hypot(p.x - cx, p.y - cy) - dist / 2) > 28) { isCircle = false; break }
       }
-      if (isCircle) return triggerTrick('t.arw', '🌪️')
+      if (isCircle) return triggerTrick('quenocaiga_trick_arw', '🌪️')
     }
 
     const startY = points[0].y
     const minY = Math.min(...points.map(p => p.y))
     const maxY = Math.max(...points.map(p => p.y))
     if (startY - minY > 70 && maxY - minY < 35 && duration < 450) {
-      return triggerTrick('t.stall', '🧘')
+      return triggerTrick('quenocaiga_trick_stall', '🧘')
     }
 
     const upDown = points.filter((p, i) => i > 0 && Math.sign(p.y - points[i - 1].y) !== Math.sign(points[i - 1].y - points[i - 2].y)).length
-    if (upDown >= 2 && duration < 700) return triggerTrick('t.knee', '🦵')
+    if (upDown >= 2 && duration < 700) return triggerTrick('quenocaiga_trick_knee', '🦵')
   }
 
   const loop = (ts) => {
-    if (!playing) return
-    setVy(v => v + GRAVITY)
-    setY(y => {
-      const ny = y + vy
-      if (ny >= BASE_Y) {
-        setPlaying(false)
-        setVy(0)
-        setY(BASE_Y)
-        setShowTarget(false)
-        if (count > best) { setBestCount(count); setBest(count) }
-        spawnParticles(footX, FOOT_Y, '#ef4444', 30)
-        return BASE_Y
-      }
-      return ny
-    })
+    if (!playingRef.current) return
+    const curVy = vyRef.current + GRAVITY
+    vyRef.current = curVy
+    setVy(curVy)
+    const ny = yRef.current + curVy
+    if (ny >= BASE_Y) {
+      playingRef.current = false
+      setPlaying(false)
+      vyRef.current = 0
+      setVy(0)
+      yRef.current = BASE_Y
+      setY(BASE_Y)
+      showTargetRef.current = false
+      setShowTarget(false)
+      if (countRef.current > bestRef.current) { setBestCount(countRef.current); setBest(countRef.current) }
+      spawnParticles(footXRef.current, FOOT_Y, '#ef4444', 30)
+    } else {
+      yRef.current = ny
+      setY(ny)
+    }
 
     setParticles(p => p.map(pt => ({ ...pt, x: pt.x + pt.vx, y: pt.y + pt.vy, vy: pt.vy + 0.18, life: pt.life - pt.decay })).filter(pt => pt.life > 0))
 
     raf.current = requestAnimationFrame(loop)
   }
 
+  const canvasW = () => {
+    try {
+      const w = canvasRef.current ? canvasRef.current.getBoundingClientRect().width : 0
+      return w > 40 ? w : 320
+    } catch { return 320 }
+  }
+
   const start = () => {
+    const cx = canvasW() / 2
     setPlaying(true)
     setCount(0)
     setSpin(0)
     setTilt(0)
     setY(BASE_Y - 15)
     setVy(LIFT_BASE)
-    setFootX(window.innerWidth / 2)
+    footXRef.current = cx
+    footYRef.current = FOOT_Y
+    targetXRef.current = cx
+    setFootX(cx)
+    setFootY(FOOT_Y)
     setCombo(0)
-    setGesture([])
+    gestureRef.current = []
     setShowTarget(true)
-    setTargetX(window.innerWidth / 2)
+    setTargetX(cx)
+    if (raf.current) cancelAnimationFrame(raf.current)
     raf.current = requestAnimationFrame(loop)
   }
 
@@ -202,7 +223,7 @@ export default function QueNoCaiga() {
   }
 
   const handlePointerUp = (e) => {
-    if (!playingRef.current && pressStartRef.current) {
+    if (!playingRef.currentRef.current && pressStartRef.current) {
       const duration = Date.now() - pressStartRef.current
       if (duration < 1000) {
         detectGesture()
@@ -404,7 +425,7 @@ export default function QueNoCaiga() {
         <h3 className="quenocaiga-title">{t('quenocaiga_title')}</h3>
         <p className="quenocaiga-sub">{t('quenocaiga_sub')}</p>
 
-        <div className="quenocaiga-canvas-wrap" onPointerDown={handlePointerDown}>
+        <div className="quenocaiga-canvas-wrap" onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerCancel={handlePointerUp} onPointerLeave={handlePointerUp}>
           <canvas ref={canvasRef} className="quenocaiga-canvas" style={{ touchAction: 'none' }} />
           {playing && <div className="tap-hint">{t('quenocaiga_toca')}</div>}
           {!playing && count === 0 && <div className="start-hint"><MousePointer size={28} /><Smartphone size={28} /> {t('quenocaiga_inicio')}</div>}

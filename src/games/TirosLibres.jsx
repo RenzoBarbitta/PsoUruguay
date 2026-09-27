@@ -300,11 +300,6 @@ export default function TirosLibres() {
               </div>
               <div className="arrow-power" style={{ width: `${config.potencia}%` }} />
             </div>
-            <div className={`ball ${showResult ? 'animate-' + lastResult?.result : ''}`} 
-                 style={{ 
-                   left: `calc(50% + ${config.angulo}%)`,
-                   '--gol-x': `${50 + config.angulo}%`
-                 }} />
             {showResult && lastResult && (
               <motion.div className="ball-trajectory" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
                 <div className="trajectory-path" style={{ 

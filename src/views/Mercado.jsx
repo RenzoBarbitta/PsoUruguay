@@ -5,6 +5,9 @@ import { useApp } from '../core/app.jsx'
 import { t, TeamDot, EmptyState } from '../core/ui.jsx'
 
 const MERCADO_STORAGE_KEY = 'pso_mercado_feed'
+const CLEAN_KEY = 'pso_mercado_clean_v2'
+const ICONS = { fichaje: UserPlus, traspaso: ArrowRightLeft, liberacion: X, resultado: Trophy, anuncio: Megaphone }
+function stripV(o) { if (!o || typeof o !== 'object') return o; const c = { ...o }; delete c.icon; return c }
 
 function validateFeedItem(item) {
   if (!item || typeof item !== 'object') return false
@@ -18,7 +21,7 @@ function getFeed() {
     const raw = localStorage.getItem(MERCADO_STORAGE_KEY)
     const parsed = raw ? JSON.parse(raw) : []
     if (!Array.isArray(parsed)) return []
-    return parsed.filter(validateFeedItem)
+    return parsed.filter(validateFeedItem).map(stripV)
   } catch (e) {
     return []
   }
@@ -26,13 +29,13 @@ function getFeed() {
 
 function saveFeed(feed) {
   try {
-    localStorage.setItem(MERCADO_STORAGE_KEY, JSON.stringify(feed.slice(0, 100)))
+    localStorage.setItem(MERCADO_STORAGE_KEY, JSON.stringify(feed.slice(0, 100).map(stripV)))
   } catch (e) {}
 }
 
 function addFeedItem(item) {
   const feed = getFeed()
-  feed.unshift({ ...item, id: Date.now() + Math.random(), timestamp: Date.now() })
+  feed.unshift({ ...stripV(item), id: Date.now() + Math.random(), timestamp: Date.now() })
   saveFeed(feed)
   if (typeof window !== 'undefined' && window.psoBus) {
     window.psoBus.emit('mercado-updated', { feed: feed.slice(0, 20) })
@@ -42,7 +45,6 @@ function addFeedItem(item) {
 export function recordPlayerCreated(playerName, teamName, teamLogo) {
   addFeedItem({
     type: 'fichaje',
-    icon: UserPlus,
     titleKey: 'mercado_fichaje',
     titleVars: { player: playerName, team: teamName },
     teamLogo,
@@ -53,7 +55,6 @@ export function recordPlayerCreated(playerName, teamName, teamLogo) {
 export function recordTransfer(playerName, fromTeam, toTeam, fromLogo, toLogo) {
   addFeedItem({
     type: 'traspaso',
-    icon: ArrowRightLeft,
     titleKey: 'mercado_traspaso',
     titleVars: { player: playerName, from: fromTeam, to: toTeam },
     fromLogo,
@@ -66,7 +67,6 @@ export function recordTransfer(playerName, fromTeam, toTeam, fromLogo, toLogo) {
 export function recordRelease(playerName, teamName, teamLogo) {
   addFeedItem({
     type: 'liberacion',
-    icon: X,
     titleKey: 'mercado_liberacion',
     titleVars: { player: playerName, team: teamName },
     teamLogo,
@@ -80,7 +80,6 @@ export function recordMatchResult(match) {
   if (!home || !away) return
   addFeedItem({
     type: 'resultado',
-    icon: Trophy,
     titleKey: 'mercado_resultado',
     titleVars: { home: home.name, away: away.name, hg: match.homeScore, ag: match.awayScore },
     homeLogo: home.logo,
@@ -95,7 +94,6 @@ export function recordMatchResult(match) {
 export function recordAnnouncement(teamName, teamLogo, message) {
   addFeedItem({
     type: 'anuncio',
-    icon: Megaphone,
     titleKey: 'mercado_anuncio',
     titleVars: { team: teamName, message },
     teamLogo,
@@ -127,12 +125,25 @@ function sanitizeTitleVars(vars) {
   return clean
 }
 
+function feedDetailText(item, v) {
+  const pick = (...keys) => { for (const k of keys) { const val = v[k]; if (val !== undefined && val !== null && String(val) !== '') return String(val) } return '' }
+  const score = (item.homeScore !== undefined && item.awayScore !== undefined) ? ` (${String(item.homeScore)} - ${String(item.awayScore)})` : ''
+  switch (item.type) {
+    case 'fichaje': { const p = pick('player'); const tm = pick('team'); return p && tm ? `${p} se suma a ${tm}` : t(item.titleKey) }
+    case 'traspaso': { const p = pick('player'); const f = pick('from'); const to = pick('to'); return p ? `${p}${f || to ? ` (${f || '?'} \u2192 ${to || '?'})` : ''}` : t(item.titleKey) }
+    case 'liberacion': { const p = pick('player'); const tm = pick('team'); return p && tm ? `${p} deja ${tm}` : t(item.titleKey) }
+    case 'resultado': { const h = pick('home'); const a = pick('away'); return h && a ? `${h} vs ${a}${score}` : t(item.titleKey) }
+    case 'anuncio': { const tm = pick('team'); const m = pick('message'); return [tm, m].filter(Boolean).join(': ') || t(item.titleKey) }
+    default: return t(item.titleKey, v)
+  }
+}
+
 function FeedItem({ item }) {
   // Extra safeguard: validate item structure before rendering
   if (!item || !item.id || !item.type || !item.titleKey) {
     return null
   }
-  const Icon = item.icon || Activity
+  const Icon = ICONS[item.type] || Activity
   // Safeguard: ensure titleVars is an object with only string/number values
   const titleVars = sanitizeTitleVars(item.titleVars)
   try {
@@ -153,7 +164,7 @@ function FeedItem({ item }) {
             <span className="mercado-time">{formatTime(item.timestamp)}</span>
           </div>
           <div className="mercado-text">
-            {t(item.titleKey, titleVars)}
+            {feedDetailText(item, titleVars)}
           </div>
           {(item.homeLogo || item.awayLogo || item.teamLogo) && (
             <div className="mercado-teams">
@@ -185,6 +196,18 @@ export default function Mercado() {
   const { v } = useApp()
   void v
   
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(CLEAN_KEY)) return
+      const raw = localStorage.getItem('pso_mercado_feed')
+      if (raw) {
+        const p = JSON.parse(raw)
+        if (Array.isArray(p)) localStorage.setItem('pso_mercado_feed', JSON.stringify(p.filter(validateFeedItem).map(stripV).slice(0, 100)))
+      }
+      localStorage.setItem(CLEAN_KEY, '1')
+    } catch (e) { try { localStorage.removeItem('pso_mercado_feed') } catch {} }
+  }, [])
+
   // One-time cleanup of corrupted localStorage data
   useEffect(() => {
     try {

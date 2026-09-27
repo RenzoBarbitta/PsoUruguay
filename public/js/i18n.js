@@ -71,6 +71,7 @@ const I18N = {
     /* ------- Encara ------- */
     encara_title: { es: '🏃 ENCARA', pt: '🏃 ENCOSTA' },
     encara_desc: { es: 'Dribleá infinito. Rivales con IA, zonas raras, estela fantasma. Solo vos vs el caos.', pt: 'Drible infinito. Rivais com IA, zonas raras, rastro fantasma. Só você vs o caos.' },
+    encara_sub: { es: 'Driblea infinito. Rivales con IA, zonas raras, estela fantasma. Solo vos vs el caos.', pt: 'Drible infinito. Rivais com IA, zonas raras, rastro fantasma. So voce vs o caos.' },
     encara_tag: { es: '🏃 Flow', pt: '🏃 Flow' },
     encara_distancia: { es: 'distancia', pt: 'distância' },
     encara_mejor: { es: 'Mejor', pt: 'Melhor' },
