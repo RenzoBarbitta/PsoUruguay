@@ -335,8 +335,12 @@ const I18N = {
     trivia_autorefresh: { es: 'Se actualiza solo', pt: 'Atualiza automaticamente' },
     trivia_cargando: { es: 'Cargando ranking...', pt: 'Carregando ranking...' },
     ranking_sin_conexion: {
-      es: 'No pudimos conectar con el servidor. El ranking puede estar incompleto; reintentamos solos.',
-      pt: 'Não conseguimos conectar com o servidor. O ranking pode estar incompleto; tentamos de novo sozinhos.'
+      es: 'Sin conexión: no se pudo cargar el ranking. Reintentamos automáticamente.',
+      pt: 'Sem conexão: não foi possível carregar o ranking. Tentamos de novo automaticamente.'
+    },
+    ranking_datos_locales: {
+      es: 'Sin conexión: se muestran los últimos datos guardados en este dispositivo.',
+      pt: 'Sem conexão: mostrando os últimos dados salvos neste dispositivo.'
     },
     trivia_no_players: {
       es: 'Todavía nadie jugó. ¡Sé el primero en aparecer en el ranking!',

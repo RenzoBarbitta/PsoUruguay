@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'motion/react'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, WifiOff } from 'lucide-react'
 import { useApp } from './app.jsx'
 
 /* ======================================================================
@@ -50,21 +50,36 @@ export function EmptyState({ icon, text }) {
 
 /* Estado del ranking: distingue "cargando", "vacio de verdad" y "el server
    no respondio". Antes un fallo de red se mostraba como "nadie fallo
-   todavia", que hacia pensar que el ranking estaba vacio para siempre. */
+   todavia", que hacia pensar que el ranking estaba vacio para siempre.
+
+   Importante: si HAY datos (del fallback local) se muestran igual, con un
+   aviso chico arriba. El mensaje grande es solo para cuando no hay nada
+   que mostrar, porque tapar el ranking con un error es peor que mostrar
+   datos potencialmente viejos. */
 export function RankBody({ cargando, degraded, vacio, cargandoText, vacioText, children }) {
   if (cargando) {
-    return <div className="card empty-state"><span className="empty-icon"><RefreshCw size={26} className="spin" /></span><p>{cargandoText || 'Cargando...'}</p></div>
-  }
-  if (degraded) {
     return (
-      <div className="card empty-state rank-offline">
-        <span className="empty-icon">📡</span>
-        <p>{t('ranking_sin_conexion')}</p>
+      <div className="card empty-state">
+        <span className="empty-icon"><RefreshCw size={26} className="spin" /></span>
+        <p>{cargandoText || 'Cargando...'}</p>
       </div>
     )
   }
-  if (vacio) return <EmptyState icon="🏆" text={vacioText || ''} />
-  return children
+  if (vacio) {
+    return degraded
+      ? <div className="card empty-state rank-offline"><span className="empty-icon">📡</span><p>{t('ranking_sin_conexion')}</p></div>
+      : <EmptyState icon="🏆" text={vacioText || ''} />
+  }
+  return (
+    <>
+      {degraded && (
+        <div className="rank-notice" role="status">
+          <WifiOff size={14} /> {t('ranking_datos_locales')}
+        </div>
+      )}
+      {children}
+    </>
+  )
 }
 
 export function SectionHead({ title, sub, right }) {

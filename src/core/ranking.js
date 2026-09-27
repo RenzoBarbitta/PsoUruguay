@@ -21,6 +21,7 @@ export function useRanking({ activo = true, cadaMs = 5000, retries = 3, sort, ca
   const timer = useRef(null)
   const retry = useRef(null)
   const intento = useRef(0)
+  const falloRef = useRef(false)
   const aliveRef = useRef(true)
 
   const run = useCallback(async () => {
@@ -32,11 +33,16 @@ export function useRanking({ activo = true, cadaMs = 5000, retries = 3, sort, ca
       setRanking(sort ? list.slice().sort(sort) : list)
       setDegraded(!!(out && out.degraded))
       setCargando(false)
-      intento.current = 0
+      /* Los reintentos rapidos corren SOLO si el ultimo intento fallo.
+         Antes se reseteaba el contador en el exito, y eso hacia que el
+         interval de reintento disparara 3 veces mas aunque todo anduviera
+         bien (multiplicaba las requests sin motivo). */
+      falloRef.current = !!(out && out.degraded)
     } catch (e) {
       if (!aliveRef.current) return
       setDegraded(true)
       setCargando(false)
+      falloRef.current = true
     }
   }, [sort])
 
@@ -45,14 +51,16 @@ export function useRanking({ activo = true, cadaMs = 5000, retries = 3, sort, ca
     if (!activo) return () => { aliveRef.current = false }
 
     const canceled = { v: false }
+    intento.current = 0
     const tick = () => { if (!canceled.v) run() }
     tick()
     timer.current = setInterval(tick, cadaMs)
 
-    /* Reintentos rapidos mientras el server no responde: si es un cold
-       start de Supabase o un deploy recien salido, se recupera solo. */
+    /* Reintentos rapidos SOLO mientras el ultimo intento fallo: si es un
+       cold start de Supabase o un deploy recien salido, se recupera solo.
+       Si la carga va bien, este interval no dispara nada. */
     retry.current = setInterval(() => {
-      if (canceled.v || intento.current >= retries) return
+      if (canceled.v || !falloRef.current || intento.current >= retries) return
       intento.current++
       run()
     }, 1500)
