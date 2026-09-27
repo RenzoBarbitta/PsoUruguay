@@ -202,7 +202,7 @@ export default function Perfil() {
             <span className="perfil-username">@{AuthState.user.username}</span>
             <div className="perfil-stats">
               <span>🏆 {t('trivia_mejor_racha')}: {AuthState.user.bestStreak || 0}</span>
-              <span>⚽ {t('tiroslibres_mejor_puntaje')}: {AuthState.user.bestPenalStreak || 0}</span>
+              <span>⚽ {t('penales_mejor_racha')}: {AuthState.user.bestPenalStreak || 0}</span>
               <span>🔮 {t('predicciones_ranking')}: {myPoints} pts</span>
             </div>
           </div>

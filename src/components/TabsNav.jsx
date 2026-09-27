@@ -5,7 +5,7 @@ import { useApp } from '../core/app.jsx'
 import { t } from '../core/ui.jsx'
 
 export function isGameTab(tab) {
-  return tab === 'trivia' || tab === 'pasapalabra' || tab === 'penales' || tab === 'predicciones' || tab === 'tiroslibres'
+  return tab === 'trivia' || tab === 'pasapalabra' || tab === 'penales' || tab === 'predicciones'
 }
 
 /* Del texto activo: saltito (arriba-abajo) + tambaleo suave al entrar */

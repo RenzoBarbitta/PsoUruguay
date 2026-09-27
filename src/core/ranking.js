@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  *   - degraded: true cuando vino del fallback local, o sea que hay un
  *               problema de red/servidor y esos datos pueden no estar
  *               completos. Con eso la UI puede avisar en vez de mentir. */
-export function useRanking({ activo = true, cadaMs = 5000, retries = 3, sort }) {
+export function useRanking({ activo = true, cadaMs = 5000, retries = 3, sort, cargar }) {
   const [ranking, setRanking] = useState([])
   const [cargando, setCargando] = useState(true)
   const [degraded, setDegraded] = useState(false)
@@ -23,7 +23,7 @@ export function useRanking({ activo = true, cadaMs = 5000, retries = 3, sort }) 
   const intento = useRef(0)
   const aliveRef = useRef(true)
 
-  const run = useCallback(async cargar => {
+  const run = useCallback(async () => {
     if (!aliveRef.current) return
     try {
       const out = await cargar()
@@ -45,7 +45,7 @@ export function useRanking({ activo = true, cadaMs = 5000, retries = 3, sort }) 
     if (!activo) return () => { aliveRef.current = false }
 
     const canceled = { v: false }
-    const tick = () => { if (!canceled.v) run(cargar) }
+    const tick = () => { if (!canceled.v) run() }
     tick()
     timer.current = setInterval(tick, cadaMs)
 
@@ -54,11 +54,11 @@ export function useRanking({ activo = true, cadaMs = 5000, retries = 3, sort }) 
     retry.current = setInterval(() => {
       if (canceled.v || intento.current >= retries) return
       intento.current++
-      run(cargar)
+      run()
     }, 1500)
 
     /* Al volver de otra pestana los datos pueden estar viejos. */
-    const onVisible = () => { if (document.visibilityState === 'visible') run(cargar) }
+    const onVisible = () => { if (document.visibilityState === 'visible') run() }
     document.addEventListener('visibilitychange', onVisible)
 
     return () => {

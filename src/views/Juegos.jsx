@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'motion/react'
-import { Brain, Play, Sigma, CircleDashed, Zap } from 'lucide-react'
+import { Brain, Play, Sigma, CircleDashed } from 'lucide-react'
 import { useApp } from '../core/app.jsx'
 import { t } from '../core/ui.jsx'
 
@@ -19,11 +19,6 @@ const CARDS = [
     tab: 'penales', icon: <CircleDashed size={26} />, art: '⚽',
     titleKey: 'tab_penales', descKey: 'juegos_desc_penales', tagKey: 'juegos_tag_penales',
     grad: 'linear-gradient(150deg,#14532d 0%,#07130c 55%,#15803d 130%)', glow: 'rgba(74,222,128,0.45)'
-  },
-  {
-    tab: 'tiroslibres', icon: <Zap size={26} />, art: '⚽',
-    titleKey: 'tab_tiroslibres', descKey: 'tiroslibres_desc', tagKey: 'juegos_tag_tiroslibres',
-    grad: 'linear-gradient(150deg,#7c2d12 0%,#2e0f06 55%,#ea580c 130%)', glow: 'rgba(234,88,12,0.5)'
   }
 ]
 

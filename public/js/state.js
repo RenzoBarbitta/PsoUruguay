@@ -273,9 +273,13 @@ function authToken() {
   } catch (e) { return null; }
 }
 
-/* Refresca el access token de Supabase si está por expirar. Los tokens duran
-   1 hora y si no se refrescan, el jugador con sesión vieja ya no puede
-   guardar puntaje: todo devolvía 401 y el ranking quedaba clavado. */
+/* Refresh token de Supabase, con proteccion contra el bucle de 400.
+
+   Cuando el refresh_token caduca o es revocado, Supabase responde 400. El
+   catch viejo se lo tragaba en silencio y dejaba la sesion muerta en
+   localStorage, asi que CADA request volvia a intentar el refresh y la
+   consola se llenaba de 400 (hasta 8 por pantalla). Ahora, si el refresh
+   falla de verdad, se limpia la sesion local para forzar un login limpio. */
 async function asegurarSesion() {
   const tok = authToken();
   if (!tok) return;
@@ -285,12 +289,13 @@ async function asegurarSesion() {
   let ref = null;
   try { ref = localStorage.getItem('pso_refresh'); } catch (e) {}
   if (!ref) return;
+
   try {
     const data = await supaFetch('/auth/v1/token?grant_type=refresh', {
       method: 'POST',
       body: { refresh_token: ref }
     });
-    if (!data || !data.access_token) return;
+    if (!data || !data.access_token) throw new Error('refresh sin access_token');
     localStorage.setItem('pso_token', data.access_token);
     AuthState.token = data.access_token;
     if (data.refresh_token) localStorage.setItem('pso_refresh', data.refresh_token);
@@ -300,7 +305,16 @@ async function asegurarSesion() {
       AuthState.user = u;
       localStorage.setItem('pso_user', JSON.stringify(u));
     }
-  } catch (e) { /* sin red o refresh inválido */ }
+  } catch (e) {
+    /* Refresh invalido: la sesion ya no sirve. Se limpia para que el proximo
+       intento NO vuelva a pegarle al endpoint, y el usuario recargue/login. */
+    try {
+      localStorage.removeItem('pso_token');
+      localStorage.removeItem('pso_refresh');
+      localStorage.removeItem('pso_expires');
+      localStorage.setItem('pso_refresh_failed', '1');
+    } catch (e2) { /* almacenamiento no disponible */ }
+  }
 }
 
 /* upserta la fila en public.users (para que el ranking lo vea) */
