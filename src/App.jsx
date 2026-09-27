@@ -18,8 +18,6 @@ import Pasapalabra from './games/Pasapalabra.jsx'
 import Penales from './games/Penales.jsx'
 import Predicciones from './games/Predicciones.jsx'
 import TirosLibres from './games/TirosLibres.jsx'
-import QueNoCaiga from './games/QueNoCaiga.jsx'
-import Encara from './games/Encara.jsx'
 import Perfil from './views/Perfil.jsx'
 import AdminPanel from './admin/AdminPanel.jsx'
 
@@ -41,8 +39,6 @@ function Router() {
       case 'penales': return <Penales />
       case 'predicciones': return <Predicciones />
       case 'tiroslibres': return <TirosLibres />
-      case 'quenocaiga': return <QueNoCaiga />
-      case 'encara': return <Encara />
       case 'perfil': return <Perfil />
       case 'admin': return <AdminPanel />
       default: return <Inicio />
