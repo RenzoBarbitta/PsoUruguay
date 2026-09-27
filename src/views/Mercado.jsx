@@ -155,14 +155,13 @@ export default function Mercado() {
 
   useEffect(() => {
     const handler = () => setFeed(getFeed())
+    let unsub = () => {}
     if (typeof window !== 'undefined' && window.psoBus) {
-      window.psoBus.on('mercado-updated', handler)
+      unsub = window.psoBus.on('mercado-updated', handler)
     }
     const interval = setInterval(handler, 5000)
     return () => {
-      if (typeof window !== 'undefined' && window.psoBus) {
-        window.psoBus.off('mercado-updated', handler)
-      }
+      unsub()
       clearInterval(interval)
     }
   }, [v])

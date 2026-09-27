@@ -37,7 +37,6 @@ export default function TabsNav() {
     { id: 'juegos', label: t('tab_juegos'), icon: <Gamepad2 size={17} /> },
     { id: 'mercado', label: t('mercado_title'), icon: <ShoppingBag size={17} /> },
     { id: 'predicciones', label: t('tab_predicciones'), icon: <Target size={17} /> },
-    { id: 'tiroslibres', label: t('tab_tiroslibres'), icon: <Zap size={17} /> },
     { id: 'perfil', label: t('perfil_title'), icon: <User size={17} /> },
     ...(isAdmin ? [{ id: 'admin', label: t('tab_admin'), icon: <Settings size={17} /> }] : [])
   ]

@@ -375,9 +375,23 @@ button { font-family: inherit; cursor: pointer; }
   z-index: 90;
   overflow-x: auto;
   overflow-y: visible;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
 }
-.tabs-nav::-webkit-scrollbar { display: none; }
+.tabs-nav::-webkit-scrollbar {
+  height: 6px;
+  display: block;
+}
+.tabs-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tabs-nav::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+.tabs-nav::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
 .tabs-nav-inner {
   max-width: 1180px;
   margin: 0 auto;
