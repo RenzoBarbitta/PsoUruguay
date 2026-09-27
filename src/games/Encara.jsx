@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { motion } from 'motion/react'
-import { RotateCcw, ArrowLeft, Zap, Flag, Sparkles } from 'lucide-react'
+import { RotateCcw, ArrowLeft, Zap, Flag, Sparkles, Keyboard, MousePointer } from 'lucide-react'
 import { useApp } from '../core/app.jsx'
 import { t } from '../core/ui.jsx'
 
@@ -13,29 +13,29 @@ function setBest(v) {
   try { localStorage.setItem(STORAGE_KEY, String(v)) } catch {}
 }
 
-const PLAYER_RADIUS = 10
-const ENEMY_RADIUS = 12
-const PLAYER_MASS = 1
-const PLAYER_FRICTION = 0.92
-const PLAYER_ACCEL = 0.65
-const MAX_SPEED = 7.5
-const BASE_SPAWN_RATE = 1800
-const MIN_SPAWN_RATE = 400
-const LANE_WIDTH = 280
+const LANES = [-1, 0, 1]
+const LANE_WIDTH = 100
+const PLAYER_RADIUS = 14
+const ENEMY_RADIUS = 16
+const BASE_SPEED = 4.5
+const MAX_SPEED = 10
+const ACCELERATION = 0.0008
+const JUMP_DURATION = 450
+const SLIDE_DURATION = 400
 
 const ENEMY_TYPES = [
-  { id: 'mirror', name: 't.encara_mirror', color: '#60a5fa', behavior: 'mirror', speed: 1.0, delay: 12 },
-  { id: 'predictor', name: 't.encara_predictor', color: '#f87171', behavior: 'predictor', speed: 1.15, delay: 8 },
-  { id: 'guardian', name: 't.encara_guardian', color: '#34d399', behavior: 'guardian', speed: 0.7, delay: 0, zone: true },
-  { id: 'presser', name: 't.encara_presser', color: '#fb923c', behavior: 'presser', speed: 1.3, delay: 0 },
-  { id: 'drifter', name: 't.encara_drifter', color: '#a78bfa', behavior: 'drifter', speed: 0.9, delay: 0 }
+  { id: 'static', name: 't.encara_static', color: '#ef4444', h: 36, w: 28, behavior: 'static' },
+  { id: 'mover', name: 't.encara_mover', color: '#f97316', h: 32, w: 28, behavior: 'mover', speed: 2.5 },
+  { id: 'jumper', name: 't.encara_jumper', color: '#22c55e', h: 30, w: 26, behavior: 'jumper', jumpInterval: 1800 },
+  { id: 'slider', name: 't.encara_slider', color: '#3b82f6', h: 22, w: 36, behavior: 'slider' },
+  { id: 'giant', name: 't.encara_giant', color: '#a855f7', h: 48, w: 40, behavior: 'static' },
 ]
 
-const ZONES = [
-  { id: 'ice', name: 't.encara_ice', color: '#67e8f9', friction: 0.985, accelMul: 0.4, rare: 0.008 },
-  { id: 'sand', name: 't.encara_sand', color: '#fde68a', friction: 0.82, accelMul: 1.8, rare: 0.008 },
-  { id: 'portal', name: 't.encara_portal', color: '#f472b6', teleport: true, rare: 0.004 },
-  { id: 'bubble', name: 't.encara_bubble', color: '#86efac', freeze: true, rare: 0.006 }
+const POWERUPS = [
+  { id: 'shield', name: 't.encara_shield', color: '#fbbf24', icon: '🛡️', duration: 5000 },
+  { id: 'magnet', name: 't.encara_magnet', color: '#60a5fa', icon: '🧲', duration: 5000 },
+  { id: 'slowmo', name: 't.encara_slowmo', color: '#a78bfa', icon: '⏱️', duration: 4000 },
+  { id: 'double', name: 't.encara_double', color: '#f472b6', icon: '2️⃣', duration: 5000 },
 ]
 
 export default function Encara() {
@@ -45,26 +45,35 @@ export default function Encara() {
   const [dead, setDead] = useState(false)
   const [distance, setDistance] = useState(0)
   const [best, setBestDist] = useState(getBest())
-  const [player, setPlayer] = useState({ x: 0, y: 0, vx: 0, vy: 0 })
+  const [lane, setLane] = useState(1)
+  const [targetLane, setTargetLane] = useState(1)
+  const [isJumping, setIsJumping] = useState(false)
+  const [jumpProgress, setJumpProgress] = useState(0)
+  const [isSliding, setIsSliding] = useState(false)
+  const [slideProgress, setSlideProgress] = useState(0)
+  const [playerX, setPlayerX] = useState(0)
   const [enemies, setEnemies] = useState([])
-  const [zones, setZones] = useState([])
+  const [powerups, setPowerups] = useState([])
   const [particles, setParticles] = useState([])
   const [trail, setTrail] = useState([])
   const [ghostTrail, setGhostTrail] = useState([])
   const [showGhost, setShowGhost] = useState(false)
-  const [activeZone, setActiveZone] = useState(null)
-  const [zoneTimer, setZoneTimer] = useState(0)
+  const [activePowerup, setActivePowerup] = useState(null)
+  const [powerupTimer, setPowerupTimer] = useState(0)
   const [combo, setCombo] = useState(0)
   const [nearMisses, setNearMisses] = useState(0)
   const [spawnTimer, setSpawnTimer] = useState(0)
   const [nextEnemyType, setNextEnemyType] = useState(0)
-  const [difficulty, setDifficulty] = useState(0)
+  const [speed, setSpeed] = useState(BASE_SPEED)
+  const [score, setScore] = useState(0)
+  const [multiplier, setMultiplier] = useState(1)
   const raf = useRef(null)
   const lastTime = useRef(0)
   const canvasRef = useRef(null)
   const ctxRef = useRef(null)
-  const input = useRef({ x: 0, y: 0, down: false })
   const ghostData = useRef(null)
+  const keysPressed = useRef(new Set())
+  const swipeStart = useRef(null)
 
   useEffect(() => {
     const saved = localStorage.getItem('pso_encara_ghost')
@@ -73,14 +82,14 @@ export default function Encara() {
     }
   }, [])
 
-  const saveGhost = (trailData) => {
+  const saveGhost = useCallback((trailData) => {
     if (trailData.length > 100) {
       const simplified = trailData.filter((_, i) => i % 3 === 0).slice(-500)
       ghostData.current = simplified
       try { localStorage.setItem('pso_encara_ghost', JSON.stringify(simplified)) } catch {}
       setShowGhost(true)
     }
-  }
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -97,325 +106,325 @@ export default function Encara() {
     return () => window.removeEventListener('resize', resize)
   }, [])
 
-  const spawnEnemy = () => {
-    const type = ENEMY_TYPES[Math.min(nextEnemyType, ENEMY_TYPES.length - 1)]
-    const lane = (Math.random() - 0.5) * LANE_WIDTH * 0.8
-    const startY = -60
-    let enemy = {
+  const spawnEnemy = useCallback(() => {
+    const typeIdx = Math.min(Math.floor(nextEnemyType / 2), ENEMY_TYPES.length - 1)
+    const type = ENEMY_TYPES[typeIdx]
+    const enemyLane = LANES[Math.floor(Math.random() * 3)]
+    const enemy = {
       id: Date.now() + Math.random(),
       type: type.id,
-      x: lane,
-      y: startY,
-      vx: 0,
-      vy: 0,
+      lane: enemyLane,
+      y: -60,
       angle: 0,
-      hue: 0,
-      frozen: 0
-    }
-    if (type.id === 'guardian') {
-      enemy.zoneX = lane
-      enemy.zoneY = startY + 200 + Math.random() * 300
+      jumpPhase: 0,
+      slidePhase: 0,
+      moveDir: Math.random() > 0.5 ? 1 : -1,
+      hue: Math.random() * 360,
     }
     setEnemies(e => [...e, enemy])
-    setNextEnemyType(n => Math.min(n + 0.15, ENEMY_TYPES.length - 1))
-  }
+    setNextEnemyType(n => Math.min(n + 0.3, ENEMY_TYPES.length * 2 - 1))
+  }, [nextEnemyType])
 
-  const spawnZone = () => {
-    if (Math.random() > 0.008) return
-    const zoneType = ZONES[Math.floor(Math.random() * ZONES.length)]
-    if (Math.random() > (zoneType.rare || 0.01)) return
-    const zone = {
+  const spawnPowerup = useCallback(() => {
+    if (Math.random() > 0.08) return
+    const type = POWERUPS[Math.floor(Math.random() * POWERUPS.length)]
+    const pw = {
       id: Date.now(),
-      type: zoneType.id,
-      x: (Math.random() - 0.5) * LANE_WIDTH * 0.7,
-      y: -80,
-      radius: 50 + Math.random() * 30,
-      life: 1,
-      color: zoneType.color
+      type: type.id,
+      lane: LANES[Math.floor(Math.random() * 3)],
+      y: -40,
+      rotation: 0,
     }
-    setZones(z => [...z, zone])
-  }
+    setPowerups(p => [...p, pw])
+  }, [])
 
-  const addParticles = (x, y, color, count, speed = 3) => {
+  const addParticles = useCallback((x, y, color, count, speed = 4) => {
     const newP = Array.from({ length: count }, () => ({
       x, y,
       vx: (Math.random() - 0.5) * speed,
-      vy: (Math.random() - 0.5) * speed,
+      vy: (Math.random() - 0.5) * speed - 2,
       life: 1,
       decay: 0.02 + Math.random() * 0.02,
       size: 2 + Math.random() * 3,
       color
     }))
     setParticles(p => [...p, ...newP])
-  }
+  }, [])
 
-  const checkCollision = (px, py, ex, ey, pr, er) => {
-    const dx = px - ex
+  const checkCollision = useCallback((px, py, pl, ex, ey, el, eh, ew) => {
+    const px_abs = px + pl * LANE_WIDTH
+    const ex_abs = ex + el * LANE_WIDTH
+    const dx = px_abs - ex_abs
     const dy = py - ey
+    const pr = PLAYER_RADIUS * (isSliding ? 0.6 : 1)
+    const er = (ew || ENEMY_RADIUS)
     return dx * dx + dy * dy < (pr + er) ** 2
-  }
+  }, [lane, isSliding])
 
-  const gameLoop = (timestamp) => {
+  const activatePowerup = useCallback((type) => {
+    const pu = POWERUPS.find(p => p.id === type)
+    if (!pu) return
+    setActivePowerup(type)
+    setPowerupTimer(pu.duration)
+    if (type === 'slowmo') setSpeed(s => s * 0.5)
+    if (type === 'double') setMultiplier(2)
+  }, [])
+
+  const gameLoop = useCallback((timestamp) => {
     if (!playing) return
     const dt = Math.min(32, timestamp - lastTime.current)
     lastTime.current = timestamp
-    const timeSec = dt / 16.67
 
-    setDistance(d => d + Math.max(0.5, Math.hypot(player.vx, player.vy)) * 0.08 * timeSec)
+    const effectiveSpeed = activePowerup === 'slowmo' ? speed * 0.5 : speed
+    setDistance(d => d + effectiveSpeed * 0.12 * dt)
+    setScore(s => s + Math.floor(effectiveSpeed * multiplier * 0.02 * dt))
 
-    let friction = PLAYER_FRICTION
-    let accelMul = 1
-    if (activeZone) {
-      const zone = ZONES.find(z => z.id === activeZone)
-      if (zone) {
-        friction = zone.friction || friction
-        accelMul = zone.accelMul || accelMul
-      }
+    const currentLaneX = LANES[lane] * LANE_WIDTH
+    setPlayerX(p => p + (currentLaneX - p) * 0.15)
+
+    if (isJumping) {
+      setJumpProgress(p => {
+        const np = p + dt / JUMP_DURATION
+        if (np >= 1) { setIsJumping(false); return 0 }
+        return np
+      })
     }
-
-    setPlayer(p => {
-      let nx = p.x
-      let ny = p.y
-      let nvx = p.vx
-      let nvy = p.vy
-
-      if (input.current.down) {
-        const dx = input.current.x - nx
-        const dy = input.current.y - ny
-        const dist = Math.hypot(dx, dy)
-        if (dist > 1) {
-          nvx += (dx / dist) * PLAYER_ACCEL * accelMul * timeSec
-          nvy += (dy / dist) * PLAYER_ACCEL * accelMul * timeSec
-        }
-      }
-
-      const speed = Math.hypot(nvx, nvy)
-      if (speed > MAX_SPEED) {
-        nvx = (nvx / speed) * MAX_SPEED
-        nvy = (nvy / speed) * MAX_SPEED
-      }
-
-      nvx *= friction
-      nvy *= friction
-
-      nx += nvx * timeSec
-      ny += nvy * timeSec
-
-      const halfW = (LANE_WIDTH / 2) - PLAYER_RADIUS
-      if (nx < -halfW) { nx = -halfW; nvx = Math.abs(nvx) * 0.3 }
-      if (nx > halfW) { nx = halfW; nvx = -Math.abs(nvx) * 0.3 }
-
-      return { x: nx, y: ny, vx: nvx, vy: nvy }
-    })
+    if (isSliding) {
+      setSlideProgress(p => {
+        const np = p + dt / SLIDE_DURATION
+        if (np >= 1) { setIsSliding(false); return 0 }
+        return np
+      })
+    }
 
     setEnemies(e => {
       const newEnemies = []
-      const p = player
       for (const enemy of e) {
-        if (enemy.frozen > 0) {
-          newEnemies.push({ ...enemy, frozen: enemy.frozen - 1, y: enemy.y + 0.5 * timeSec })
-          continue
-        }
-
-        let nvx = enemy.vx
-        let nvy = enemy.vy
         const type = ENEMY_TYPES.find(t => t.id === enemy.type)
-        const spd = (type?.speed || 1) * (1 + difficulty * 0.08)
+        let ny = enemy.y + effectiveSpeed * 0.6 * dt
+        let nAngle = enemy.angle
 
-        if (type?.id === 'mirror') {
-          const targetX = p.x
-          const targetY = p.y + 120
-          const dx = targetX - enemy.x
-          const dy = targetY - enemy.y
-          const dist = Math.hypot(dx, dy)
-          if (dist > 1) {
-            nvx += (dx / dist) * 0.12 * spd * timeSec
-            nvy += (dy / dist) * 0.12 * spd * timeSec
-          }
-        } else if (type?.id === 'predictor') {
-          const predX = p.x + p.vx * 10
-          const predY = p.y + p.vy * 10 + 100
-          const dx = predX - enemy.x
-          const dy = predY - enemy.y
-          const dist = Math.hypot(dx, dy)
-          if (dist > 1) {
-            nvx += (dx / dist) * 0.15 * spd * timeSec
-            nvy += (dy / dist) * 0.15 * spd * timeSec
-          }
-        } else if (type?.id === 'guardian') {
-          const dx = enemy.zoneX - enemy.x
-          const dy = enemy.zoneY - enemy.y
-          const dist = Math.hypot(dx, dy)
-          if (dist > 30) {
-            nvx += (dx / dist) * 0.08 * spd * timeSec
-            nvy += (dy / dist) * 0.08 * spd * timeSec
-          } else {
-            const pdx = p.x - enemy.x
-            const pdy = p.y - enemy.y
-            const pdist = Math.hypot(pdx, pdy)
-            if (pdist < 100) {
-              nvx += (pdx / pdist) * 0.2 * spd * timeSec
-              nvy += (pdy / pdist) * 0.2 * spd * timeSec
+        if (type?.id === 'mover') {
+          const moveSpeed = (type.speed || 2.5) * dt * 0.02
+          const laneEdges = [-LANE_WIDTH, 0, LANE_WIDTH]
+          const currentX = LANES[enemy.lane] * LANE_WIDTH
+          const targetX = laneEdges[enemy.lane + 1 + (enemy.moveDir > 0 ? 1 : -1)]
+          if (targetX === undefined) { enemy.moveDir *= -1 }
+          else {
+            const nx = currentX + enemy.moveDir * moveSpeed * 100
+            if ((enemy.moveDir > 0 && nx >= targetX) || (enemy.moveDir < 0 && nx <= targetX)) {
+              enemy.moveDir *= -1
             }
           }
-        } else if (type?.id === 'presser') {
-          const dx = p.x - enemy.x
-          const dy = p.y - enemy.y
-          const dist = Math.hypot(dx, dy)
-          if (dist > 1) {
-            nvx += (dx / dist) * 0.18 * spd * timeSec
-            nvy += (dy / dist) * 0.18 * spd * timeSec
+        } else if (type?.id === 'jumper') {
+          enemy.jumpPhase = (enemy.jumpPhase + dt / (type.jumpInterval || 1800)) % 1
+          if (enemy.jumpPhase < 0.02 && enemy.jumpPhase + dt / (type.jumpInterval || 1800) >= 0.02) {
+            nAngle = -0.3
           }
-        } else if (type?.id === 'drifter') {
-          nvx += Math.sin(timestamp / 800 + enemy.id) * 0.05 * timeSec
-          nvy += 0.35 * spd * timeSec
+        } else if (type?.id === 'slider') {
+          enemy.slidePhase = (enemy.slidePhase + dt / 1200) % 1
         }
 
-        const espeed = Math.hypot(nvx, nvy)
-        const maxE = 4.5 * spd
-        if (espeed > maxE) {
-          nvx = (nvx / espeed) * maxE
-          nvy = (nvy / espeed) * maxE
-        }
-
-        const nx = enemy.x + nvx * timeSec
-        const ny = enemy.y + nvy * timeSec
-
-        const angle = Math.atan2(nvy, nvx)
-
-        if (ny < 500) {
-          newEnemies.push({ ...enemy, x: nx, y: ny, vx: nvx, vy: nvy, angle })
+        if (ny < 400) {
+          newEnemies.push({ ...enemy, y: ny, angle: nAngle })
         }
       }
       return newEnemies
     })
 
-    setZones(z => z.map(zo => {
-      const nzo = { ...zo, y: zo.y + 2.5 * timeSec, life: zo.life - 0.0008 * timeSec }
-      return nzo.life > 0 && nzo.y < 500 ? nzo : null
-    }).filter(Boolean))
+    setPowerups(p => {
+      return p.map(pw => ({ ...pw, y: pw.y + effectiveSpeed * 0.6 * dt, rotation: pw.rotation + dt * 0.003 }))
+        .filter(pw => pw.y < 400)
+    })
 
     setParticles(p => p.map(pt => ({
-      ...pt, x: pt.x + pt.vx * timeSec, y: pt.y + pt.vy * timeSec,
-      vy: pt.vy + 0.08 * timeSec, life: pt.life - pt.decay * timeSec
+      ...pt, x: pt.x + pt.vx * dt, y: pt.y + pt.vy * dt,
+      vy: pt.vy + 0.08 * dt, life: pt.life - pt.decay * dt
     })).filter(pt => pt.life > 0))
 
     setTrail(t => {
-      const nt = [{ x: player.x, y: player.y, t: timestamp, speed: Math.hypot(player.vx, player.vy) }, ...t.slice(0, 120)]
+      const py = 180 - (isJumping ? Math.sin(jumpProgress * Math.PI) * 60 : 0) - (isSliding ? 15 : 0)
+      const nt = [{ x: playerX.current || currentLaneX, y: py, t: timestamp, speed: effectiveSpeed, lane }, ...t.slice(0, 150)]
       return nt
     })
 
     setSpawnTimer(s => {
-      const rate = Math.max(MIN_SPAWN_RATE, BASE_SPAWN_RATE - difficulty * 30)
+      const rate = Math.max(500, 1600 - distance * 0.3)
       if (s + dt >= rate) {
         spawnEnemy()
-        spawnZone()
+        spawnPowerup()
         return 0
       }
       return s + dt
     })
 
-    setDifficulty(d => d + 0.0008 * timeSec)
+    setSpeed(s => Math.min(MAX_SPEED, s + ACCELERATION * dt))
 
     let hit = false
     let closeCall = false
-    for (const enemy of enemies) {
-      if (checkCollision(player.x, player.y, enemy.x, enemy.y, PLAYER_RADIUS, ENEMY_RADIUS)) {
-        hit = true
+    const py = 180 - (isJumping ? Math.sin(jumpProgress * Math.PI) * 60 : 0) - (isSliding ? 15 : 0)
+    const pl = lane
+
+    if (activePowerup !== 'shield') {
+      for (const enemy of enemies) {
+        const type = ENEMY_TYPES.find(t => t.id === enemy.type)
+        const eh = type?.h || 36
+        const ew = type?.w || 28
+        if (checkCollision(currentLaneX, py, pl, 0, enemy.y, enemy.lane, eh, ew)) {
+          hit = true
+          break
+        }
+        const dist = Math.abs(currentLaneX - (enemy.lane * LANE_WIDTH))
+        if (dist < 50 && Math.abs(py - enemy.y) < 50) closeCall = true
+      }
+    }
+
+    for (const pw of powerups) {
+      if (lane === pw.lane && Math.abs(py - pw.y) < 30) {
+        activatePowerup(pw.type)
+        addParticles(currentLaneX, py, pw.color, 20, 6)
+        setPowerups(p => p.filter(x => x.id !== pw.id))
         break
       }
-      const dist = Math.hypot(player.x - enemy.x, player.y - enemy.y)
-      if (dist < 35 && !hit) closeCall = true
     }
 
     if (closeCall) {
       setNearMisses(n => n + 1)
       setCombo(c => Math.min(c + 1, 99))
-      addParticles(player.x, player.y, '#fbbf24', 3, 2)
+      addParticles(currentLaneX, py, '#fbbf24', 4, 3)
     } else if (!hit) {
-      setCombo(c => Math.max(c - 0.1, 0))
+      setCombo(c => Math.max(c - 0.05, 0))
     }
 
-    for (const zone of zones) {
-      if (checkCollision(player.x, player.y, zone.x, zone.y, PLAYER_RADIUS, zone.radius)) {
-        const ztype = ZONES.find(z => z.id === zone.type)
-        if (ztype?.teleport) {
-          setPlayer(p => ({ ...p, x: (Math.random() - 0.5) * LANE_WIDTH * 0.6, y: p.y - 200 }))
-          addParticles(player.x, player.y, zone.color, 20, 6)
-          setZones(z => z.filter(z => z.id !== zone.id))
-        } else if (ztype?.freeze) {
-          setEnemies(e => e.map(en => ({ ...en, frozen: 120 })))
-          setZoneTimer(180)
-          addParticles(player.x, player.y, zone.color, 15, 3)
-          setZones(z => z.filter(z => z.id !== zone.id))
-        } else {
-          setActiveZone(zone.type)
-          setZoneTimer(400)
-          addParticles(player.x, player.y, zone.color, 8, 2)
+    if (powerupTimer > 0) {
+      setPowerupTimer(t => {
+        const nt = t - dt
+        if (nt <= 0) {
+          if (activePowerup === 'slowmo') setSpeed(s => s * 2)
+          if (activePowerup === 'double') setMultiplier(1)
+          setActivePowerup(null)
         }
-        break
-      }
-    }
-
-    if (zoneTimer > 0) {
-      setZoneTimer(z => z - 1)
-      if (zoneTimer === 1) setActiveZone(null)
+        return nt
+      })
     }
 
     if (hit) {
       setPlaying(false)
       setDead(true)
-      const finalDist = Math.floor(distance + Math.max(0.5, Math.hypot(player.vx, player.vy)) * 0.08 * timeSec)
+      const finalDist = Math.floor(distance + effectiveSpeed * 0.12 * dt)
       setDistance(finalDist)
       if (finalDist > best) { setBestDist(finalDist); setBest(finalDist) }
       saveGhost(trail)
-      addParticles(player.x, player.y, '#ef4444', 30, 8)
+      addParticles(currentLaneX, py, '#ef4444', 40, 10)
       return
     }
 
     raf.current = requestAnimationFrame(gameLoop)
-  }
+  }, [playing, lane, distance, speed, enemies, powerups, activePowerup, powerupTimer, isJumping, jumpProgress, isSliding, slideProgress, trail, multiplier, combo, nearMisses, best, nextEnemyType, lane, isJumping, isSliding])
 
-  const start = () => {
+  const start = useCallback(() => {
     setPlaying(true)
     setDead(false)
     setDistance(0)
-    setPlayer({ x: 0, y: 180, vx: 0, vy: 0 })
+    setScore(0)
+    setLane(1)
+    setTargetLane(1)
+    setIsJumping(false)
+    setJumpProgress(0)
+    setIsSliding(false)
+    setSlideProgress(0)
+    setPlayerX(0)
     setEnemies([])
-    setZones([])
+    setPowerups([])
     setParticles([])
     setTrail([])
     setCombo(0)
     setNearMisses(0)
     setSpawnTimer(0)
     setNextEnemyType(0)
-    setDifficulty(0)
-    setActiveZone(null)
-    setZoneTimer(0)
-    input.current = { x: 0, y: 180, down: false }
+    setSpeed(BASE_SPEED)
+    setActivePowerup(null)
+    setPowerupTimer(0)
+    setMultiplier(1)
     lastTime.current = performance.now()
     raf.current = requestAnimationFrame(gameLoop)
-  }
+  }, [gameLoop])
 
-  const handlePointerDown = (e) => {
+  const handleKeyDown = useCallback((e) => {
+    if (!playing || dead) return
+    keysPressed.current.add(e.code)
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+      e.preventDefault()
+      setLane(l => Math.max(0, l - 1))
+      setCombo(c => Math.max(c - 2, 0))
+    }
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+      e.preventDefault()
+      setLane(l => Math.min(2, l + 1))
+      setCombo(c => Math.max(c - 2, 0))
+    }
+    if ((e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') && !isJumping && !isSliding) {
+      e.preventDefault()
+      setIsJumping(true)
+      setJumpProgress(0)
+      addParticles(LANES[lane] * LANE_WIDTH, 180, '#60a5fa', 8, 4)
+    }
+    if ((e.code === 'ArrowDown' || e.code === 'KeyS') && !isSliding && !isJumping) {
+      e.preventDefault()
+      setIsSliding(true)
+      setSlideProgress(0)
+      addParticles(LANES[lane] * LANE_WIDTH, 180, '#fbbf24', 6, 2)
+    }
+  }, [playing, dead, lane, isJumping, isSliding, addParticles])
+
+  const handleKeyUp = useCallback((e) => {
+    keysPressed.current.delete(e.code)
+  }, [])
+
+  const handleTouchStart = useCallback((e) => {
     if (dead) { start(); return }
     if (!playing) { start(); return }
-    const rect = canvasRef.current.getBoundingClientRect()
-    input.current = { x: (e.clientX - rect.left - rect.width / 2) / window.devicePixelRatio, y: (e.clientY - rect.top - rect.height / 2) / window.devicePixelRatio, down: true }
-  }
+    const touch = e.touches[0]
+    swipeStart.current = { x: touch.clientX, y: touch.clientY, t: Date.now() }
+  }, [dead, playing, start])
 
-  const handlePointerMove = (e) => {
-    if (playing) {
-      const rect = canvasRef.current.getBoundingClientRect()
-      input.current = { x: (e.clientX - rect.left - rect.width / 2) / window.devicePixelRatio, y: (e.clientY - rect.top - rect.height / 2) / window.devicePixelRatio, down: true }
+  const handleTouchEnd = useCallback((e) => {
+    if (!playing || dead || !swipeStart.current) return
+    const touch = e.changedTouches[0]
+    const dx = touch.clientX - swipeStart.current.x
+    const dy = touch.clientY - swipeStart.current.y
+    const dt = Date.now() - swipeStart.current.t
+    swipeStart.current = null
+
+    if (dt > 300) return
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      if (dx > 40) { setLane(l => Math.min(2, l + 1)); setCombo(c => Math.max(c - 2, 0)) }
+      else if (dx < -40) { setLane(l => Math.max(0, l - 1)); setCombo(c => Math.max(c - 2, 0)) }
+    } else {
+      if (dy < -40 && !isJumping && !isSliding) { setIsJumping(true); setJumpProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#60a5fa', 8, 4) }
+      else if (dy > 40 && !isSliding && !isJumping) { setIsSliding(true); setSlideProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#fbbf24', 6, 2) }
     }
-  }
+  }, [playing, dead, lane, isJumping, isSliding, addParticles])
 
-  const handlePointerUp = () => {
-    if (playing) input.current.down = false
-  }
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [handleKeyDown, handleKeyUp])
 
-  const draw = () => {
+  useEffect(() => {
+    window.addEventListener('pointermove', (e) => {}, { passive: true })
+    window.addEventListener('pointerup', () => {})
+    return () => {
+      if (raf.current) cancelAnimationFrame(raf.current)
+    }
+  }, [])
+
+  const draw = useCallback(() => {
     const ctx = ctxRef.current
     const canvas = canvasRef.current
     if (!ctx || !canvas) return
@@ -428,18 +437,18 @@ export default function Encara() {
     ctx.clearRect(0, 0, w, h)
 
     const grad = ctx.createLinearGradient(0, 0, 0, h)
-    grad.addColorStop(0, '#0d1a2e')
-    grad.addColorStop(0.4, '#1a2a4a')
+    grad.addColorStop(0, '#0a0f1a')
+    grad.addColorStop(0.3, '#1a2a4a')
     grad.addColorStop(1, '#0f1b3d')
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, w, h)
 
-    ctx.strokeStyle = 'rgba(91,155,213,0.08)'
+    ctx.strokeStyle = 'rgba(59,130,246,0.08)'
     ctx.lineWidth = 1 * scale
-    for (let i = -2; i <= 2; i++) {
+    for (let i = -1; i <= 1; i++) {
       ctx.beginPath()
-      ctx.moveTo(cx + i * 60 * scale, 0)
-      ctx.lineTo(cx + i * 60 * scale, h)
+      ctx.moveTo(cx + i * LANE_WIDTH * scale, 0)
+      ctx.lineTo(cx + i * LANE_WIDTH * scale, h)
       ctx.stroke()
     }
 
@@ -447,8 +456,8 @@ export default function Encara() {
     ctx.translate(cx, cy)
 
     if (showGhost && ghostData.current) {
-      ctx.strokeStyle = 'rgba(168,85,247,0.15)'
-      ctx.lineWidth = 2.5 * scale
+      ctx.strokeStyle = 'rgba(168,85,247,0.12)'
+      ctx.lineWidth = 3 * scale
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
       ctx.beginPath()
@@ -460,24 +469,19 @@ export default function Encara() {
       ctx.stroke()
     }
 
-    zones.forEach(zone => {
-      const alpha = zone.life * 0.3
-      const grad = ctx.createRadialGradient(zone.x * scale, (180 - zone.y) * scale, 0, zone.x * scale, (180 - zone.y) * scale, zone.radius * scale)
-      grad.addColorStop(0, zone.color.replace(')', `, ${alpha})`).replace('rgb', 'rgba').replace('#', ''))
-      grad.addColorStop(1, 'transparent')
-      ctx.fillStyle = grad
-      ctx.beginPath()
-      ctx.arc(zone.x * scale, (180 - zone.y) * scale, zone.radius * scale, 0, Math.PI * 2)
-      ctx.fill()
-
-      if (zone.type === 'portal') {
-        ctx.strokeStyle = zone.color
-        ctx.lineWidth = 2 * scale
-        ctx.beginPath()
-        ctx.arc(zone.x * scale, (180 - zone.y) * scale, (zone.radius + Math.sin(Date.now() / 100) * 5) * scale, 0, Math.PI * 2)
-        ctx.stroke()
-      }
+    powerups.forEach(pw => {
+      const alpha = 0.9 + Math.sin(pw.rotation * 2) * 0.1
+      ctx.globalAlpha = alpha
+      ctx.save()
+      ctx.translate(pw.lane * LANE_WIDTH * scale, (180 - pw.y) * scale)
+      ctx.rotate(pw.rotation)
+      ctx.font = `${28 * scale}px sans-serif`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(pw.icon, 0, 0)
+      ctx.restore()
     })
+    ctx.globalAlpha = 1
 
     particles.forEach(p => {
       ctx.globalAlpha = p.life
@@ -488,10 +492,10 @@ export default function Encara() {
     })
 
     trail.forEach((pt, i) => {
-      const alpha = (1 - i / trail.length) * 0.15 * Math.min(1, pt.speed / 5)
+      const alpha = (1 - i / trail.length) * 0.12 * Math.min(1, pt.speed / 8)
       ctx.globalAlpha = alpha
-      ctx.strokeStyle = pt.speed > 6 ? '#fbbf24' : '#60a5fa'
-      ctx.lineWidth = (2 + pt.speed * 0.3) * scale
+      ctx.strokeStyle = pt.speed > 7 ? '#fbbf24' : activePowerup === 'slowmo' ? '#a78bfa' : '#60a5fa'
+      ctx.lineWidth = (2 + pt.speed * 0.4) * scale
       ctx.lineCap = 'round'
       if (i < trail.length - 1) {
         const npt = trail[i + 1]
@@ -506,41 +510,49 @@ export default function Encara() {
     enemies.forEach(enemy => {
       const type = ENEMY_TYPES.find(t => t.id === enemy.type)
       const clr = type?.color || '#ef4444'
-      const frozen = enemy.frozen > 0
+      const eh = type?.h || 36
+      const ew = type?.w || 28
+      const ex = enemy.lane * LANE_WIDTH * scale
+      const ey = (180 - enemy.y) * scale
 
       ctx.save()
-      ctx.translate(enemy.x * scale, (180 - enemy.y) * scale)
-      ctx.rotate(enemy.angle)
+      ctx.translate(ex, ey)
 
-      if (frozen) {
-        ctx.fillStyle = 'rgba(134,239,172,0.3)'
-        ctx.beginPath()
-        ctx.arc(0, 0, (ENEMY_RADIUS + 8) * scale, 0, Math.PI * 2)
-        ctx.fill()
+      if (type?.id === 'jumper' && enemy.jumpPhase < 0.3) {
+        const jumpH = Math.sin(enemy.jumpPhase / 0.3 * Math.PI) * 25
+        ctx.translate(0, -jumpH * scale)
+      }
+      if (type?.id === 'slider' && enemy.slidePhase < 0.5) {
+        const slideW = Math.sin(enemy.slidePhase / 0.5 * Math.PI) * 1.5
+        ctx.scale(slideW, 1)
       }
 
       ctx.fillStyle = clr
       ctx.beginPath()
-      ctx.moveTo(ENEMY_RADIUS * scale, 0)
-      ctx.lineTo(-ENEMY_RADIUS * 0.6 * scale, -ENEMY_RADIUS * 0.8 * scale)
-      ctx.lineTo(-ENEMY_RADIUS * 0.6 * scale, ENEMY_RADIUS * 0.8 * scale)
-      ctx.closePath()
+      if (type?.id === 'giant') {
+        ctx.roundRect(-ew/2 * scale, -eh * scale, ew * scale, eh * scale, 8 * scale)
+      } else if (type?.id === 'slider') {
+        ctx.roundRect(-ew/2 * scale, -eh * scale, ew * scale, eh * scale, 4 * scale)
+      } else {
+        ctx.roundRect(-ew/2 * scale, -eh * scale, ew * scale, eh * scale, 6 * scale)
+      }
       ctx.fill()
 
-      ctx.fillStyle = '#fff'
+      ctx.fillStyle = 'rgba(255,255,255,0.2)'
       ctx.beginPath()
-      ctx.arc(ENEMY_RADIUS * 0.3 * scale, -ENEMY_RADIUS * 0.2 * scale, 2 * scale, 0, Math.PI * 2)
+      ctx.arc(-ew/4 * scale, -eh * 0.7 * scale, 3 * scale, 0, Math.PI * 2)
       ctx.fill()
       ctx.beginPath()
-      ctx.arc(-ENEMY_RADIUS * 0.3 * scale, -ENEMY_RADIUS * 0.2 * scale, 2 * scale, 0, Math.PI * 2)
+      ctx.arc(ew/4 * scale, -eh * 0.7 * scale, 3 * scale, 0, Math.PI * 2)
       ctx.fill()
 
-      if (type?.id === 'guardian') {
-        ctx.strokeStyle = 'rgba(52,211,153,0.5)'
-        ctx.lineWidth = 1.5 * scale
-        ctx.setLineDash([8 * scale, 6 * scale])
+      if (type?.id === 'mover') {
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)'
+        ctx.lineWidth = 2 * scale
+        ctx.setLineDash([6 * scale, 4 * scale])
         ctx.beginPath()
-        ctx.arc(0, 0, 70 * scale, 0, Math.PI * 2)
+        ctx.moveTo(-ew/2 * scale, 0)
+        ctx.lineTo(ew/2 * scale, 0)
         ctx.stroke()
         ctx.setLineDash([])
       }
@@ -548,44 +560,118 @@ export default function Encara() {
       ctx.restore()
     })
 
-    const speed = Math.hypot(player.vx, player.vy)
-    const boost = speed > MAX_SPEED * 0.85
+    const py = 180 - (isJumping ? Math.sin(jumpProgress * Math.PI) * 60 : 0) - (isSliding ? 15 : 0)
+    const px = (playerX.current || LANES[lane] * LANE_WIDTH) * scale
+    const playerY = (180 - py) * scale
+    const boost = speed > MAX_SPEED * 0.7 || activePowerup === 'double'
 
-    ctx.shadowColor = boost ? '#fbbf24' : 'rgba(91,155,213,0.6)'
-    ctx.shadowBlur = boost ? 20 * scale : 12 * scale
+    if (activePowerup === 'shield') {
+      ctx.shadowColor = '#fbbf24'
+      ctx.shadowBlur = 25 * scale
+      ctx.strokeStyle = '#fbbf24'
+      ctx.lineWidth = 3 * scale
+      ctx.beginPath()
+      ctx.arc(px, playerY, (PLAYER_RADIUS + 8) * scale, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.shadowBlur = 0
+    }
 
-    const playerGrad = ctx.createRadialGradient(-4 * scale, -4 * scale, 0, 0, 0, PLAYER_RADIUS * scale)
-    playerGrad.addColorStop(0, boost ? '#fffbeb' : '#fff')
-    playerGrad.addColorStop(0.5, boost ? '#fde68a' : '#93c5fd')
-    playerGrad.addColorStop(1, boost ? '#fbbf24' : '#3b82f6')
+    ctx.shadowColor = boost ? '#fbbf24' : (activePowerup === 'slowmo' ? '#a78bfa' : 'rgba(59,130,246,0.6)')
+    ctx.shadowBlur = boost ? 22 * scale : 14 * scale
+
+    const playerGrad = ctx.createRadialGradient(-5 * scale, -5 * scale, 0, 0, 0, PLAYER_RADIUS * scale)
+    if (activePowerup === 'slowmo') {
+      playerGrad.addColorStop(0, '#f3e8ff')
+      playerGrad.addColorStop(0.5, '#c084fc')
+      playerGrad.addColorStop(1, '#a855f7')
+    } else if (activePowerup === 'magnet') {
+      playerGrad.addColorStop(0, '#dbeafe')
+      playerGrad.addColorStop(0.5, '#60a5fa')
+      playerGrad.addColorStop(1, '#3b82f6')
+    } else if (activePowerup === 'double') {
+      playerGrad.addColorStop(0, '#fdf2f8')
+      playerGrad.addColorStop(0.5, '#f472b6')
+      playerGrad.addColorStop(1, '#ec4899')
+    } else {
+      playerGrad.addColorStop(0, boost ? '#fffbeb' : '#fff')
+      playerGrad.addColorStop(0.5, boost ? '#fde68a' : '#93c5fd')
+      playerGrad.addColorStop(1, boost ? '#fbbf24' : '#3b82f6')
+    }
     ctx.fillStyle = playerGrad
     ctx.beginPath()
-    ctx.arc(player.x * scale, (180 - player.y) * scale, PLAYER_RADIUS * scale, 0, Math.PI * 2)
+    const pr = PLAYER_RADIUS * (isSliding ? 0.6 : 1)
+    ctx.roundRect(px - pr * scale, playerY - pr * scale, pr * 2 * scale, pr * 2 * scale, 6 * scale)
     ctx.fill()
+
+    if (isSliding) {
+      ctx.fillStyle = 'rgba(251,191,36,0.5)'
+      ctx.beginPath()
+      ctx.arc(px, playerY + 5 * scale, 4 * scale, 0, Math.PI * 2)
+      ctx.fill()
+    }
 
     ctx.shadowBlur = 0
 
     ctx.fillStyle = 'rgba(255,255,255,0.3)'
     ctx.beginPath()
-    ctx.arc((player.x - 3) * scale, (183 - player.y) * scale, 3 * scale, 0, Math.PI * 2)
+    ctx.arc(px - 3 * scale, playerY - 5 * scale, 4 * scale, 0, Math.PI * 2)
     ctx.fill()
 
     ctx.restore()
 
     requestAnimationFrame(draw)
-  }
+  }, [playerX, lane, enemies, powerups, particles, trail, activePowerup, isJumping, jumpProgress, isSliding, slideProgress, speed, showGhost, distance])
 
-  useEffect(() => { draw() }, [player, enemies, zones, particles, trail, activeZone, distance])
+  useEffect(() => { draw() }, [draw])
 
   useEffect(() => {
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerUp)
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerUp)
-      if (raf.current) cancelAnimationFrame(raf.current)
+    const handleKeyDown = (e) => {
+      if (!playing || dead) return
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); setLane(l => Math.max(0, l - 1)); setCombo(c => Math.max(c - 2, 0)) }
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); setLane(l => Math.min(2, l + 1)); setCombo(c => Math.max(c - 2, 0)) }
+      if ((e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') && !isJumping && !isSliding) { e.preventDefault(); setIsJumping(true); setJumpProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#60a5fa', 8, 4) }
+      if ((e.code === 'ArrowDown' || e.code === 'KeyS') && !isSliding && !isJumping) { e.preventDefault(); setIsSliding(true); setSlideProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#fbbf24', 6, 2) }
     }
-  }, [playing])
+    const handleKeyUp = (e) => { keysPressed.current.delete(e.code) }
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [playing, dead, lane, isJumping, isSliding, addParticles])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const handleTouchStart = (e) => {
+      if (dead) { start(); return }
+      if (!playing) { start(); return }
+      swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }
+    }
+    const handleTouchEnd = (e) => {
+      if (!playing || dead || !swipeStart.current) return
+      const touch = e.changedTouches[0]
+      const dx = touch.clientX - swipeStart.current.x
+      const dy = touch.clientY - swipeStart.current.y
+      const dt = Date.now() - swipeStart.current.t
+      swipeStart.current = null
+      if (dt > 300) return
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 40) { setLane(l => Math.min(2, l + 1)); setCombo(c => Math.max(c - 2, 0)) }
+        else if (dx < -40) { setLane(l => Math.max(0, l - 1)); setCombo(c => Math.max(c - 2, 0)) }
+      } else {
+        if (dy < -40 && !isJumping && !isSliding) { setIsJumping(true); setJumpProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#60a5fa', 8, 4) }
+        else if (dy > 40 && !isSliding && !isJumping) { setIsSliding(true); setSlideProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#fbbf24', 6, 2) }
+      }
+    }
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: true })
+    canvas.addEventListener('touchend', handleTouchEnd)
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart)
+      canvas.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [playing, dead, lane, isJumping, isSliding, addParticles])
 
   const finalDist = Math.floor(distance)
 
@@ -596,6 +682,10 @@ export default function Encara() {
           <Zap size={22} className="flame" style={{ color: finalDist > best ? '#fbbf24' : 'var(--gold)' }} />
           <span className="streak-num" style={{ color: finalDist > best ? '#fbbf24' : 'inherit' }}>{finalDist}m</span>
           <span className="streak-label">{t('encara_distancia')}</span>
+        </div>
+        <div className="score-display">
+          <Sparkles size={16} /> <span>{score.toLocaleString()}</span>
+          {multiplier > 1 && <span className="multiplier">x{multiplier}</span>}
         </div>
         <div className="best-badge">
           <Flag size={16} /> {t('encara_mejor')} <strong>{best}m</strong>
@@ -609,15 +699,21 @@ export default function Encara() {
         <h3 className="encara-title">{t('encara_title')}</h3>
         <p className="encara-sub">{t('encara_sub')}</p>
 
-        <div className="encara-canvas-wrap" onPointerDown={handlePointerDown}>
-          <canvas ref={canvasRef} className="encara-canvas" />
-          {playing && <div className="tap-hint">{t('encara_arrastra')}</div>}
-          {!playing && !dead && <div className="start-hint">{t('encara_inicio')}</div>}
+        <div className="encara-controls-hint">
+          <kbd>←</kbd><kbd>→</kbd> {t('encara_mover')} | <kbd>↑</kbd><kbd>Space</kbd> {t('encara_saltar')} | <kbd>↓</kbd> {t('encara_deslizar')}
+          <span className="mobile-hint">{t('encara_swipe')}</span>
+        </div>
+
+        <div className="encara-canvas-wrap" onTouchStart={(e) => { if (dead) start(); else if (!playing) start(); }} onTouchEnd={(e) => {}}>
+          <canvas ref={canvasRef} className="encara-canvas" tabIndex={0} />
+          {playing && <div className="tap-hint">{activePowerup && <span className="powerup-active">{POWERUPS.find(p => p.id === activePowerup)?.icon} {t(POWERUPS.find(p => p.id === activePowerup)?.name)}</span>}</div>}
+          {!playing && !dead && <div className="start-hint"><Keyboard size={24} /> {t('encara_inicio')}</div>}
           {dead && <motion.div className="dead-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <div className="dead-content">
               <Sparkles size={32} className="dead-icon" />
               <h4>{t('encara_chocaste')}</h4>
               <p className="dead-dist">{finalDist}m</p>
+              <p className="dead-score">{score.toLocaleString()} pts</p>
               {finalDist > best && <p className="dead-record">{t('encara_nuevo_record')}</p>}
               <div className="dead-stats">
                 <span>{nearMisses} {t('encara_cercanos')}</span>
@@ -627,7 +723,13 @@ export default function Encara() {
           </motion.div>}
         </div>
 
-        {activeZone && <div className="zone-indicator">{t('encara_zona_activa')} <strong>{t(ZONES.find(z => z.id === activeZone)?.name || activeZone)}</strong></div>}
+        {activePowerup && <div className="powerup-banner"><span>{POWERUPS.find(p => p.id === activePowerup)?.icon}</span> <strong>{t(POWERUPS.find(p => p.id === activePowerup)?.name)}</strong> <span>{Math.ceil(powerupTimer / 1000)}s</span></div>}
+
+        <div className="lane-indicator">
+          {LANES.map((_, i) => (
+            <div key={i} className={`lane-dot ${i === lane ? 'active' : ''}`} />
+          ))}
+        </div>
 
         <div className="stats-row">
           <div className="stat-mini">
@@ -639,8 +741,8 @@ export default function Encara() {
             <span className="stat-lbl">{t('encara_record')}</span>
           </div>
           <div className="stat-mini">
-            <span className="stat-val">{enemies.length}</span>
-            <span className="stat-lbl">{t('encara_rivales')}</span>
+            <span className="stat-val">{score.toLocaleString()}</span>
+            <span className="stat-lbl">{t('encara_puntos')}</span>
           </div>
         </div>
 

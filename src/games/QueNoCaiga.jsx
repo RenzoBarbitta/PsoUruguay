@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { RotateCcw, Trophy, Zap, ArrowLeft } from 'lucide-react'
+import { RotateCcw, Trophy, Zap, ArrowLeft, Target, MousePointer, Smartphone } from 'lucide-react'
 import { useApp } from '../core/app.jsx'
 import { t } from '../core/ui.jsx'
 
@@ -13,10 +13,9 @@ function setBest(v) {
   try { localStorage.setItem(STORAGE_KEY, String(v)) } catch {}
 }
 
-const GRAVITY = 0.38
-const LIFT = -11.5
-const SPIN_FACTOR = 0.18
-const MAX_TILT = 22
+const GRAVITY = 0.35
+const LIFT_BASE = -12
+const MAX_TILT = 25
 
 export default function QueNoCaiga() {
   const { v, switchTab } = useApp()
@@ -35,12 +34,15 @@ export default function QueNoCaiga() {
   const [footY, setFootY] = useState(0)
   const [pressStart, setPressStart] = useState(0)
   const [gesture, setGesture] = useState([])
+  const [touchId, setTouchId] = useState(null)
+  const [showTarget, setShowTarget] = useState(false)
+  const [targetX, setTargetX] = useState(0)
   const raf = useRef(null)
   const canvasRef = useRef(null)
   const ctxRef = useRef(null)
 
-  const BASE_Y = 320
-  const FOOT_Y = BASE_Y + 60
+  const BASE_Y = 360
+  const FOOT_Y = BASE_Y + 70
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -56,14 +58,14 @@ export default function QueNoCaiga() {
     return () => window.removeEventListener('resize', resize)
   }, [])
 
-  const spawnParticles = (x, y, color, count = 8) => {
+  const spawnParticles = (x, y, color, count = 10) => {
     const newP = Array.from({ length: count }, () => ({
       x, y,
-      vx: (Math.random() - 0.5) * 6,
-      vy: Math.random() * -4 - 1,
+      vx: (Math.random() - 0.5) * 7,
+      vy: Math.random() * -5 - 1,
       life: 1,
-      decay: 0.015 + Math.random() * 0.015,
-      size: 3 + Math.random() * 4,
+      decay: 0.012 + Math.random() * 0.015,
+      size: 3 + Math.random() * 5,
       color
     }))
     setParticles(p => [...p, ...newP])
@@ -83,12 +85,12 @@ export default function QueNoCaiga() {
     const dist = Math.hypot(dx, dy)
     const duration = points[points.length - 1].t - points[0].t
 
-    if (dist < 30 && duration > 300) {
+    if (dist < 35 && duration > 300) {
       const cx = points.reduce((s, p) => s + p.x, 0) / points.length
       const cy = points.reduce((s, p) => s + p.y, 0) / points.length
       let isCircle = true
       for (const p of points) {
-        if (Math.abs(Math.hypot(p.x - cx, p.y - cy) - dist / 2) > 25) { isCircle = false; break }
+        if (Math.abs(Math.hypot(p.x - cx, p.y - cy) - dist / 2) > 28) { isCircle = false; break }
       }
       if (isCircle) return triggerTrick('t.arw', '🌪️')
     }
@@ -96,12 +98,12 @@ export default function QueNoCaiga() {
     const startY = points[0].y
     const minY = Math.min(...points.map(p => p.y))
     const maxY = Math.max(...points.map(p => p.y))
-    if (startY - minY > 60 && maxY - minY < 30 && duration < 400) {
+    if (startY - minY > 70 && maxY - minY < 35 && duration < 450) {
       return triggerTrick('t.stall', '🧘')
     }
 
     const upDown = points.filter((p, i) => i > 0 && Math.sign(p.y - points[i - 1].y) !== Math.sign(points[i - 1].y - points[i - 2].y)).length
-    if (upDown >= 2 && duration < 600) return triggerTrick('t.knee', '🦵')
+    if (upDown >= 2 && duration < 700) return triggerTrick('t.knee', '🦵')
   }
 
   const loop = (ts) => {
@@ -113,14 +115,15 @@ export default function QueNoCaiga() {
         setPlaying(false)
         setVy(0)
         setY(BASE_Y)
+        setShowTarget(false)
         if (count > best) { setBestCount(count); setBest(count) }
-        spawnParticles(footX, FOOT_Y, '#ef4444', 20)
+        spawnParticles(footX, FOOT_Y, '#ef4444', 30)
         return BASE_Y
       }
       return ny
     })
 
-    setParticles(p => p.map(pt => ({ ...pt, x: pt.x + pt.vx, y: pt.y + pt.vy, vy: pt.vy + 0.15, life: pt.life - pt.decay })).filter(pt => pt.life > 0))
+    setParticles(p => p.map(pt => ({ ...pt, x: pt.x + pt.vx, y: pt.y + pt.vy, vy: pt.vy + 0.18, life: pt.life - pt.decay })).filter(pt => pt.life > 0))
 
     raf.current = requestAnimationFrame(loop)
   }
@@ -130,59 +133,88 @@ export default function QueNoCaiga() {
     setCount(0)
     setSpin(0)
     setTilt(0)
-    setY(BASE_Y - 10)
-    setVy(LIFT)
+    setY(BASE_Y - 15)
+    setVy(LIFT_BASE)
     setFootX(window.innerWidth / 2)
     setCombo(0)
     setGesture([])
+    setShowTarget(true)
+    setTargetX(window.innerWidth / 2)
     raf.current = requestAnimationFrame(loop)
   }
 
   const handlePointerDown = (e) => {
     if (playing) return
     const rect = canvasRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY
+    const x = clientX - rect.left
+    const y = clientY - rect.top
+    if (e.touches) setTouchId(e.touches[0].identifier)
     setFootX(x)
     setFootY(y)
     setPressStart(Date.now())
     setGesture([{ x, y, t: Date.now() }])
+    setShowTarget(true)
+    setTargetX(x)
   }
 
   const handlePointerMove = (e) => {
     if (!playing && pressStart) {
       const rect = canvasRef.current.getBoundingClientRect()
-      const x = e.clientX - rect.left
-      const y = e.clientY - rect.top
+      let clientX, clientY
+      if (e.touches) {
+        const touch = Array.from(e.touches).find(t => t.identifier === touchId) || e.touches[0]
+        clientX = touch.clientX
+        clientY = touch.clientY
+      } else {
+        clientX = e.clientX
+        clientY = e.clientY
+      }
+      const x = clientX - rect.left
+      const y = clientY - rect.top
       setFootX(x)
       setFootY(y)
-      setGesture(g => [...g.slice(-20), { x, y, t: Date.now() }])
+      setTargetX(x)
+      setGesture(g => [...g.slice(-25), { x, y, t: Date.now() }])
     }
   }
 
   const handlePointerUp = (e) => {
     if (!playing && pressStart) {
       const duration = Date.now() - pressStart
-      if (duration < 800) {
+      if (duration < 1000) {
         detectGesture()
         start()
       }
       setPressStart(0)
       setGesture([])
+      setTouchId(null)
+      setShowTarget(false)
     } else if (playing) {
       const rect = canvasRef.current.getBoundingClientRect()
-      const x = e.clientX - rect.left
-      const relX = (x - footX) / 60
+      let clientX
+      if (e.changedTouches) {
+        clientX = e.changedTouches[0].clientX
+      } else {
+        clientX = e.clientX
+      }
+      const x = clientX - rect.left
+      const relX = (x - footX) / 70
       const clamped = Math.max(-1, Math.min(1, relX))
-      setSpin(s => clamped * 8)
+      setSpin(s => clamped * 10)
       setTilt(clamped * MAX_TILT)
-      setVy(LIFT * (0.85 + Math.abs(clamped) * 0.3))
+      const liftMult = 0.85 + Math.abs(clamped) * 0.35
+      setVy(LIFT_BASE * liftMult)
       setCount(c => c + 1)
       setFootX(x)
-      spawnParticles(x, FOOT_Y - 20, count > 50 ? '#fbbf24' : count > 20 ? '#34d399' : '#60a5fa', 6)
-      if (count > 0 && count % 50 === 0) {
+      const color = count > 100 ? '#fbbf24' : count > 50 ? '#34d399' : count > 20 ? '#60a5fa' : '#a78bfa'
+      spawnParticles(x, FOOT_Y - 25, color, 10)
+      if (count > 0 && count % 25 === 0) {
         triggerTrick('t.milestone', '✨')
       }
+      setShowTarget(true)
+      setTargetX(x)
     }
   }
 
@@ -200,8 +232,9 @@ export default function QueNoCaiga() {
 
     const grad = ctx.createLinearGradient(0, 0, 0, h)
     grad.addColorStop(0, '#0a1128')
-    grad.addColorStop(0.5, '#1a3a6e')
-    grad.addColorStop(1, '#0f1b3d')
+    grad.addColorStop(0.4, '#1a3a6e')
+    grad.addColorStop(0.7, '#2d1b4e')
+    grad.addColorStop(1, '#1a1a2e')
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, w, h)
 
@@ -217,52 +250,93 @@ export default function QueNoCaiga() {
     })
     ctx.globalAlpha = 1
 
+    if (showTarget && !playing) {
+      const tx = (targetX - cx) * scale
+      const ty = (FOOT_Y - cy) * scale - 40 * scale
+      const pulse = Math.sin(Date.now() / 200) * 0.15 + 0.85
+      ctx.strokeStyle = `rgba(251,191,36,${0.6 * pulse})`
+      ctx.lineWidth = 3 * scale
+      ctx.setLineDash([10 * scale, 8 * scale])
+      ctx.lineDashOffset = Date.now() / 30
+      ctx.beginPath()
+      ctx.arc(tx, ty, 35 * scale * pulse, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.setLineDash([])
+
+      ctx.fillStyle = `rgba(251,191,36,${0.3 * pulse})`
+      ctx.beginPath()
+      ctx.arc(tx, ty, 28 * scale * pulse, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.font = `bold ${14 * scale}px var(--font-display)`
+      ctx.fillStyle = '#fbbf24'
+      ctx.textAlign = 'center'
+      ctx.fillText(t('quenocaiga_toca'), tx, ty - 50 * scale)
+    }
+
     const ballY = (BASE_Y - y) * scale
-    const ballR = 22 * scale
+    const ballR = 24 * scale
 
     ctx.save()
     ctx.translate(0, ballY)
-    ctx.rotate(spin * 0.02)
+    ctx.rotate(spin * 0.025)
 
     const ballGrad = ctx.createRadialGradient(-ballR * 0.3, -ballR * 0.3, 0, 0, 0, ballR)
     ballGrad.addColorStop(0, '#ffffff')
-    ballGrad.addColorStop(0.4, '#e8e8e8')
-    ballGrad.addColorStop(1, '#b0b0b0')
+    ballGrad.addColorStop(0.35, '#f0f0f0')
+    ballGrad.addColorStop(0.7, '#d0d0d0')
+    ballGrad.addColorStop(1, '#a0a0a0')
     ctx.fillStyle = ballGrad
     ctx.beginPath()
     ctx.arc(0, 0, ballR, 0, Math.PI * 2)
     ctx.fill()
 
-    ctx.strokeStyle = '#888'
-    ctx.lineWidth = 2 * scale
+    ctx.strokeStyle = '#999'
+    ctx.lineWidth = 2.5 * scale
     ctx.beginPath()
-    ctx.moveTo(-ballR * 0.8, 0)
-    ctx.bezierCurveTo(-ballR * 0.4, -ballR * 0.6, ballR * 0.4, -ballR * 0.6, ballR * 0.8, 0)
+    ctx.moveTo(-ballR * 0.75, 0)
+    ctx.bezierCurveTo(-ballR * 0.4, -ballR * 0.55, ballR * 0.4, -ballR * 0.55, ballR * 0.75, 0)
     ctx.stroke()
 
     ctx.beginPath()
-    ctx.moveTo(0, -ballR * 0.8)
-    ctx.bezierCurveTo(0, -ballR * 0.4, 0, ballR * 0.4, 0, ballR * 0.8)
+    ctx.moveTo(0, -ballR * 0.75)
+    ctx.bezierCurveTo(0, -ballR * 0.4, 0, ballR * 0.4, 0, ballR * 0.75)
     ctx.stroke()
+
+    for (let i = 0; i < 3; i++) {
+      const angle = (spin * 0.025 + i * 2.1) % (Math.PI * 2)
+      ctx.beginPath()
+      ctx.moveTo(Math.cos(angle) * ballR * 0.3, Math.sin(angle) * ballR * 0.3)
+      ctx.lineTo(Math.cos(angle) * ballR * 0.85, Math.sin(angle) * ballR * 0.85)
+      ctx.strokeStyle = 'rgba(150,150,150,0.4)'
+      ctx.lineWidth = 1.5 * scale
+      ctx.stroke()
+    }
     ctx.restore()
 
-    const footR = 36 * scale
+    const footR = 38 * scale
     ctx.save()
     ctx.translate((footX - cx) * scale, (FOOT_Y - cy) * scale)
     ctx.rotate(tilt * Math.PI / 180)
 
     const footGrad = ctx.createLinearGradient(-footR, footR, footR, -footR)
-    footGrad.addColorStop(0, '#2d3a5a')
-    footGrad.addColorStop(0.5, '#3d4f7a')
+    footGrad.addColorStop(0, '#1e2a4a')
+    footGrad.addColorStop(0.4, '#2d3f6a')
+    footGrad.addColorStop(0.7, '#3d5a8a')
     footGrad.addColorStop(1, '#1a2a4a')
     ctx.fillStyle = footGrad
     ctx.beginPath()
-    ctx.ellipse(0, 0, footR, footR * 0.45, 0, 0, Math.PI * 2)
+    ctx.ellipse(0, 0, footR, footR * 0.42, 0, 0, Math.PI * 2)
     ctx.fill()
 
-    ctx.fillStyle = '#4a5a8a'
+    ctx.fillStyle = '#3a4f7a'
     ctx.beginPath()
-    ctx.ellipse(0, -footR * 0.15, footR * 0.7, footR * 0.25, 0, 0, Math.PI * 2)
+    ctx.ellipse(0, -footR * 0.12, footR * 0.72, footR * 0.28, 0, 0, Math.PI * 2)
+    ctx.fill()
+
+    ctx.fillStyle = 'rgba(251,191,36,0.15)'
+    ctx.beginPath()
+    ctx.ellipse(0, footR * 0.35, footR * 0.5, footR * 0.15, 0, 0, Math.PI * 2)
     ctx.fill()
 
     ctx.restore()
@@ -272,17 +346,17 @@ export default function QueNoCaiga() {
     requestAnimationFrame(draw)
   }
 
-  useEffect(() => { draw() }, [y, spin, tilt, footX, particles, count])
+  useEffect(() => { draw() }, [y, spin, tilt, footX, particles, count, showTarget, targetX])
 
   useEffect(() => {
-    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointermove', handlePointerMove, { passive: true })
     window.addEventListener('pointerup', handlePointerUp)
     return () => {
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerup', handlePointerUp)
       if (raf.current) cancelAnimationFrame(raf.current)
     }
-  }, [playing])
+  }, [])
 
   return (
     <>
@@ -295,6 +369,7 @@ export default function QueNoCaiga() {
         <div className="best-badge">
           <Trophy size={16} /> {t('quenocaiga_mejor')} <strong>{best}</strong>
         </div>
+        {combo > 0 && <div className="combo-badge"><Target size={14} /> {combo}x {t('quenocaiga_combo')}</div>}
         <button className="btn btn-sm" onClick={() => switchTab('juegos')}>
           <ArrowLeft size={16} /> {t('quenocaiga_volver')}
         </button>
@@ -307,11 +382,9 @@ export default function QueNoCaiga() {
         <div className="quenocaiga-canvas-wrap" onPointerDown={handlePointerDown}>
           <canvas ref={canvasRef} className="quenocaiga-canvas" />
           {playing && <div className="tap-hint">{t('quenocaiga_toca')}</div>}
-          {!playing && count === 0 && <div className="start-hint">{t('quenocaiga_inicio')}</div>}
-          {!playing && count > 0 && <div className="restart-hint">{t('quenocaiga_reintentar')}</div>}
+          {!playing && count === 0 && <div className="start-hint"><MousePointer size={28} /><Smartphone size={28} /> {t('quenocaiga_inicio')}</div>}
+          {!playing && count > 0 && <div className="restart-hint"><RotateCcw size={22} /> {t('quenocaiga_reintentar')}</div>}
         </div>
-
-        {combo > 2 && <div className="combo-display">{combo}x {t('quenocaiga_combo')}</div>}
 
         {showTrick && (
           <motion.div className="trick-popup" initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }}>
@@ -319,6 +392,12 @@ export default function QueNoCaiga() {
             <span className="trick-name">{t(showTrick.name)}</span>
           </motion.div>
         )}
+
+        <div className="trick-hints">
+          <span className="hint"><kbd>○</kbd> {t('quenocaiga_trick_arw')}</span>
+          <span className="hint"><kbd>□</kbd> {t('quenocaiga_trick_stall')}</span>
+          <span className="hint"><kbd>↑↓</kbd> {t('quenocaiga_trick_knee')}</span>
+        </div>
 
         <div className="stats-row">
           <div className="stat-mini">
@@ -335,7 +414,7 @@ export default function QueNoCaiga() {
           </div>
         </div>
 
-        <button className="btn btn-primary btn-block quenocaiga-reset" onClick={() => { setPlaying(false); setCount(0); setSpin(0); setTilt(0); setY(BASE_Y); setCombo(0); }}>
+        <button className="btn btn-primary btn-block quenocaiga-reset" onClick={() => { setPlaying(false); setCount(0); setSpin(0); setTilt(0); setY(BASE_Y); setCombo(0); setShowTarget(false); }}>
           <RotateCcw size={16} /> {t('quenocaiga_reset')}
         </button>
       </motion.div>

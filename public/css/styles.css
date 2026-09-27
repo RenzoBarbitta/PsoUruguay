@@ -393,6 +393,31 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--text-muted);
 }
 .tabs-nav-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  padding: 0 1.25rem;
+  gap: 0.25rem;
+  min-width: max-content;
+}
+.tab-btn {
+  position: relative;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  padding: 0.75rem 0.85rem;
+  white-space: nowrap;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+.tabs-nav-inner {
   max-width: 1180px;
   margin: 0 auto;
   display: flex;
@@ -2282,7 +2307,7 @@ select:focus, textarea:focus {
 .efecto-btns { display: flex; gap: 0.4rem; }
 .efecto-btn { flex: 1; padding: 0.5rem; font-size: 0.75rem; font-weight: 700; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; }
 .efecto-btn.active { background: var(--accent-dark); color: #fff; border-color: transparent; }
-.tiroslibres-preview { position: relative; height: 220px; margin-bottom: 1rem; }
+.tiroslibres-preview { position: relative; height: 340px; margin-bottom: 1rem; }
 .goal-frame { position: relative; width: 100%; height: 100%; background: linear-gradient(180deg, #1a4a2e 0%, #0d2e18 100%); border-radius: var(--radius); overflow: hidden; border: 2px solid #2a5a3a; }
 /* Grass texture */
 .goal-frame::before {
@@ -2294,11 +2319,11 @@ select:focus, textarea:focus {
   pointer-events: none;
   z-index: 1;
 }
-/* Goal posts */
+/* Goal posts - arco más chico y centrado */
 .goal-post { position: absolute; top: 0; width: 4px; height: 100%; background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.6); z-index: 10; }
-.goal-post.left { left: 0; }
-.goal-post.right { right: 0; }
-.goal-crossbar { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.6); z-index: 10; }
+.goal-post.left { left: 30%; }
+.goal-post.right { right: 30%; }
+.goal-crossbar { position: absolute; top: 0; left: 30%; right: 30%; height: 4px; background: #fff; box-shadow: 0 0 8px rgba(255,255,255,.6); z-index: 10; }
 /* Goal net with 3D effect */
 .goal-net { position: absolute; inset: 0; 
   background-image: 
@@ -2306,9 +2331,10 @@ select:focus, textarea:focus {
     repeating-linear-gradient(-45deg, rgba(255,255,255,.08), rgba(255,255,255,.08) 6px, transparent 6px, transparent 12px);
   pointer-events: none; z-index: 2;
   opacity: 0.6;
+  clip-path: polygon(30% 0, 70% 0, 70% 100%, 30% 100%);
 }
-/* Wall - Barrera */
-.wall { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 220px; height: 1px; z-index: 5; }
+/* Wall - Barrera a 9.15m (aprox 35% desde abajo) */
+.wall { position: absolute; bottom: 35%; left: 50%; transform: translateX(-50%); width: 260px; height: 1px; z-index: 5; }
 .wall-player {
   position: absolute; bottom: 0; width: 24px; height: 52px;
   background: linear-gradient(180deg, #3a3a3a 0%, #222 100%);
@@ -2345,8 +2371,8 @@ select:focus, textarea:focus {
   70% { transform: translateY(-8px) scaleY(0.95); }
   100% { transform: translateY(0) scaleY(1); }
 }
-/* Keeper - Arquero */
-.keeper { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 44px; height: 88px; z-index: 4; transition: all 0.4s cubic-bezier(0.3, 0.9, 0.3, 1.05); }
+/* Keeper - Arquero en la línea de gol (top del frame) */
+.keeper { position: absolute; top: 0; left: 50%; transform: translateX(-50%) translateY(-50%); width: 44px; height: 88px; z-index: 4; transition: all 0.4s cubic-bezier(0.3, 0.9, 0.3, 1.05); }
 .keeper-body {
   position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 36px; height: 72px;
@@ -2378,15 +2404,15 @@ select:focus, textarea:focus {
   60% { transform: translateX(calc(-50% + var(--dive-dir, 0) * 60px)) translateY(-30px) rotate(calc(var(--dive-dir, 0) * -20deg)); }
   100% { transform: translateX(calc(-50% + var(--dive-dir, 0) * 55px)) translateY(-24px) rotate(calc(var(--dive-dir, 0) * -15deg)); }
 }
-/* Ball - Pelota con trayectoria */
+/* Ball - Pelota con trayectoria - empieza desde abajo (punto de tiro libre) */
 .ball { 
-  position: absolute; bottom: 18px; left: 50%; 
+  position: absolute; bottom: 12%; left: 50%; 
   width: 26px; height: 26px; margin-left: -13px; 
   border-radius: 50%; 
   background: radial-gradient(circle at 30% 30%, #fff, #e8e8e8 55%, #c8c8c8);
   box-shadow: inset -3px -4px 6px rgba(0,0,0,.28), 0 4px 10px rgba(0,0,0,.45); 
   z-index: 6; 
-  transition: all 0.9s cubic-bezier(0.25, 0.8, 0.35, 1);
+  transition: all 1.1s cubic-bezier(0.25, 0.8, 0.35, 1);
   transform-origin: center bottom;
 }
 .ball::after {
@@ -2395,13 +2421,14 @@ select:focus, textarea:focus {
   background: radial-gradient(circle at 50% 50%, transparent 3px, rgba(0,0,0,0.08) 4px 6px, transparent 8px);
 }
 .ball.animate-gol { 
-  bottom: 110% !important; 
+  top: 0% !important; 
   left: var(--gol-x, 50%) !important; 
-  transform: translateX(-50%) scale(0.25) rotate(720deg); 
+  bottom: auto !important;
+  transform: translateX(-50%) scale(0.2) rotate(720deg); 
   opacity: 0; 
 }
 .ball.animate-atajada { 
-  transform: translateX(-50%) translateY(-40px) scale(0.6) rotate(180deg); 
+  transform: translateX(-50%) translateY(-60px) scale(0.6) rotate(180deg); 
   opacity: 0; 
 }
 .ball.animate-palo { 
@@ -2600,3 +2627,27 @@ select:focus, textarea:focus {
 .zone-indicator strong { color: #c084fc; }
 .btn-row { display: flex; gap: 0.5rem; margin-top: 1rem; }
 .btn-row .btn { flex: 1; }
+
+/* ============ ENCARA Enhanced ============ */
+.encara-controls-hint { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin: 0.5rem 0 1rem; font-size: 0.7rem; color: var(--text-muted); }
+.encara-controls-hint kbd { background: var(--bg-surface-2); border: 1px solid var(--border); padding: 0.15rem 0.4rem; border-radius: 4px; font-family: var(--font-display); font-size: 0.65rem; }
+.encara-controls-hint .mobile-hint { color: var(--accent-dark); font-weight: 600; }
+.encara-canvas-wrap { touch-action: none; }
+.score-display { display: flex; align-items: center; gap: 0.5rem; font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; color: #fbbf24; }
+.score-display .multiplier { background: linear-gradient(90deg, #ec4899, #f472b6); color: #fff; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.75rem; animation: glow 1s ease-in-out infinite; }
+.powerup-banner { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin: 0.5rem 0; padding: 0.5rem; background: linear-gradient(90deg, rgba(168,85,247,0.2), rgba(59,130,246,0.2)); border: 1px solid rgba(168,85,247,0.3); border-radius: 999px; font-size: 0.8rem; color: #c084fc; font-weight: 600; animation: slideDown 0.3s ease-out; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.lane-indicator { display: flex; justify-content: center; gap: 0.75rem; margin: 0.5rem 0; }
+.lane-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--border); border: 2px solid transparent; transition: all 0.2s; }
+.lane-dot.active { background: #3b82f6; border-color: #60a5fa; box-shadow: 0 0 12px #3b82f6; transform: scale(1.2); }
+.dead-score { font-family: var(--font-display); font-size: 1.3rem; color: #fbbf24; margin: 0.5rem 0; }
+.encara-card kbd { background: var(--bg-surface-2); border: 1px solid var(--border); padding: 0.15rem 0.35rem; border-radius: 4px; font-family: var(--font-display); font-size: 0.7rem; }
+
+/* ============ ¡QUÉ NO CAIGA! Enhanced ============ */
+.combo-badge { display: inline-flex; align-items: center; gap: 0.3rem; margin-left: 0.75rem; padding: 0.2rem 0.6rem; background: linear-gradient(90deg, #fbbf24, #f59e0b); color: #3a2e05; border-radius: 999px; font-size: 0.7rem; font-weight: 700; font-family: var(--font-display); animation: comboPop 0.3s ease-out; }
+.trick-hints { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.75rem; margin: 0.75rem 0; font-size: 0.7rem; color: var(--text-muted); }
+.trick-hints .hint { display: flex; align-items: center; gap: 0.3rem; background: var(--bg-surface-2); padding: 0.3rem 0.6rem; border-radius: 999px; border: 1px solid var(--border); }
+.trick-hints kbd { background: linear-gradient(90deg, #fbbf24, #f59e0b); color: #3a2e05; padding: 0.1rem 0.4rem; border-radius: 4px; font-family: var(--font-display); font-size: 0.65rem; font-weight: 700; }
+.quenocaiga-canvas-wrap .start-hint { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; }
+.quenocaiga-canvas-wrap .start-hint svg { opacity: 0.8; animation: float 2s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }

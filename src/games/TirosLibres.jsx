@@ -272,11 +272,11 @@ export default function TirosLibres() {
             <div className="goal-crossbar" />
             <div className="goal-net" />
             <div className={`wall ${showResult && lastResult?.result === 'barrera' ? 'animate-jump' : ''}`}>
-              <div className="wall-player" style={{ left: '15%' }} />
-              <div className="wall-player" style={{ left: '30%' }} />
-              <div className="wall-player" style={{ left: '45%' }} />
-              <div className="wall-player" style={{ left: '60%' }} />
-              <div className="wall-player" style={{ left: '75%' }} />
+              <div className="wall-player" style={{ left: '10%' }} />
+              <div className="wall-player" style={{ left: '28%' }} />
+              <div className="wall-player" style={{ left: '42%' }} />
+              <div className="wall-player" style={{ left: '58%' }} />
+              <div className="wall-player" style={{ left: '72%' }} />
             </div>
             <div className={`keeper ${showResult ? (lastResult?.result === 'atajada' ? (config.angulo < 0 ? 'animate-save animate-save-left' : config.angulo > 0 ? 'animate-save animate-save-right' : 'animate-save animate-save-center') : '') : ''}`}>
               <div className="keeper-body" />

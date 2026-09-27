@@ -97,6 +97,38 @@ const I18N = {
     encara_portal: { es: 'Portal 🌀', pt: 'Portal 🌀' },
     encara_bubble: { es: 'Burbuja 🫧', pt: 'Bolha 🫧' },
 
+    /* ------- ENCARA (Dribbling) ------- */
+    encara_mover: { es: 'Mover', pt: 'Mover' },
+    encara_saltar: { es: 'Saltar', pt: 'Pular' },
+    encara_deslizar: { es: 'Deslizar', pt: 'Deslizar' },
+    encara_swipe: { es: 'Desliza para mover/saltar/deslizar', pt: 'Deslize para mover/pular/deslizar' },
+    encara_inicio: { es: 'Click o toca para empezar', pt: 'Clique ou toque para começar' },
+    encara_chocaste: { es: '¡Chocaste!', pt: 'Bateste!' },
+    encara_nuevo_record: { es: '¡Nuevo récord!', pt: 'Novo recorde!' },
+    encara_cercanos: { es: 'esquives', pt: 'desvios' },
+    encara_combo_max: { es: 'combo máx', pt: 'combo máx' },
+    encara_reintentar: { es: 'Otra vez', pt: 'De novo' },
+    encara_reset: { es: 'Reiniciar', pt: 'Reiniciar' },
+    encara_actual: { es: 'Actual', pt: 'Atual' },
+    encara_record: { es: 'Récord', pt: 'Recorde' },
+    encara_rivales: { es: 'rivales', pt: 'rivais' },
+    encara_zona_activa: { es: 'Zona activa:', pt: 'Zona ativa:' },
+    encara_puntos: { es: 'Puntos', pt: 'Pontos' },
+    encara_static: { es: 'Estático', pt: 'Estático' },
+    encara_mover: { es: 'Móvil', pt: 'Móvel' },
+    encara_jumper: { es: 'Saltador', pt: 'Saltador' },
+    encara_slider: { es: 'Deslizador', pt: 'Deslizador' },
+    encara_giant: { es: 'Gigante', pt: 'Gigante' },
+    encara_shield: { es: 'Escudo', pt: 'Escudo' },
+    encara_magnet: { es: 'Imán', pt: 'Ímã' },
+    encara_slowmo: { es: 'Cámara lenta', pt: 'Câmera lenta' },
+    encara_double: { es: 'Doble puntos', pt: 'Pontos duplos' },
+
+    /* ------- ¡QUÉ NO CAIGA! ------- */
+    quenocaiga_trick_arw: { es: 'Around the World', pt: 'Volta ao Mundo' },
+    quenocaiga_trick_stall: { es: 'Stall (parada)', pt: 'Stall (parada)' },
+    quenocaiga_trick_knee: { es: 'Rodilla/Cabeza', pt: 'Joelho/Cabeça' },
+
     /* ------- Planteles ------- */
     planteles_title: { es: 'Planteles', pt: 'Elencos' },
     planteles_sub: { es: 'Tocá un escudo para ver la ficha del plantel', pt: 'Toque um escudo para ver a ficha do elenco' },
