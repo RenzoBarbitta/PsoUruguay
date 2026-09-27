@@ -277,7 +277,9 @@ export function RankRow({ e, i, label, mark, icon }) {
   return (
     <div className={`rank-item ${esVos ? 'is-you' : ''}`}>
       <div className="rank-pos">{i + 1}</div>
-      <div className="rank-avatar">{e.nombre.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}</div>
+      <div className="rank-avatar">
+        {e.avatar ? <img src={e.avatar} alt="" className="rank-avatar-img" /> : e.nombre.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
+      </div>
       <div className="rank-info">
         <div className="rank-name">{e.nombre} {esVos ? <span className="rank-you-mark">{mark}</span> : null}</div>
         <div className="rank-team">{label}</div>

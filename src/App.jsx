@@ -12,11 +12,14 @@ import Planteles from './views/Planteles.jsx'
 import Palmares from './views/Palmares.jsx'
 import Seleccion from './views/Seleccion.jsx'
 import Juegos from './views/Juegos.jsx'
+import Mercado from './views/Mercado.jsx'
 import Trivia from './games/Trivia.jsx'
 import Pasapalabra from './games/Pasapalabra.jsx'
 import Penales from './games/Penales.jsx'
 import Predicciones from './games/Predicciones.jsx'
 import TirosLibres from './games/TirosLibres.jsx'
+import QueNoCaiga from './games/QueNoCaiga.jsx'
+import Encara from './games/Encara.jsx'
 import Perfil from './views/Perfil.jsx'
 import AdminPanel from './admin/AdminPanel.jsx'
 
@@ -32,11 +35,14 @@ function Router() {
       case 'palmares': return <Palmares />
       case 'seleccion': return <Seleccion />
       case 'juegos': return <Juegos />
+      case 'mercado': return <Mercado />
       case 'trivia': return <Trivia />
       case 'pasapalabra': return <Pasapalabra />
       case 'penales': return <Penales />
       case 'predicciones': return <Predicciones />
       case 'tiroslibres': return <TirosLibres />
+      case 'quenocaiga': return <QueNoCaiga />
+      case 'encara': return <Encara />
       case 'perfil': return <Perfil />
       case 'admin': return <AdminPanel />
       default: return <Inicio />

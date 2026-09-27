@@ -21,7 +21,8 @@ export async function onRequestGet(context) {
         username: r.username,
         displayName: r.display_name || r.username,
         bestStreak: Number(r.best_streak || 0),
-        createdAt: r.created_at
+        createdAt: r.created_at,
+        avatar: r.avatar || null
       }))
     });
   } catch (e) {

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useApp, ConfirmModal } from '../core/app.jsx'
 import { useData, t, TeamDot, EmptyState, fadeUp } from '../core/ui.jsx'
+import { recordPlayerCreated, recordTransfer, recordRelease, recordMatchResult } from '../views/Mercado.jsx'
 
 /* ======================================================================
    PANEL DE ADMIN (réplica React del admin legacy)
@@ -195,6 +196,7 @@ function AdminEquipos({ data, showToast, refresh }) {
           const ok = await persistTeam(updated)
           if (ok) {
             showToast(t('toast_jugador_agregado'))
+            recordPlayerCreated(name, team.name, team.logo)
             refresh()
           }
         }}
@@ -203,9 +205,11 @@ function AdminEquipos({ data, showToast, refresh }) {
   )
 
   const sacarJugador = async (team, playerId) => {
+    const player = team.players.find(p => p.id === playerId)
     const ok = await persistTeam({ ...team, players: (team.players || []).filter(p => p.id !== playerId) })
     if (ok) {
       showToast(t('toast_jugador_eliminado'))
+      if (player) recordRelease(player.name, team.name, team.logo)
       refresh()
     }
   }
@@ -296,6 +300,9 @@ function TeamFormModal({ team, onDone }) {
     const ok = await persistTeam(teamObj)
     if (ok) {
       showToast(isEdit ? t('toast_equipo_actualizado') : t('toast_equipo_creado'))
+      if (!isEdit && players.length > 0) {
+        players.forEach(p => recordPlayerCreated(p.name, name.trim(), teamObj.logo))
+      }
       closeModal()
       onDone()
     }
@@ -362,6 +369,7 @@ function TransferModal({ sourceTeam, player, teams, onDone }) {
     const ok2 = await persistTeam(updatedDest)
     if (!ok2) return
     showToast(t('toast_jugador_transferido', { jugador: player.name, origen: sourceTeam.name, destino: destTeam.name }))
+    recordTransfer(player.name, sourceTeam.name, destTeam.name, sourceTeam.logo, destTeam.logo)
     closeModal()
     onDone()
   }
@@ -576,6 +584,7 @@ function ResultModal({ match, onDone }) {
     }
     closeModal()
     showToast(t('toast_resultado_guardado'))
+    recordMatchResult({ ...updated, home, away })
     if (match.bracket) await maybeAdvanceCopaRounds(match)
     onDone()
   }

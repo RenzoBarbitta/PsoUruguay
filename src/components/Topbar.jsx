@@ -59,7 +59,11 @@ export default function Topbar() {
         {user ? (
           <>
             <div className="user-chip" title={t('title_playing_as', { name: user.username })}>
-              <span className="user-avatar">{initialsOf(user.displayName || user.username)}</span>
+              {user.avatar ? (
+                <img src={user.avatar} alt="" className="user-avatar-img" />
+              ) : (
+                <span className="user-avatar">{initialsOf(user.displayName || user.username)}</span>
+              )}
               <span className="user-chip-name">{user.displayName || user.username}</span>
             </div>
             <button className="icon-btn" onClick={doLogout} aria-label={t('aria_logout')} title={t('aria_logout')}>

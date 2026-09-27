@@ -175,7 +175,8 @@ export function userFromRow(me, row) {
     email: me.email || null,
     bestStreak: Number(row.best_streak || 0),
     bestPenalStreak: Number(row.best_penal_streak || 0),
-    createdAt: row.created_at
+    createdAt: row.created_at,
+    avatar: row.avatar || null
   };
 }
 
@@ -183,7 +184,7 @@ export function userFromRow(me, row) {
 export async function readStreakRanking(cfg, column, limit = 50) {
   const rows = await supaService(cfg, '/rest/v1/users', {
     query: {
-      select: 'id,username,display_name,created_at,best_streak,best_penal_streak',
+      select: 'id,username,display_name,created_at,best_streak,best_penal_streak,avatar',
       order: column + '.desc,created_at.asc',
       limit: String(limit)
     }

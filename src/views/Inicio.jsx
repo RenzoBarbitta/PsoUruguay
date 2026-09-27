@@ -42,7 +42,9 @@ function MiniRankItem({ s, i, value }) {
       transition={{ delay: Math.min(i * 0.05, 0.35), duration: 0.3 }}
     >
       <div className="rank-pos">{i + 1}</div>
-      <div className="rank-avatar">{s.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}</div>
+      <div className="rank-avatar">
+        {s.avatar ? <img src={s.avatar} alt="" className="rank-avatar-img" /> : s.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
+      </div>
       <div className="rank-info">
         <div className="rank-name">{s.name}</div>
         <div className="rank-team">{s.teamName}</div>

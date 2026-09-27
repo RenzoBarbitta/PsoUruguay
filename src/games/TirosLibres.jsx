@@ -271,9 +271,32 @@ export default function TirosLibres() {
             <div className="goal-post right" />
             <div className="goal-crossbar" />
             <div className="goal-net" />
-            <div className={`ball ${showResult ? 'animate-' + lastResult?.result : ''}`} style={{ left: `calc(50% + ${config.angulo}%)` }} />
-            <div className={`keeper ${showResult ? 'animate-' + (lastResult?.result === 'atajada' ? 'save' : 'idle') : ''}`} />
-            <div className={`wall ${showResult ? 'animate-' + (lastResult?.result === 'barrera' ? 'jump' : 'idle') : ''}`} />
+            <div className={`wall ${showResult && lastResult?.result === 'barrera' ? 'animate-jump' : ''}`}>
+              <div className="wall-player" style={{ left: '15%' }} />
+              <div className="wall-player" style={{ left: '30%' }} />
+              <div className="wall-player" style={{ left: '45%' }} />
+              <div className="wall-player" style={{ left: '60%' }} />
+              <div className="wall-player" style={{ left: '75%' }} />
+            </div>
+            <div className={`keeper ${showResult ? (lastResult?.result === 'atajada' ? (config.angulo < 0 ? 'animate-save animate-save-left' : config.angulo > 0 ? 'animate-save animate-save-right' : 'animate-save animate-save-center') : '') : ''}`}>
+              <div className="keeper-body" />
+              <div className="keeper-head" />
+              <div className="keeper-gloves" />
+            </div>
+            <div className={`ball ${showResult ? 'animate-' + lastResult?.result : ''}`} 
+                 style={{ 
+                   left: `calc(50% + ${config.angulo}%)`,
+                   '--gol-x': `${50 + config.angulo}%`
+                 }} />
+            {showResult && lastResult && (
+              <motion.div className="ball-trajectory" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
+                <div className="trajectory-path" style={{ 
+                  '--angle': config.angulo, 
+                  '--power': config.potencia,
+                  '--result': lastResult.result 
+                }} />
+              </motion.div>
+            )}
           </div>
         </div>
 
@@ -342,7 +365,9 @@ function TirosLibresRankRow({ e, i, mark, icon }) {
   return (
     <div className={`rank-item ${esVos ? 'is-you' : ''}`}>
       <div className="rank-pos">{i + 1}</div>
-      <div className="rank-avatar">{e.nombre.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}</div>
+      <div className="rank-avatar">
+        {e.avatar ? <img src={e.avatar} alt="" className="rank-avatar-img" /> : e.nombre.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
+      </div>
       <div className="rank-info">
         <div className="rank-name">{e.nombre} {esVos ? <span className="rank-you-mark">{mark}</span> : null}</div>
         <div className="rank-team">{t('tiroslibres_mejor_puntaje')}</div>

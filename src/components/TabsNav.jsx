@@ -1,11 +1,11 @@
 import React from 'react'
 import { motion } from 'motion/react'
-import { Home, CalendarDays, Table2, BarChart3, Users, Trophy, Flag, Gamepad2, Settings, Brain, Sigma, CircleDashed, Target, Zap, User } from 'lucide-react'
+import { Home, CalendarDays, Table2, BarChart3, Users, Trophy, Flag, Gamepad2, Settings, Brain, Sigma, CircleDashed, Target, Zap, User, ShoppingBag } from 'lucide-react'
 import { useApp } from '../core/app.jsx'
 import { t } from '../core/ui.jsx'
 
 export function isGameTab(tab) {
-  return tab === 'trivia' || tab === 'pasapalabra' || tab === 'penales' || tab === 'predicciones' || tab === 'tiroslibres'
+  return tab === 'trivia' || tab === 'pasapalabra' || tab === 'penales' || tab === 'predicciones' || tab === 'tiroslibres' || tab === 'quenocaiga' || tab === 'encara'
 }
 
 /* Del texto activo: saltito (arriba-abajo) + tambaleo suave al entrar */
@@ -35,6 +35,7 @@ export default function TabsNav() {
     { id: 'palmares', label: t('tab_palmares'), icon: <Trophy size={17} /> },
     { id: 'seleccion', label: t('tab_seleccion'), icon: <Flag size={17} /> },
     { id: 'juegos', label: t('tab_juegos'), icon: <Gamepad2 size={17} /> },
+    { id: 'mercado', label: t('mercado_title'), icon: <ShoppingBag size={17} /> },
     { id: 'predicciones', label: t('tab_predicciones'), icon: <Target size={17} /> },
     { id: 'tiroslibres', label: t('tab_tiroslibres'), icon: <Zap size={17} /> },
     { id: 'perfil', label: t('perfil_title'), icon: <User size={17} /> },

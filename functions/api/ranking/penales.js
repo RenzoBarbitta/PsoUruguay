@@ -22,7 +22,8 @@ export async function onRequestGet(context) {
         username: r.username,
         displayName: r.display_name || r.username,
         bestPenalStreak: Number(r.best_penal_streak || 0),
-        createdAt: r.created_at
+        createdAt: r.created_at,
+        avatar: r.avatar || null
       }))
     });
   } catch (e) {

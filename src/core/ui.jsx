@@ -98,7 +98,9 @@ export function RankItem({ entry, index, value, emoji, highlight, sub }) {
       transition={{ delay: Math.min(index * 0.05, 0.4), duration: 0.3 }}
     >
       <div className="rank-pos">{index + 1}</div>
-      <div className="rank-avatar">{initialsOf(entry.nombre)}</div>
+      <div className="rank-avatar">
+        {entry.avatar ? <img src={entry.avatar} alt="" className="rank-avatar-img" /> : initialsOf(entry.nombre)}
+      </div>
       <div className="rank-info">
         <div className="rank-name">{entry.nombre}</div>
         {sub ? <div className="rank-team">{sub}</div> : null}
