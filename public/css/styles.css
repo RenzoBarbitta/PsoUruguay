@@ -2478,6 +2478,15 @@ select:focus, textarea:focus {
   background: var(--bg-surface-2); border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
+/* Motivo real del fallo (503 not_configured, 403, 404...): sin esto el
+   error de configuracion del server es indistinguible de "sin red". */
+.rank-motivo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem; color: var(--text-secondary);
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: 4px; padding: 0.1rem 0.35rem; margin-left: 0.3rem;
+}
+.rank-offline .rank-motivo { display: inline-block; margin-top: 0.5rem; }
 .empty-icon .spin, .spin { animation: rankSpin 1.2s linear infinite; }
 @keyframes rankSpin { to { transform: rotate(360deg); } }
 

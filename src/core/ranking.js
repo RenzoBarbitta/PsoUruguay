@@ -18,6 +18,7 @@ export function useRanking({ activo = true, cadaMs = 5000, retries = 3, sort, ca
   const [ranking, setRanking] = useState([])
   const [cargando, setCargando] = useState(true)
   const [degraded, setDegraded] = useState(false)
+  const [motivo, setMotivo] = useState(null)
   const timer = useRef(null)
   const retry = useRef(null)
   const intento = useRef(0)
@@ -33,6 +34,7 @@ export function useRanking({ activo = true, cadaMs = 5000, retries = 3, sort, ca
       setRanking(sort ? list.slice().sort(sort) : list)
       setDegraded(!!(out && out.degraded))
       setCargando(false)
+      if (out && out.motivo) setMotivo(out.motivo); else if (!out || !out.degraded) setMotivo(null)
       /* Los reintentos rapidos corren SOLO si el ultimo intento fallo.
          Antes se reseteaba el contador en el exito, y eso hacia que el
          interval de reintento disparara 3 veces mas aunque todo anduviera
@@ -43,6 +45,7 @@ export function useRanking({ activo = true, cadaMs = 5000, retries = 3, sort, ca
       setDegraded(true)
       setCargando(false)
       falloRef.current = true
+      setMotivo(e && (e.code || e.message) ? String(e.code || e.message) : 'error')
     }
   }, [sort])
 
@@ -78,5 +81,5 @@ export function useRanking({ activo = true, cadaMs = 5000, retries = 3, sort, ca
     }
   }, [activo, cadaMs, retries, run, cargar])
 
-  return { ranking, cargando, degraded }
+  return { ranking, cargando, degraded, motivo }
 }

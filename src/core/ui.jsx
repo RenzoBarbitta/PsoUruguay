@@ -56,7 +56,7 @@ export function EmptyState({ icon, text }) {
    aviso chico arriba. El mensaje grande es solo para cuando no hay nada
    que mostrar, porque tapar el ranking con un error es peor que mostrar
    datos potencialmente viejos. */
-export function RankBody({ cargando, degraded, vacio, cargandoText, vacioText, children }) {
+export function RankBody({ cargando, degraded, vacio, cargandoText, vacioText, motivo, children }) {
   if (cargando) {
     return (
       <div className="card empty-state">
@@ -65,16 +65,26 @@ export function RankBody({ cargando, degraded, vacio, cargandoText, vacioText, c
       </div>
     )
   }
+  /* El motivo real (503 not_configured, 403, 404...) se muestra: el ranking
+     casi siempre falla por configuracion del server, no por red, y sin el
+     codigo no hay forma de saber que corregir. */
+  const detalle = motivo ? <code className="rank-motivo">{motivo}</code> : null
   if (vacio) {
     return degraded
-      ? <div className="card empty-state rank-offline"><span className="empty-icon">📡</span><p>{t('ranking_sin_conexion')}</p></div>
+      ? (
+        <div className="card empty-state rank-offline">
+          <span className="empty-icon">📡</span>
+          <p>{t('ranking_sin_conexion')}</p>
+          {detalle}
+        </div>
+      )
       : <EmptyState icon="🏆" text={vacioText || ''} />
   }
   return (
     <>
       {degraded && (
         <div className="rank-notice" role="status">
-          <WifiOff size={14} /> {t('ranking_datos_locales')}
+          <WifiOff size={14} /> {t('ranking_datos_locales')} {detalle}
         </div>
       )}
       {children}

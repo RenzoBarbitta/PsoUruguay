@@ -177,7 +177,7 @@ export default function Trivia() {
 
   const refresh = () => force()
 
-  const { ranking, cargando, degraded } = useRanking({
+  const { ranking, cargando, degraded, motivo } = useRanking({
     activo: !S.jugando && !S.mostrarResultado && !!AuthState.user,
     sort: (a, b) => b.mejorRacha - a.mejorRacha || a.fecha - b.fecha,
     cargar: cargarRanking
@@ -191,7 +191,7 @@ export default function Trivia() {
 
   if (!S.jugando) {
     return (
-      <TriviaHome ranking={ranking} cargando={cargando} degraded={degraded} user={AuthState.user} onStart={async () => { await iniciarPartida(); setAnswered(null); refresh() }} />
+      <TriviaHome ranking={ranking} cargando={cargando} degraded={degraded} motivo={motivo} user={AuthState.user} onStart={async () => { await iniciarPartida(); setAnswered(null); refresh() }} />
     )
   }
 
@@ -243,7 +243,7 @@ function LoginRequired({ openModal }) {
   )
 }
 
-function TriviaHome({ ranking, cargando, degraded, user, onStart }) {
+function TriviaHome({ ranking, cargando, degraded, motivo, user, onStart }) {
   const nombre = user.displayName || user.username
   return (
     <>
@@ -266,6 +266,7 @@ function TriviaHome({ ranking, cargando, degraded, user, onStart }) {
       <RankBody
         cargando={cargando}
         degraded={degraded}
+        motivo={motivo}
         vacio={!ranking.length}
         cargandoText={t('trivia_cargando')}
         vacioText={t('trivia_no_players')}

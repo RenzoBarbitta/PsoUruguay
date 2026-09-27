@@ -327,7 +327,7 @@ export default function Penales() {
   /* El ranking se refresca solo con useRanking (reintenta si el server no
      responde y distingue error de "vacio"). Antes este useEffect vivia
      ANTES del useState que usa y solo corria una vez al montar. */
-  const { ranking: rankList, cargando, degraded } = useRanking({
+  const { ranking: rankList, cargando, degraded, motivo } = useRanking({
     activo: !S.jugando && !S.mostrarResultado && !!AuthState.user,
     sort: (a, b) => b.racha - a.racha || a.fecha - b.fecha,
     cargar: async () => {
@@ -353,7 +353,7 @@ export default function Penales() {
   }
 
   if (!S.jugando) {
-    return <Home ranking={ranking} cargando={cargando} degraded={degraded} mejorRacha={mejorRacha} onStart={async () => { await iniciarPenales(); setShoot(null); force() }} />
+    return <Home ranking={ranking} cargando={cargando} degraded={degraded} motivo={motivo} mejorRacha={mejorRacha} onStart={async () => { await iniciarPenales(); setShoot(null); force() }} />
   }
 
   return (
@@ -397,7 +397,7 @@ function LoginRequired({ openModal }) {
   )
 }
 
-function Home({ ranking, cargando, degraded, mejorRacha, onStart }) {
+function Home({ ranking, cargando, degraded, motivo, mejorRacha, onStart }) {
   const nombre = AuthState.user.displayName || AuthState.user.username
   return (
     <>
@@ -432,6 +432,7 @@ function Home({ ranking, cargando, degraded, mejorRacha, onStart }) {
       <RankBody
         cargando={cargando}
         degraded={degraded}
+        motivo={motivo}
         vacio={!ranking.length}
         cargandoText={t('penales_cargando')}
         vacioText={t('penales_no_players')}

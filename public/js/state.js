@@ -468,7 +468,13 @@ async function gameApi(path, body) {
 
 /* Llama a una Pages Function del ranking con el token de usuario si hay.
    GET si no va body, POST si va. El server usa la service key, así que
-   funciona aunque la RLS no permita acceso anónimo a public.users. */
+   funciona aunque la RLS no permita acceso anónimo a public.users.
+
+   Diagnóstico: los errores de ranking son casi siempre de CONFIGURACION
+   del server (falta SUPABASE_SERVICE_KEY -> 503 not_configured, secret no
+   seteado -> 503, WAF -> 403), no de red. Por eso se loguea el status y el
+   codigo: sin eso solo se ve un "sin conexión" genérico y no hay forma de
+   saber que arreglar. */
 async function rankingApi(path, body) {
   await asegurarSesion();
   const token = authToken();
@@ -482,8 +488,10 @@ async function rankingApi(path, body) {
   let data = null;
   try { data = await r.json(); } catch (e) { /* sin cuerpo */ }
   if (!r.ok) {
-    const err = new Error((data && data.error) || ('HTTP ' + r.status));
-    err.code = data && data.error;
+    const code = (data && data.error) || ('HTTP ' + r.status);
+    console.warn('[ranking] ' + path + ' fallo:', r.status, code, data || '(sin cuerpo)');
+    const err = new Error(code);
+    err.code = code;
     err.status = r.status;
     throw err;
   }
