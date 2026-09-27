@@ -91,21 +91,6 @@ export default function Encara() {
     }
   }, [])
 
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    ctxRef.current = ctx
-    const resize = () => {
-      const rect = canvas.parentElement.getBoundingClientRect()
-      canvas.width = rect.width * window.devicePixelRatio
-      canvas.height = rect.height * window.devicePixelRatio
-    }
-    resize()
-    window.addEventListener('resize', resize)
-    return () => window.removeEventListener('resize', resize)
-  }, [])
-
   const spawnEnemy = useCallback(() => {
     const typeIdx = Math.min(Math.floor(nextEnemyType / 2), ENEMY_TYPES.length - 1)
     const type = ENEMY_TYPES[typeIdx]
@@ -244,7 +229,7 @@ export default function Encara() {
 
     setTrail(t => {
       const py = 180 - (isJumping ? Math.sin(jumpProgress * Math.PI) * 60 : 0) - (isSliding ? 15 : 0)
-      const nt = [{ x: playerX.current || currentLaneX, y: py, t: timestamp, speed: effectiveSpeed, lane }, ...t.slice(0, 150)]
+      const nt = [{ x: playerX.current || LANES[lane] * LANE_WIDTH, y: py, t: timestamp, speed: effectiveSpeed, lane }, ...t.slice(0, 150)]
       return nt
     })
 
@@ -320,7 +305,7 @@ export default function Encara() {
     }
 
     raf.current = requestAnimationFrame(gameLoop)
-  }, [playing, lane, distance, speed, enemies, powerups, activePowerup, powerupTimer, isJumping, jumpProgress, isSliding, slideProgress, trail, multiplier, combo, nearMisses, best, nextEnemyType, lane, isJumping, isSliding])
+  }, [playing, lane, distance, speed, enemies, powerups, activePowerup, powerupTimer, isJumping, jumpProgress, isSliding, slideProgress, trail, multiplier, combo, nearMisses, best, nextEnemyType, isJumping, isSliding])
 
   const start = useCallback(() => {
     setPlaying(true)
@@ -353,28 +338,10 @@ export default function Encara() {
   const handleKeyDown = useCallback((e) => {
     if (!playing || dead) return
     keysPressed.current.add(e.code)
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-      e.preventDefault()
-      setLane(l => Math.max(0, l - 1))
-      setCombo(c => Math.max(c - 2, 0))
-    }
-    if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-      e.preventDefault()
-      setLane(l => Math.min(2, l + 1))
-      setCombo(c => Math.max(c - 2, 0))
-    }
-    if ((e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') && !isJumping && !isSliding) {
-      e.preventDefault()
-      setIsJumping(true)
-      setJumpProgress(0)
-      addParticles(LANES[lane] * LANE_WIDTH, 180, '#60a5fa', 8, 4)
-    }
-    if ((e.code === 'ArrowDown' || e.code === 'KeyS') && !isSliding && !isJumping) {
-      e.preventDefault()
-      setIsSliding(true)
-      setSlideProgress(0)
-      addParticles(LANES[lane] * LANE_WIDTH, 180, '#fbbf24', 6, 2)
-    }
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); setLane(l => Math.max(0, l - 1)); setCombo(c => Math.max(c - 2, 0)) }
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); setLane(l => Math.min(2, l + 1)); setCombo(c => Math.max(c - 2, 0)) }
+    if ((e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') && !isJumping && !isSliding) { e.preventDefault(); setIsJumping(true); setJumpProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#60a5fa', 8, 4) }
+    if ((e.code === 'ArrowDown' || e.code === 'KeyS') && !isSliding && !isJumping) { e.preventDefault(); setIsSliding(true); setSlideProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#fbbf24', 6, 2) }
   }, [playing, dead, lane, isJumping, isSliding, addParticles])
 
   const handleKeyUp = useCallback((e) => {
@@ -395,9 +362,7 @@ export default function Encara() {
     const dy = touch.clientY - swipeStart.current.y
     const dt = Date.now() - swipeStart.current.t
     swipeStart.current = null
-
     if (dt > 300) return
-
     if (Math.abs(dx) > Math.abs(dy)) {
       if (dx > 40) { setLane(l => Math.min(2, l + 1)); setCombo(c => Math.max(c - 2, 0)) }
       else if (dx < -40) { setLane(l => Math.max(0, l - 1)); setCombo(c => Math.max(c - 2, 0)) }
@@ -417,12 +382,36 @@ export default function Encara() {
   }, [handleKeyDown, handleKeyUp])
 
   useEffect(() => {
-    window.addEventListener('pointermove', (e) => {}, { passive: true })
-    window.addEventListener('pointerup', () => {})
-    return () => {
-      if (raf.current) cancelAnimationFrame(raf.current)
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const handleTouchStart = (e) => {
+      if (dead) { start(); return }
+      if (!playing) { start(); return }
+      swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() }
     }
-  }, [])
+    const handleTouchEnd = (e) => {
+      if (!playing || dead || !swipeStart.current) return
+      const touch = e.changedTouches[0]
+      const dx = touch.clientX - swipeStart.current.x
+      const dy = touch.clientY - swipeStart.current.y
+      const dt = Date.now() - swipeStart.current.t
+      swipeStart.current = null
+      if (dt > 300) return
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 40) { setLane(l => Math.min(2, l + 1)); setCombo(c => Math.max(c - 2, 0)) }
+        else if (dx < -40) { setLane(l => Math.max(0, l - 1)); setCombo(c => Math.max(c - 2, 0)) }
+      } else {
+        if (dy < -40 && !isJumping && !isSliding) { setIsJumping(true); setJumpProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#60a5fa', 8, 4) }
+        else if (dy > 40 && !isSliding && !isJumping) { setIsSliding(true); setSlideProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#fbbf24', 6, 2) }
+      }
+    }
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: true })
+    canvas.addEventListener('touchend', handleTouchEnd)
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart)
+      canvas.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [playing, dead, lane, isJumping, isSliding, addParticles])
 
   const draw = useCallback(() => {
     const ctx = ctxRef.current
@@ -625,21 +614,13 @@ export default function Encara() {
   useEffect(() => { draw() }, [draw])
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!playing || dead) return
-      if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); setLane(l => Math.max(0, l - 1)); setCombo(c => Math.max(c - 2, 0)) }
-      if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); setLane(l => Math.min(2, l + 1)); setCombo(c => Math.max(c - 2, 0)) }
-      if ((e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') && !isJumping && !isSliding) { e.preventDefault(); setIsJumping(true); setJumpProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#60a5fa', 8, 4) }
-      if ((e.code === 'ArrowDown' || e.code === 'KeyS') && !isSliding && !isJumping) { e.preventDefault(); setIsSliding(true); setSlideProgress(0); addParticles(LANES[lane] * LANE_WIDTH, 180, '#fbbf24', 6, 2) }
-    }
-    const handleKeyUp = (e) => { keysPressed.current.delete(e.code) }
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [playing, dead, lane, isJumping, isSliding, addParticles])
+  }, [handleKeyDown, handleKeyUp])
 
   useEffect(() => {
     const canvas = canvasRef.current

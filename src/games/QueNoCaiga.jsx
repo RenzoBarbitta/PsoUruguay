@@ -32,11 +32,26 @@ export default function QueNoCaiga() {
   const [showTrick, setShowTrick] = useState(null)
   const [footX, setFootX] = useState(0)
   const [footY, setFootY] = useState(0)
-  const [pressStart, setPressStart] = useState(0)
-  const [gesture, setGesture] = useState([])
-  const [touchId, setTouchId] = useState(null)
   const [showTarget, setShowTarget] = useState(false)
   const [targetX, setTargetX] = useState(0)
+  const pressStartRef = useRef(0)
+  const gestureRef = useRef([])
+  const playingRef = useRef(false)
+  const countRef = useRef(0)
+  const bestRef = useRef(0)
+  const showTargetRef = useRef(false)
+  const targetXRef = useRef(0)
+  const footXRef = useRef(0)
+  const footYRef = useRef(0)
+  const touchIdRef = useRef(null)
+
+  useEffect(() => { playingRef.current = playing }, [playing])
+  useEffect(() => { countRef.current = count }, [count])
+  useEffect(() => { bestRef.current = best }, [best])
+  useEffect(() => { showTargetRef.current = showTarget }, [showTarget])
+  useEffect(() => { targetXRef.current = targetX }, [targetX])
+  useEffect(() => { footXRef.current = footX }, [footX])
+  useEffect(() => { footYRef.current = footY }, [footY])
   const raf = useRef(null)
   const canvasRef = useRef(null)
   const ctxRef = useRef(null)
@@ -144,28 +159,30 @@ export default function QueNoCaiga() {
   }
 
   const handlePointerDown = (e) => {
-    if (playing) return
+    if (playingRef.current) return
     e.preventDefault()
     const rect = canvasRef.current.getBoundingClientRect()
     const clientX = e.touches ? e.touches[0].clientX : e.clientX
     const clientY = e.touches ? e.touches[0].clientY : e.clientY
     const x = clientX - rect.left
     const y = clientY - rect.top
-    if (e.touches) setTouchId(e.touches[0].identifier)
-    setFootX(x)
-    setFootY(y)
-    setPressStart(Date.now())
-    setGesture([{ x, y, t: Date.now() }])
+    if (e.touches) touchIdRef.current = e.touches[0].identifier
+    footXRef.current = x
+    footYRef.current = y
+    pressStartRef.current = Date.now()
+    gestureRef.current = [{ x, y, t: Date.now() }]
+    showTargetRef.current = true
+    targetXRef.current = x
     setShowTarget(true)
     setTargetX(x)
   }
 
   const handlePointerMove = (e) => {
-    if (!playing && pressStart) {
+    if (!playingRef.current && pressStartRef.current) {
       const rect = canvasRef.current.getBoundingClientRect()
       let clientX, clientY
       if (e.touches) {
-        const touch = Array.from(e.touches).find(t => t.identifier === touchId) || e.touches[0]
+        const touch = Array.from(e.touches).find(t => t.identifier === touchIdRef.current) || e.touches[0]
         clientX = touch.clientX
         clientY = touch.clientY
       } else {
@@ -174,25 +191,29 @@ export default function QueNoCaiga() {
       }
       const x = clientX - rect.left
       const y = clientY - rect.top
+      footXRef.current = x
+      footYRef.current = y
+      targetXRef.current = x
+      gestureRef.current = [...gestureRef.current.slice(-25), { x, y, t: Date.now() }]
       setFootX(x)
       setFootY(y)
       setTargetX(x)
-      setGesture(g => [...g.slice(-25), { x, y, t: Date.now() }])
     }
   }
 
   const handlePointerUp = (e) => {
-    if (!playing && pressStart) {
-      const duration = Date.now() - pressStart
+    if (!playingRef.current && pressStartRef.current) {
+      const duration = Date.now() - pressStartRef.current
       if (duration < 1000) {
         detectGesture()
         start()
       }
-      setPressStart(0)
-      setGesture([])
-      setTouchId(null)
+      pressStartRef.current = 0
+      gestureRef.current = []
+      touchIdRef.current = null
+      showTargetRef.current = false
       setShowTarget(false)
-    } else if (playing) {
+    } else if (playingRef.current) {
       const rect = canvasRef.current.getBoundingClientRect()
       let clientX
       if (e.changedTouches) {
@@ -201,19 +222,22 @@ export default function QueNoCaiga() {
         clientX = e.clientX
       }
       const x = clientX - rect.left
-      const relX = (x - footX) / 70
+      const relX = (x - footXRef.current) / 70
       const clamped = Math.max(-1, Math.min(1, relX))
       setSpin(s => clamped * 10)
       setTilt(clamped * MAX_TILT)
       const liftMult = 0.85 + Math.abs(clamped) * 0.35
       setVy(LIFT_BASE * liftMult)
       setCount(c => c + 1)
+      footXRef.current = x
       setFootX(x)
-      const color = count > 100 ? '#fbbf24' : count > 50 ? '#34d399' : count > 20 ? '#60a5fa' : '#a78bfa'
+      const color = countRef.current > 100 ? '#fbbf24' : countRef.current > 50 ? '#34d399' : countRef.current > 20 ? '#60a5fa' : '#a78bfa'
       spawnParticles(x, FOOT_Y - 25, color, 10)
-      if (count > 0 && count % 25 === 0) {
+      if (countRef.current > 0 && countRef.current % 25 === 0) {
         triggerTrick('t.milestone', '✨')
       }
+      showTargetRef.current = true
+      targetXRef.current = x
       setShowTarget(true)
       setTargetX(x)
     }

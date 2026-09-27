@@ -290,6 +290,16 @@ export default function TirosLibres() {
               <div className="keeper-head" />
               <div className="keeper-gloves" />
             </div>
+            <div className="shot-indicator">
+              <div className="arrow" style={{ 
+                transform: `rotate(${config.angulo}deg)`,
+                '--power': config.potencia
+              }}>
+                <div className="arrow-head" />
+                <div className="arrow-shaft" />
+              </div>
+              <div className="arrow-power" style={{ width: `${config.potencia}%` }} />
+            </div>
             <div className={`ball ${showResult ? 'animate-' + lastResult?.result : ''}`} 
                  style={{ 
                    left: `calc(50% + ${config.angulo}%)`,
