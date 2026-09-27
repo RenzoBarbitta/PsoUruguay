@@ -209,7 +209,9 @@ function AdminEquipos({ data, showToast, refresh }) {
     const ok = await persistTeam({ ...team, players: (team.players || []).filter(p => p.id !== playerId) })
     if (ok) {
       showToast(t('toast_jugador_eliminado'))
-      if (player) recordRelease(player.name, team.name, team.logo)
+      if (player && player.name && team && team.name) {
+        recordRelease(String(player.name), String(team.name), team.logo || null)
+      }
       refresh()
     }
   }

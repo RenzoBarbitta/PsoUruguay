@@ -107,6 +107,8 @@ function formatTime(ts) {
 
 function FeedItem({ item }) {
   const Icon = item.icon || Activity
+  // Safeguard: ensure titleVars is an object
+  const titleVars = item.titleVars && typeof item.titleVars === 'object' ? item.titleVars : {}
   return (
     <motion.div
       key={item.id}
@@ -124,7 +126,7 @@ function FeedItem({ item }) {
           <span className="mercado-time">{formatTime(item.timestamp)}</span>
         </div>
         <div className="mercado-text">
-          {t(item.titleKey, item.titleVars)}
+          {t(item.titleKey, titleVars)}
         </div>
         {(item.homeLogo || item.awayLogo || item.teamLogo) && (
           <div className="mercado-teams">
@@ -151,10 +153,18 @@ function FeedItem({ item }) {
 export default function Mercado() {
   const { v } = useApp()
   void v
-  const [feed, setFeed] = useState(getFeed())
+  const [feed, setFeed] = useState(() => {
+    const raw = getFeed()
+    // Filter out any corrupted items
+    return Array.isArray(raw) ? raw.filter(item => item && typeof item === 'object' && item.id && item.type) : []
+  })
 
   useEffect(() => {
-    const handler = () => setFeed(getFeed())
+    const handler = () => {
+      const raw = getFeed()
+      const filtered = Array.isArray(raw) ? raw.filter(item => item && typeof item === 'object' && item.id && item.type) : []
+      setFeed(filtered)
+    }
     let unsub = () => {}
     if (typeof window !== 'undefined' && window.psoBus) {
       unsub = window.psoBus.on('mercado-updated', handler)

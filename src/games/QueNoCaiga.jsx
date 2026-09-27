@@ -145,6 +145,7 @@ export default function QueNoCaiga() {
 
   const handlePointerDown = (e) => {
     if (playing) return
+    e.preventDefault()
     const rect = canvasRef.current.getBoundingClientRect()
     const clientX = e.touches ? e.touches[0].clientX : e.clientX
     const clientY = e.touches ? e.touches[0].clientY : e.clientY

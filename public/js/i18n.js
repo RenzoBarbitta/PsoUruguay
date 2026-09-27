@@ -125,7 +125,7 @@ const I18N = {
     encara_double: { es: 'Doble puntos', pt: 'Pontos duplos' },
 
     /* ------- ¡QUÉ NO CAIGA! ------- */
-    quenocaiga_trick_arw: { es: 'Around the World', pt: 'Volta ao Mundo' },
+    quenocaiga_trick_arw: { es: 'Vuelta al Mundo', pt: 'Volta ao Mundo' },
     quenocaiga_trick_stall: { es: 'Stall (parada)', pt: 'Stall (parada)' },
     quenocaiga_trick_knee: { es: 'Rodilla/Cabeza', pt: 'Joelho/Cabeça' },
 
