@@ -336,6 +336,10 @@ const I18N = {
     trivia_ranking: { es: '🏅 Ranking online', pt: '🏅 Ranking online' },
     trivia_autorefresh: { es: 'Se actualiza solo', pt: 'Atualiza automaticamente' },
     trivia_cargando: { es: 'Cargando ranking...', pt: 'Carregando ranking...' },
+    ranking_sin_conexion: {
+      es: 'No pudimos conectar con el servidor. El ranking puede estar incompleto; reintentamos solos.',
+      pt: 'Não conseguimos conectar com o servidor. O ranking pode estar incompleto; tentamos de novo sozinhos.'
+    },
     trivia_no_players: {
       es: 'Todavía nadie jugó. ¡Sé el primero en aparecer en el ranking!',
       pt: 'Ainda ninguém jogou. Seja o primeiro a aparecer no ranking!'

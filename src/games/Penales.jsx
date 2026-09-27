@@ -3,7 +3,8 @@ import { motion } from 'motion/react'
 import { RotateCcw, ArrowLeft, RefreshCw, Timer, Flame, Play } from 'lucide-react'
 import { useApp } from '../core/app.jsx'
 import { LoginModal } from '../admin/AuthModal.jsx'
-import { t, EmptyState } from '../core/ui.jsx'
+import { t, EmptyState, RankBody } from '../core/ui.jsx'
+import { useRanking } from '../core/ranking.js'
 import { ConfirmGameModal, RankRow } from './Trivia.jsx'
 import { useModalRef } from '../core/modalRef.jsx'
 
@@ -79,18 +80,25 @@ function penalZonaLabel(z) {
   return z === 'izq' ? '⬅️ ' + txt : z === 'der' ? txt + ' ➡️' : txt
 }
 
+/* Devuelve { list, degraded }: degraded=true cuando vino del fallback local. */
 async function cargarRanking() {
   if (AuthState.user) {
     try {
       const data = await rankingApi('/api/ranking/penales')
-      return (data.ranking || [])
-        .map(u => ({ id: u.id, nombre: u.displayName || u.username, racha: u.bestPenalStreak || 0, fecha: u.createdAt }))
-        .filter(e => e.racha > 0)
-    } catch (e) { /* → locales */ }
+      return {
+        list: (data.ranking || [])
+          .map(u => ({ id: u.id, nombre: u.displayName || u.username, racha: u.bestPenalStreak || 0, fecha: u.createdAt }))
+          .filter(e => e.racha > 0),
+        degraded: false
+      }
+    } catch (e) { /* -> locales */ }
   }
-  return getLocalUsers()
-    .map(u => ({ id: u.id, nombre: u.displayName || u.username, racha: u.bestPenalStreak || 0, fecha: u.createdAt }))
-    .filter(e => e.racha > 0)
+  return {
+    list: getLocalUsers()
+      .map(u => ({ id: u.id, nombre: u.displayName || u.username, racha: u.bestPenalStreak || 0, fecha: u.createdAt }))
+      .filter(e => e.racha > 0),
+    degraded: true
+  }
 }
 
 async function sincronizarMejorRacha() {
@@ -313,24 +321,23 @@ export default function Penales() {
   }, [S.jugando, S.respondida, S.nivel])
 
   /* Auto-refresco del ranking en la home */
-  useEffect(() => {
-    if (S.jugando || S.mostrarResultado || !AuthState.user) return
-    let alive = true
-    const run = async () => {
-      if (!alive || State.currentTab !== 'penales') return
-      const list = await cargarRanking()
-      if (!alive) return
-      list.sort((a, b) => b.racha - a.racha || a.fecha - b.fecha)
-      setRanking(list.slice(0, 10))
-      setMejorRacha(await sincronizarMejorRacha())
-    }
-    run()
-    rankingTimer = setInterval(run, 5000)
-    return () => { alive = false; if (rankingTimer) { clearInterval(rankingTimer); rankingTimer = null } }
-  }, [])
-
   const [ranking, setRanking] = useState([])
   const [mejorRacha, setMejorRacha] = useState(() => penalRecordLocal())
+
+  /* El ranking se refresca solo con useRanking (reintenta si el server no
+     responde y distingue error de "vacio"). Antes este useEffect vivia
+     ANTES del useState que usa y solo corria una vez al montar. */
+  const { ranking: rankList, cargando, degraded } = useRanking({
+    activo: !S.jugando && !S.mostrarResultado && !!AuthState.user,
+    sort: (a, b) => b.racha - a.racha || a.fecha - b.fecha,
+    cargar: async () => {
+      const out = await cargarRanking()
+      setMejorRacha(await sincronizarMejorRacha())
+      return out
+    }
+  })
+
+  useEffect(() => { setRanking(rankList.slice(0, 10)) }, [rankList])
 
   if (!AuthState.user) return <LoginRequired openModal={openModal} />
 
@@ -346,7 +353,7 @@ export default function Penales() {
   }
 
   if (!S.jugando) {
-    return <Home ranking={ranking} mejorRacha={mejorRacha} onStart={async () => { await iniciarPenales(); setShoot(null); force() }} />
+    return <Home ranking={ranking} cargando={cargando} degraded={degraded} mejorRacha={mejorRacha} onStart={async () => { await iniciarPenales(); setShoot(null); force() }} />
   }
 
   return (
@@ -390,7 +397,7 @@ function LoginRequired({ openModal }) {
   )
 }
 
-function Home({ ranking, mejorRacha, onStart }) {
+function Home({ ranking, cargando, degraded, mejorRacha, onStart }) {
   const nombre = AuthState.user.displayName || AuthState.user.username
   return (
     <>
@@ -422,9 +429,15 @@ function Home({ ranking, mejorRacha, onStart }) {
         <h3 className="section-title" style={{ fontSize: '1.15rem' }}>{t('penales_ranking')}</h3>
         <span className="section-sub rank-refresh"><RefreshCw size={13} /> {t('penales_autorefresh')}</span>
       </div>
-      {ranking.length
-        ? <div className="rank-list">{ranking.map((e, i) => <RankRow key={e.id} e={e} i={i} label={t('penales_mejor_racha')} mark={t('penales_vos')} icon="⚽" />)}</div>
-        : <EmptyState icon="🏆" text={t('penales_no_players')} />}
+      <RankBody
+        cargando={cargando}
+        degraded={degraded}
+        vacio={!ranking.length}
+        cargandoText={t('penales_cargando')}
+        vacioText={t('penales_no_players')}
+      >
+        <div className="rank-list">{ranking.map((e, i) => <RankRow key={e.id} e={e} i={i} label={t('penales_mejor_racha')} mark={t('penales_vos')} icon="⚽" />)}</div>
+      </RankBody>
     </>
   )
 }

@@ -2486,6 +2486,14 @@ select:focus, textarea:focus {
   60% { transform: translateX(-50%) rotate(-10deg); } 
   80% { transform: translateX(-50%) rotate(10deg); } 
 }
+/* Ranking sin conexion: se distingue del "vacio" para no hacer creer que
+   nadie fallo todavia cuando en realidad es un problema de red/servidor. */
+.rank-offline { border-color: rgba(251,191,36,0.4); background: rgba(251,191,36,0.06); }
+.rank-offline .empty-icon { opacity: 0.85; }
+.rank-offline p { color: var(--text-secondary); max-width: 34rem; margin: 0 auto; }
+.empty-icon .spin, .spin { animation: rankSpin 1.2s linear infinite; }
+@keyframes rankSpin { to { transform: rotate(360deg); } }
+
 .tiroslibres-result { text-align: center; margin-top: 0.5rem; }
 
 /* Vidas: puntitos en el topbar */

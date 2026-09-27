@@ -3,7 +3,8 @@ import { motion } from 'motion/react'
 import { Flame, RefreshCw, Trophy, Play, RotateCcw, ArrowLeft, LogIn, UserPlus } from 'lucide-react'
 import { useApp } from '../core/app.jsx'
 import { LoginModal } from '../admin/AuthModal.jsx'
-import { t, EmptyState } from '../core/ui.jsx'
+import { t, EmptyState, RankBody } from '../core/ui.jsx'
+import { useRanking } from '../core/ranking.js'
 
 /* ======================================================================
    TRIVIA FUTBOLERA (réplica React de js/legacy/trivia.js)
@@ -51,18 +52,26 @@ function elegirSiguientePregunta() {
 
 const preguntaPorIndice = i => ({ ...localQ(TRIVIA_QUESTIONS[i]), _index: i })
 
+/* Devuelve { list, degraded }: degraded=true cuando vino del fallback local
+   (o sea, el server no respondio) para que la UI pueda avisarlo. */
 async function cargarRanking() {
   if (AuthState.user) {
     try {
       const data = await rankingApi('/api/ranking')
-      return (data.ranking || [])
-        .map(u => ({ id: u.id, nombre: u.displayName || u.username, mejorRacha: u.bestStreak || 0, fecha: u.createdAt }))
-        .filter(e => e.mejorRacha > 0)
-    } catch (e) { /* sin red → locales */ }
+      return {
+        list: (data.ranking || [])
+          .map(u => ({ id: u.id, nombre: u.displayName || u.username, mejorRacha: u.bestStreak || 0, fecha: u.createdAt }))
+          .filter(e => e.mejorRacha > 0),
+        degraded: false
+      }
+    } catch (e) { /* sin red -> locales */ }
   }
-  return getLocalUsers()
-    .map(u => ({ id: u.id, nombre: u.displayName || u.username, mejorRacha: u.bestStreak || 0, fecha: u.createdAt }))
-    .filter(e => e.mejorRacha > 0)
+  return {
+    list: getLocalUsers()
+      .map(u => ({ id: u.id, nombre: u.displayName || u.username, mejorRacha: u.bestStreak || 0, fecha: u.createdAt }))
+      .filter(e => e.mejorRacha > 0),
+    degraded: true
+  }
 }
 
 /* ---------------- Partida ---------------- */
@@ -164,26 +173,15 @@ export default function Trivia() {
   const { v, openModal } = useApp()
   void v
   const [, force] = useReducer(x => x + 1, 0)
-  const [ranking, setRanking] = useState([])
   const [answered, setAnswered] = useState(null) // {i, correcta}
 
   const refresh = () => force()
 
-  /* Auto-refresco del ranking en la home */
-  useEffect(() => {
-    if (S.jugando || S.mostrarResultado || !AuthState.user) return
-    let alive = true
-    const run = async () => {
-      if (!alive || State.currentTab !== 'trivia') return
-      const list = await cargarRanking()
-      if (!alive) return
-      list.sort((a, b) => b.mejorRacha - a.mejorRacha || a.fecha - b.fecha)
-      setRanking(list.slice(0, 10))
-    }
-    run()
-    rankingTimer = setInterval(run, 5000)
-    return () => { alive = false; if (rankingTimer) { clearInterval(rankingTimer); rankingTimer = null } }
-  }, [])
+  const { ranking, cargando, degraded } = useRanking({
+    activo: !S.jugando && !S.mostrarResultado && !!AuthState.user,
+    sort: (a, b) => b.mejorRacha - a.mejorRacha || a.fecha - b.fecha,
+    cargar: cargarRanking
+  })
 
   if (!AuthState.user) return <LoginRequired openModal={openModal} />
 
@@ -193,7 +191,7 @@ export default function Trivia() {
 
   if (!S.jugando) {
     return (
-      <TriviaHome ranking={ranking} user={AuthState.user} onStart={async () => { await iniciarPartida(); setAnswered(null); refresh() }} />
+      <TriviaHome ranking={ranking} cargando={cargando} degraded={degraded} user={AuthState.user} onStart={async () => { await iniciarPartida(); setAnswered(null); refresh() }} />
     )
   }
 
@@ -245,7 +243,7 @@ function LoginRequired({ openModal }) {
   )
 }
 
-function TriviaHome({ ranking, user, onStart }) {
+function TriviaHome({ ranking, cargando, degraded, user, onStart }) {
   const nombre = user.displayName || user.username
   return (
     <>
@@ -265,9 +263,15 @@ function TriviaHome({ ranking, user, onStart }) {
         <h3 className="section-title" style={{ fontSize: '1.15rem' }}>{t('trivia_ranking')}</h3>
         <span className="section-sub rank-refresh"><RefreshCw size={13} /> {t('trivia_autorefresh')}</span>
       </div>
-      {ranking.length
-        ? <div className="rank-list">{ranking.map((e, i) => <RankRow key={e.id} e={e} i={i} label={t('trivia_mejor_racha')} mark={t('trivia_vos')} icon="🔥" />)}</div>
-        : <EmptyState icon="🏆" text={t('trivia_no_players')} />}
+      <RankBody
+        cargando={cargando}
+        degraded={degraded}
+        vacio={!ranking.length}
+        cargandoText={t('trivia_cargando')}
+        vacioText={t('trivia_no_players')}
+      >
+        <div className="rank-list">{ranking.map((e, i) => <RankRow key={e.id} e={e} i={i} label={t('trivia_mejor_racha')} mark={t('trivia_vos')} icon="🔥" />)}</div>
+      </RankBody>
     </>
   )
 }

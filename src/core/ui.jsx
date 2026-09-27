@@ -1,5 +1,6 @@
 import React from 'react'
 import { motion } from 'motion/react'
+import { RefreshCw } from 'lucide-react'
 import { useApp } from './app.jsx'
 
 /* ======================================================================
@@ -45,6 +46,25 @@ export function EmptyState({ icon, text }) {
       <p>{text}</p>
     </div>
   )
+}
+
+/* Estado del ranking: distingue "cargando", "vacio de verdad" y "el server
+   no respondio". Antes un fallo de red se mostraba como "nadie fallo
+   todavia", que hacia pensar que el ranking estaba vacio para siempre. */
+export function RankBody({ cargando, degraded, vacio, cargandoText, vacioText, children }) {
+  if (cargando) {
+    return <div className="card empty-state"><span className="empty-icon"><RefreshCw size={26} className="spin" /></span><p>{cargandoText || 'Cargando...'}</p></div>
+  }
+  if (degraded) {
+    return (
+      <div className="card empty-state rank-offline">
+        <span className="empty-icon">📡</span>
+        <p>{t('ranking_sin_conexion')}</p>
+      </div>
+    )
+  }
+  if (vacio) return <EmptyState icon="🏆" text={vacioText || ''} />
+  return children
 }
 
 export function SectionHead({ title, sub, right }) {
