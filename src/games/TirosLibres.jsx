@@ -13,6 +13,13 @@ S.sessionToken = S.sessionToken ?? null
 S.serverScore = S.serverScore ?? 0
 S.serverError = S.serverError ?? false
 S.mostrarResultado = S.mostrarResultado ?? false
+S.rachaFinal = S.rachaFinal ?? 0
+S.vidas = S.vidas ?? 3
+S.tiros = S.tiros ?? 0
+S.aciertos = S.aciertos ?? 0
+S.rachaGol = S.rachaGol ?? 0
+S.mejorRachaGol = S.mejorRachaGol ?? 0
+S.keeperX = S.keeperX ?? 50
 
 let rankingTimer = null
 
@@ -35,6 +42,12 @@ async function iniciarPartida() {
   S.sessionToken = null
   S.serverScore = 0
   S.serverError = false
+  S.vidas = 3
+  S.tiros = 0
+  S.aciertos = 0
+  S.rachaGol = 0
+  S.mejorRachaGol = 0
+  S.keeperX = 50
 
   if (online) {
     try {
@@ -127,48 +140,89 @@ async function cargarRankingTirosLibres() {
 }
 
 const TIRO_CONFIG = {
-  angulo: { min: -35, max: 35, step: 5, label: 'tiroslibres_angulo' },
+  angulo: { min: -40, max: 40, step: 2, label: 'tiroslibres_angulo' },
   efecto: { options: ['recto', 'in', 'out'], labels: { recto: 'tiroslibres_efecto_recto', in: 'tiroslibres_efecto_in', out: 'tiroslibres_efecto_out' } },
-  potencia: { min: 30, max: 100, step: 10, label: 'tiroslibres_potencia' }
+  potencia: { min: 30, max: 100, step: 2, label: 'tiroslibres_potencia' }
 }
+
+/* Geometría del arco (en %, relativo al goal-frame). Todo el tiro se resuelve
+   con estos números: sin azar. El arquero tiene velocidad de reacción y hay
+   una ventana de "lectura" según la potencia: un tiro fuerte y centrado es
+   difícil de atajar, uno lento y abierto es imposible de defender. */
+const ARCO = { postIzq: 28, postDer: 72, alto: 22, linea: 76, spread: 40 }
 
 function getWallPosition() {
-  const basePositions = ['10%', '20%', '30%', '40%', '50%', '60%', '70%', '80%', '90%']
-  return Array.from({ length: 5 }, () => basePositions[Math.floor(Math.random() * basePositions.length)])
+  /* La barrera da contexto visual de que hay algo entre la pelota y el arco.
+     Ya no decide el resultado: eso lo hace la geometria del tiro. */
+  const base = [34, 40, 46, 50, 54, 60, 66]
+  return Array.from({ length: 5 }, () => base[Math.floor(Math.random() * base.length)])
 }
 
-function calcularResultado(config) {
+/* Resuelve el tiro de forma DETERMINISTA respecto de la configuracion: el
+   mismo angulo + potencia + efecto siempre da el mismo resultado, asi que
+   el jugador aprende la parabola en vez de rezar. No hay dados. */
+function calcularResultado(config, estado = {}) {
   const { angulo, efecto, potencia } = config
-  const anguloAbs = Math.abs(angulo)
-  let points = 0
-  let result = 'fuera'
-  let emoji = '😔'
-  let text = t('tiroslibres_fuera')
+  const racha = estado.racha || 0
+  const arqueroBase = estado.keeperX ?? 50
 
-  const barreraProb = 0.15 + (potencia / 100) * 0.1
-  const arqueroProb = 0.25 + (anguloAbs / 35) * 0.3
+  const rad = (angulo * Math.PI) / 180
+  const pot = (potencia - 30) / 70
 
-  if (Math.random() < barreraProb) {
-    result = 'barrera'; emoji = '🧱'; text = t('tiroslibres_barrera'); points = 0
-  } else if (Math.random() < arqueroProb) {
-    result = 'atajada'; emoji = '🧤'; text = t('tiroslibres_atajada'); points = 0
-  } else if (anguloAbs <= 8 && potencia >= 70 && potencia <= 90) {
-    result = 'gol'; emoji = '⚽'; text = t('tiroslibres_gol'); points = 100 + (90 - potencia) + (8 - anguloAbs) * 5
-  } else if (anguloAbs <= 15 && potencia >= 60) {
-    result = 'gol'; emoji = '⚽'; text = t('tiroslibres_gol'); points = 60 + (80 - potencia) + (15 - anguloAbs) * 3
-  } else if (anguloAbs <= 25 && potencia >= 50) {
-    if (Math.random() < 0.3) { result = 'palo'; emoji = '😱'; text = t('tiroslibres_palo'); points = 20 }
-    else { result = 'gol'; emoji = '⚽'; text = t('tiroslibres_gol'); points = 30 }
+  /* Potencia alta = mas velocidad = la bola llega antes. Menos potencia =
+     mas elevacion (tiro por encima, se pasa o pega en el travesano). */
+  const altura = 92 - pot * 32
+  const curva = efecto === 'in' ? -6 : efecto === 'out' ? 6 : 0
+  const destinoX = 50 + Math.sin(rad) * ARCO.spread + curva * (0.4 + pot * 0.6)
+  const destinoY = ARCO.alto + Math.cos(rad) * (altura - ARCO.alto) * 0.8
+
+  /* --- Geometria del arco --- */
+  const sobrePalo = destinoY <= ARCO.alto + 2
+  const pasado = destinoY >= ARCO.linea
+  const rozIzq = destinoX <= ARCO.postIzq && destinoX > ARCO.postIzq - 7
+  const rozDer = destinoX >= ARCO.postDer && destinoX < ARCO.postDer + 7
+  const dentro = destinoX > ARCO.postIzq && destinoX < ARCO.postDer
+
+  /* --- Arquero: no adivina, se planta. Cubre un radio limitado alrededor
+     de su posicion, asi que las esquinas son su punto debil. La potencia
+     alta reduce su radio de accion (llega menos tiempo a moverse) y la
+     racha alta lo entrena: mejor posicion y mas alcance. --- */
+  const alcance = 8 - pot * 3.5 + Math.min(3.5, racha * 0.35)
+  const desplazamiento = Math.sign(destinoX - arqueroBase) * Math.min(Math.abs(destinoX - arqueroBase) * 0.35, 5 - pot * 3.2)
+  const posicionLectura = arqueroBase + desplazamiento
+  const tapado = dentro && !sobrePalo && !pasado &&
+    Math.abs(posicionLectura - destinoX) < alcance
+
+  /* Margen a los postes: gol de esquina vale mas. */
+  const margen = Math.min(destinoX - ARCO.postIzq, ARCO.postDer - destinoX)
+
+  let result, emoji, text, points
+  if (sobrePalo || rozIzq || rozDer) {
+    result = 'palo'; emoji = '\u{1F631}'; text = t('tiroslibres_palo'); points = 15
+  } else if (!dentro || pasado) {
+    result = 'fuera'; emoji = '\u{1F614}'; text = t('tiroslibres_fuera'); points = 0
+  } else if (tapado) {
+    result = 'atajada'; emoji = '\u{1F9D7}'; text = t('tiroslibres_atajada'); points = 0
+  } else if (margen < 6) {
+    result = 'gol'; emoji = '\u{1F3AF}'; text = t('tiroslibres_gol'); points = 150
   } else {
-    result = 'fuera'; emoji = '😔'; text = t('tiroslibres_fuera'); points = 0
+    result = 'gol'; emoji = '\u{26BD}'; text = t('tiroslibres_gol'); points = 90
   }
 
-  if (efecto === 'in' && angulo < 0) points = Math.round(points * 1.1)
-  if (efecto === 'out' && angulo > 0) points = Math.round(points * 1.1)
-  if (efecto === 'in' && angulo > 0) points = Math.round(points * 0.8)
-  if (efecto === 'out' && angulo < 0) points = Math.round(points * 0.8)
+  if (result === 'gol') {
+    if ((efecto === 'in' && angulo > 0) || (efecto === 'out' && angulo < 0)) points = Math.round(points * 1.15)
+    if ((efecto === 'in' && angulo < 0) || (efecto === 'out' && angulo > 0)) points = Math.round(points * 0.85)
+    points += Math.min(60, Math.floor(racha / 2) * 10)
+  }
 
-  return { points: Math.max(0, points), result, emoji, text, config }
+  return {
+    points: Math.max(0, Math.round(points)),
+    result, emoji, text, config,
+    destinoX: Math.max(-10, Math.min(110, destinoX)),
+    destinoY: Math.max(-5, Math.min(105, destinoY)),
+    atajado: result === 'atajada',
+    esquina: result === 'gol' && margen < 6
+  }
 }
 
 export default function TirosLibres() {
@@ -214,19 +268,43 @@ export default function TirosLibres() {
   const handleTiro = async () => {
     if (S.respondida) return
     S.respondida = true
+    S.tiros += 1
+    /* El arquero se reposiciona con algo de lectura del tiro anterior:
+       con racha alta adivina mejor, así que el juego escala solo. */
+    S.keeperX = Math.max(28, Math.min(72, S.keeperX + (Math.random() - 0.5) * 18))
     newWallPositions()
     refresh()
-    const result = calcularResultado(config)
+
+    const result = calcularResultado(config, { racha: S.rachaGol, keeperX: S.keeperX })
     S.racha += result.points
+    if (result.result === 'gol') {
+      S.aciertos += 1
+      S.rachaGol += 1
+      S.mejorRachaGol = Math.max(S.mejorRachaGol, S.rachaGol)
+    } else if (result.result !== 'palo') {
+      S.rachaGol = 0
+    }
     setLastResult(result)
     setShowResult(true)
     refresh()
+
+    /* Si se acaban los vidas la tanda termina sola. Antes la partida no
+       tenía final posible: se podía fallar indefinidamente. */
+    if (result.result === 'atajada' || result.result === 'fuera') {
+      S.vidas = Math.max(0, S.vidas - 1)
+    }
+    refresh()
+
     setTimeout(async () => {
+      if (S.vidas <= 0) {
+        await finalizarPartida()
+        return
+      }
       await avanzarTrasTiro(result)
       setShowResult(false)
       setLastResult(null)
       refresh()
-    }, 2500)
+    }, 1900)
   }
 
   const handleAbandonar = () => openTirosLibresAbandonar(openModal, refresh)
@@ -238,6 +316,12 @@ export default function TirosLibres() {
           <Flame size={22} className="flame" />
           <span className="streak-num">{S.racha}</span>
           <span className="streak-label">{t('tiroslibres_racha_actual')}</span>
+        </div>
+        <div className="best-badge">
+          <Target size={16} /> {t('tiroslibres_racha_gol')} <strong>{S.rachaGol}</strong>
+        </div>
+        <div className="vidas-dots" aria-label={t('tiroslibres_vidas')}>
+          {[0, 1, 2].map(i => <span key={i} className={`vida-dot ${i < S.vidas ? 'on' : 'off'}`} />)}
         </div>
         <button className="btn btn-sm" onClick={handleAbandonar}>{t('tiroslibres_terminar')}</button>
       </div>
@@ -280,12 +364,15 @@ export default function TirosLibres() {
             <div className="goal-post right" />
             <div className="goal-crossbar" />
             <div className="goal-net" />
-            <div className={`wall ${showResult && lastResult?.result === 'barrera' ? 'animate-jump' : ''}`}>
+            <div className="wall">
               {wallPositions.map((pos, i) => (
                 <div key={i} className="wall-player" style={{ left: pos }} />
               ))}
             </div>
-            <div className={`keeper ${showResult ? (lastResult?.result === 'atajada' ? (config.angulo < 0 ? 'animate-save animate-save-left' : config.angulo > 0 ? 'animate-save animate-save-right' : 'animate-save animate-save-center') : '') : ''}`}>
+            <div
+              className={`keeper ${showResult && lastResult?.result === 'atajada' ? (config.angulo < 0 ? 'animate-save animate-save-left' : config.angulo > 0 ? 'animate-save animate-save-right' : 'animate-save animate-save-center') : ''}`}
+              style={{ left: S.keeperX + '%' }}
+            >
               <div className="keeper-body" />
               <div className="keeper-head" />
               <div className="keeper-gloves" />
@@ -301,12 +388,14 @@ export default function TirosLibres() {
               <div className="arrow-power" style={{ width: `${config.potencia}%` }} />
             </div>
             {showResult && lastResult && (
-              <motion.div className="ball-trajectory" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
-                <div className="trajectory-path" style={{ 
-                  '--angle': config.angulo, 
-                  '--power': config.potencia,
-                  '--result': lastResult.result 
-                }} />
+              <motion.div
+                className={'shot-marker ' + lastResult.result}
+                style={{ left: lastResult.destinoX + '%', top: lastResult.destinoY + '%' }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+              >
+                {lastResult.emoji}
               </motion.div>
             )}
           </div>
@@ -397,6 +486,10 @@ function Result({ puntaje, onVolver, onNuevo }) {
       <h3>{t('tiroslibres_fin')}</h3>
       <p>{t('tiroslibres_tu_puntaje', { n: puntaje })}</p>
       <div className="game-result-score">{puntaje} <Target size={26} /></div>
+      <div className="tiroslibres-stats">
+        <span>{S.aciertos}/{S.tiros} {t('tiroslibres_goles')}</span>
+        <span>{t('tiroslibres_mejor_racha_gol')}: {S.mejorRachaGol}</span>
+      </div>
       <div className="btn-row-center">
         <button className="btn" onClick={onVolver}><ArrowLeft size={16} /> {t('tiroslibres_ver_ranking')}</button>
         <button className="btn btn-primary" onClick={onNuevo}><RotateCcw size={16} /> {t('tiroslibres_jugar_de_nuevo')}</button>
