@@ -51,15 +51,12 @@ async function cargarRankingPredicciones() {
       .filter(e => e.puntos > 0)
       .sort((a, b) => b.puntos - a.puntos || a.fecha - b.fecha)
   } catch (e) {
-    return getLocalPrediccionesRanking()
+    return []
   }
 }
 
 function getLocalPrediccionesRanking() {
-  return getLocalUsers()
-    .map(u => ({ id: u.id, nombre: u.displayName || u.username, puntos: u.prediccionesPoints || 0, fecha: u.createdAt, avatar: u.avatar || null }))
-    .filter(e => e.puntos > 0)
-    .sort((a, b) => b.puntos - a.puntos || a.fecha - b.fecha)
+  return []
 }
 
 function computePointsFrom(preds) {
