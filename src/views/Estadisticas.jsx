@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { Filter, Table, Trophy, BarChart3, CircleDot, Target, Hand } from 'lucide-react'
+import { Filter, Table, Trophy, BarChart3, CircleDot, Target, Hand, ChevronDown, ChevronUp } from 'lucide-react'
 import { useApp } from '../core/app.jsx'
 import { t, EmptyState } from '../core/ui.jsx'
 
@@ -76,11 +76,105 @@ const SUBS = [
   { id: 'atajadas', label: 'stats_atajadas', icon: <Hand size={16} /> }
 ]
 
+function CompetitionFilterBtns({ filtro, pickFiltro, competitions, openGroups }) {
+  const ligas = competitions.filter(c => c.type === 'liga')
+  const copas = competitions.filter(c => c.type === 'copa')
+  
+  const hasPlayedMatches = (compId) => {
+    return State.data.matches.some(m => m.played && m.competitionId === compId)
+  }
+
+  return (
+    <div className="filter-btns">
+      <button className={`btn btn-sm ${filtro === 'todas' ? 'btn-primary' : ''}`} onClick={() => pickFiltro('todas')}>{t('stats_todas')}</button>
+      
+      {(ligas.length || copas.length) && <span className="filter-divider" />}
+      
+      {ligas.length > 0 && (
+        <FilterGroup
+          title={t('stats_liga')}
+          icon={<Table size={12} />}
+          open={openGroups.ligas}
+          onToggle={() => pickFiltro('liga')} // dummy, handled by group toggle
+          items={ligas.filter(hasPlayedMatches).map(c => ({
+            id: c.id,
+            name: c.name,
+            active: filtro === c.id,
+            onClick: () => pickFiltro(c.id)
+          }))}
+          onGroupClick={() => pickFiltro('liga')}
+        />
+      )}
+      
+      {copas.length > 0 && (
+        <FilterGroup
+          title={t('stats_copa')}
+          icon={<Trophy size={12} />}
+          open={openGroups.copas}
+          onToggle={() => pickFiltro('copa')}
+          items={copas.filter(hasPlayedMatches).map(c => ({
+            id: c.id,
+            name: c.name,
+            active: filtro === c.id,
+            onClick: () => pickFiltro(c.id)
+          }))}
+          onGroupClick={() => pickFiltro('copa')}
+        />
+      )}
+    </div>
+  )
+}
+
+function FilterGroup({ title, icon, open, items, onGroupClick, onToggle }) {
+  const [isOpen, setIsOpen] = React.useState(open)
+  
+  return (
+    <div className="filter-group">
+      <button 
+        className={`btn btn-sm filter-group-header ${isOpen ? 'open' : ''}`}
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+      >
+        {icon} 
+        <span>{title}</span>
+        <span className="filter-count">{items.length}</span>
+        {items.length > 0 && (
+          <ChevronDown size={12} style={{ marginLeft: 'auto', transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
+        )}
+      </button>
+      
+      <AnimatePresence>
+        {isOpen && items.length > 0 && (
+          <motion.div 
+            className="filter-group-items"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {items.map(item => (
+              <button
+                key={item.id}
+                className={`btn btn-sm filter-item ${item.active ? 'btn-primary' : ''}`}
+                onClick={item.onClick}
+                style={{ width: '100%', textAlign: 'left', padding: '0.4rem 0.75rem' }}
+              >
+                {item.name}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export default function Estadisticas() {
   const { v } = useApp()
   void v
   const [sub, setSub] = useState(() => State.currentStatsTab || 'general')
   const [filtro, setFiltro] = useState(() => State.currentStatsCompetition || 'todas')
+  const [openGroups, setOpenGroups] = useState({ ligas: true, copas: true })
 
   const pickSub = id => {
     State.currentStatsTab = id
@@ -101,16 +195,12 @@ export default function Estadisticas() {
 
       <div className="card stats-filter-row">
         <span className="stats-showing"><Filter size={14} /> {t('stats_mostrando')}</span>
-        <div className="filter-btns">
-          <button className={`btn btn-sm ${filtro === 'todas' ? 'btn-primary' : ''}`} onClick={() => pickFiltro('todas')}>{t('stats_todas')}</button>
-          <button className={`btn btn-sm ${filtro === 'liga' ? 'btn-primary' : ''}`} onClick={() => pickFiltro('liga')}><Table size={14} /> {t('stats_liga')}</button>
-          <button className={`btn btn-sm ${filtro === 'copa' ? 'btn-primary' : ''}`} onClick={() => pickFiltro('copa')}><Trophy size={14} /> {t('stats_copa')}</button>
-          {competitions.map(c => (
-            <button key={c.id} className={`btn btn-sm ${filtro === c.id ? 'btn-primary' : ''}`} onClick={() => pickFiltro(c.id)}>
-              {c.type === 'copa' ? <Trophy size={12} /> : <Table size={12} />} {c.name}
-            </button>
-          ))}
-        </div>
+        <CompetitionFilterBtns 
+          filtro={filtro} 
+          pickFiltro={pickFiltro} 
+          competitions={competitions}
+          openGroups={openGroups}
+        />
       </div>
 
       <div className="admin-subtabs">
