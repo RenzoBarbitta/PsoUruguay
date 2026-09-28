@@ -30,7 +30,7 @@ function palmaresYears(entries) {
   return [...new Set(entries.map(e => e.year))].sort((a, b) => Number(b) - Number(a))
 }
 
-function WinnerCard({ e, index, onDelete }) {
+function WinnerCard({ e, index, onDelete, onEdit }) {
   const isAdmin = typeof State !== 'undefined' ? !!State.isAdmin : false
   return (
     <motion.div
@@ -51,11 +51,18 @@ function WinnerCard({ e, index, onDelete }) {
           <div className="palmares-winner-plantel">{t('palmares_plantel')}: {e.players.join(' · ')}</div>
         ) : null}
       </div>
-      {isAdmin && e.source === 'manual' ? (
-        <button className="btn btn-icon btn-danger palmares-del-btn" onClick={() => onDelete(e)} title={t('btn_eliminar')}>
-          <Trash2 size={16} />
-        </button>
-      ) : null}
+      <div className="palmares-actions">
+        {isAdmin && e.source === 'manual' ? (
+          <>
+            <button className="btn btn-icon btn-sm" onClick={() => onEdit(e)} title={t('btn_editar')}>
+              <Check size={16} />
+            </button>
+            <button className="btn btn-icon btn-danger btn-sm" onClick={() => onDelete(e)} title={t('btn_eliminar')}>
+              <Trash2 size={16} />
+            </button>
+          </>
+        ) : null}
+      </div>
     </motion.div>
   )
 }
@@ -92,6 +99,10 @@ export default function Palmares() {
     )
   }
 
+  const askEdit = e => {
+    openModal(<PalFormModal initialEntry={e} />)
+  }
+
   const pickYear = y => {
     try { localStorage.setItem('pso_pal_year', y) } catch (err) {}
     setSelYear(y)
@@ -120,7 +131,7 @@ export default function Palmares() {
           </div>
           <div className="palmares-year-content">
             {selEntries.length
-              ? selEntries.map((e, i) => <WinnerCard key={e.id + e.year + i} e={e} index={i} onDelete={askDelete} />)
+              ? selEntries.map((e, i) => <WinnerCard key={e.id + e.year + i} e={e} index={i} onDelete={askDelete} onEdit={askEdit} />)
               : <EmptyState icon="🏆" text={t('palmares_empty_year', { year: selYear })} />}
           </div>
         </>
@@ -135,14 +146,15 @@ function useAppNoAuth() {
 }
 
 /* ======================================================================
-   MODAL: AGREGAR TÍTULO AL PALMARÉS (solo admin)
+   MODAL: AGREGAR/EDITAR TÍTULO AL PALMARÉS (solo admin)
    ====================================================================== */
-function PalFormModal() {
+function PalFormModal({ initialEntry }) {
   const { closeModal, showToast } = useApp()
-  const [name, setName] = useState('')
-  const [year, setYear] = useState(String(new Date().getFullYear()))
-  const [logo, setLogo] = useState(null)
-  const [players, setPlayers] = useState([])
+  const isEdit = !!initialEntry
+  const [name, setName] = useState(isEdit ? initialEntry.name : '')
+  const [year, setYear] = useState(isEdit ? initialEntry.year : String(new Date().getFullYear()))
+  const [logo, setLogo] = useState(isEdit ? initialEntry.logo : null)
+  const [players, setPlayers] = useState(isEdit ? (initialEntry.players || []).map(p => ({ id: uid('pl'), name: p })) : [])
   const [error, setError] = useState('')
   const [adding, setAdding] = useState(false)
 
@@ -181,15 +193,15 @@ function PalFormModal() {
     const finalYear = String(year || '').trim()
     if (!finalName) { setError(t('err_nombre_valido')); return }
     if (!finalYear) { showToast(t('palmares_year_required'), 'error'); return }
-    const entry = { id: uid('pal'), name: finalName, year: finalYear, logo, players }
+    const entry = { id: isEdit ? initialEntry.id : uid('pal'), name: finalName, year: finalYear, logo, players: players.map(p => p.name) }
     await persistPalmaresEntry(entry)
     closeModal()
-    showToast(t('toast_palmares_creado', { name: entry.name, year: entry.year }))
+    showToast(isEdit ? t('toast_palmares_actualizado', { name: entry.name, year: entry.year }) : t('toast_palmares_creado', { name: entry.name, year: entry.year }))
   }
 
   return (
     <div className="modal-pad pal-form">
-      <div className="modal-title-text">{t('palmares_modal_title')}</div>
+      <div className="modal-title-text">{isEdit ? t('palmares_modal_edit_title') : t('palmares_modal_title')}</div>
 
       <div className="pal-logo-row">
         <div className="pal-logo-preview">
