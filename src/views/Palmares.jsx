@@ -30,8 +30,7 @@ function palmaresYears(entries) {
   return [...new Set(entries.map(e => e.year))].sort((a, b) => Number(b) - Number(a))
 }
 
-function WinnerCard({ e, index, onDelete, onEdit }) {
-  const isAdmin = typeof State !== 'undefined' ? !!State.isAdmin : false
+function WinnerCard({ e, index, onDelete, onEdit, isAdmin }) {
   return (
     <motion.div
       className="palmares-winner"
@@ -70,7 +69,7 @@ function WinnerCard({ e, index, onDelete, onEdit }) {
 export default function Palmares() {
   const { v, openModal, showToast, isAdmin } = useAppNoAuth()
   void v
-  const isAdminReal = typeof State !== 'undefined' ? !!State.isAdmin : isAdmin
+  const isAdminReal = isAdmin
   const entries = palmaresEntries()
   const years = palmaresYears(entries)
 
@@ -131,7 +130,7 @@ export default function Palmares() {
           </div>
           <div className="palmares-year-content">
             {selEntries.length
-              ? selEntries.map((e, i) => <WinnerCard key={e.id + e.year + i} e={e} index={i} onDelete={askDelete} onEdit={askEdit} />)
+              ? selEntries.map((e, i) => <WinnerCard key={e.id + e.year + i} e={e} index={i} onDelete={askDelete} onEdit={askEdit} isAdmin={isAdminReal} />)
               : <EmptyState icon="🏆" text={t('palmares_empty_year', { year: selYear })} />}
           </div>
         </>
