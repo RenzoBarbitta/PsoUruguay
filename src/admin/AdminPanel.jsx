@@ -126,10 +126,11 @@ async function maybeAdvanceCopaRounds(forMatch) {
 async function declareChampion(teamId, comp) {
   const team = getTeamById(teamId)
   if (!team) return
+  const year = new Date().getFullYear().toString()
   const title = {
     competitionName: comp ? comp.name : (State.data.settings.competitionName || t('copa_default_name')),
     format: comp ? comp.type : State.data.settings.competitionFormat,
-    year: comp ? (comp.season || State.data.settings.season) : State.data.settings.season
+    year
   }
   await persistTeam({ ...team, titles: [...(team.titles || []), title] })
   return true
@@ -962,7 +963,8 @@ function AdminConfig({ data, showToast, refresh }) {
         confirmLabel={t('btn_confirmar_titulo')}
         tone="gold"
         onConfirm={async () => {
-          const title = { competitionName: settings.leagueName || t('copa_default_name'), format: 'liga', year: settings.season || '2026' }
+          const year = new Date().getFullYear().toString()
+          const title = { competitionName: settings.leagueName || t('copa_default_name'), format: 'liga', year }
           const ok = await persistTeam({ ...team, titles: [...(team.titles || []), title] })
           if (ok) {
             showToast(t('toast_campeon_sumado', { team: team.name }))

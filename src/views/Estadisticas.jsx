@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Filter, Table, Trophy, BarChart3, CircleDot, Target, Hand } from 'lucide-react'
 import { useApp } from '../core/app.jsx'
@@ -91,6 +91,8 @@ export default function Estadisticas() {
     setFiltro(f)
   }
 
+  const competitions = useMemo(() => State.data.competitions || [], [v])
+
   return (
     <>
       <div className="section-head">
@@ -103,6 +105,11 @@ export default function Estadisticas() {
           <button className={`btn btn-sm ${filtro === 'todas' ? 'btn-primary' : ''}`} onClick={() => pickFiltro('todas')}>{t('stats_todas')}</button>
           <button className={`btn btn-sm ${filtro === 'liga' ? 'btn-primary' : ''}`} onClick={() => pickFiltro('liga')}><Table size={14} /> {t('stats_liga')}</button>
           <button className={`btn btn-sm ${filtro === 'copa' ? 'btn-primary' : ''}`} onClick={() => pickFiltro('copa')}><Trophy size={14} /> {t('stats_copa')}</button>
+          {competitions.map(c => (
+            <button key={c.id} className={`btn btn-sm ${filtro === c.id ? 'btn-primary' : ''}`} onClick={() => pickFiltro(c.id)}>
+              {c.type === 'copa' ? <Trophy size={12} /> : <Table size={12} />} {c.name}
+            </button>
+          ))}
         </div>
       </div>
 
