@@ -64,7 +64,20 @@ async function cargarRanking() {
           .filter(e => e.mejorRacha > 0),
         degraded: false
       }
-    } catch (e) { /* sin red -> locales */ }
+    } catch (e) {
+      const localUsers = getLocalUsers()
+      const me = AuthState.user
+      const allUsers = [...localUsers]
+      if (!allUsers.some(u => u.id === me.id)) {
+        allUsers.push({ id: me.id, username: me.username, displayName: me.displayName, bestStreak: me.bestStreak || 0, createdAt: me.createdAt || Date.now() })
+      }
+      return {
+        list: allUsers
+          .map(u => ({ id: u.id, nombre: u.displayName || u.username, mejorRacha: u.bestStreak || 0, fecha: u.createdAt }))
+          .filter(e => e.mejorRacha > 0),
+        degraded: true
+      }
+    }
   }
   return {
     list: getLocalUsers()
@@ -132,8 +145,12 @@ async function guardarPuntaje(racha, gameToken) {
     return { saved: true, record: racha > 0 }
   } catch (e) {
     const users = getLocalUsers()
-    const me = users.find(u => u.id === AuthState.user.id)
-    if (me && racha > (me.bestStreak || 0)) {
+    let me = users.find(u => u.id === AuthState.user.id)
+    if (!me) {
+      me = { id: AuthState.user.id, username: AuthState.user.username, displayName: AuthState.user.displayName, bestStreak: 0, createdAt: AuthState.user.createdAt || Date.now() }
+      users.push(me)
+    }
+    if (racha > (me.bestStreak || 0)) {
       me.bestStreak = racha
       saveLocalUsers(users)
     }
