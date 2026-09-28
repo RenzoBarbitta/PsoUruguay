@@ -87,7 +87,7 @@ async function cargarRanking() {
       const data = await rankingApi('/api/ranking/penales')
       return {
         list: (data.ranking || [])
-          .map(u => ({ id: u.id, nombre: u.displayName || u.username, racha: u.bestPenalStreak || 0, fecha: u.createdAt }))
+          .map(u => ({ id: u.id, nombre: u.displayName || u.username, racha: u.bestPenalStreak || 0, fecha: u.createdAt, avatar: u.avatar || null }))
           .filter(e => e.racha > 0),
         degraded: false
       }
@@ -96,11 +96,11 @@ async function cargarRanking() {
       const me = AuthState.user
       const allUsers = [...localUsers]
       if (!allUsers.some(u => u.id === me.id)) {
-        allUsers.push({ id: me.id, username: me.username, displayName: me.displayName, bestPenalStreak: me.bestPenalStreak || 0, createdAt: me.createdAt || Date.now() })
+        allUsers.push({ id: me.id, username: me.username, displayName: me.displayName, bestPenalStreak: me.bestPenalStreak || 0, createdAt: me.createdAt || Date.now(), avatar: me.avatar || null })
       }
       return {
         list: allUsers
-          .map(u => ({ id: u.id, nombre: u.displayName || u.username, racha: u.bestPenalStreak || 0, fecha: u.createdAt }))
+          .map(u => ({ id: u.id, nombre: u.displayName || u.username, racha: u.bestPenalStreak || 0, fecha: u.createdAt, avatar: u.avatar || null }))
           .filter(e => e.racha > 0),
         degraded: true
       }
@@ -108,7 +108,7 @@ async function cargarRanking() {
   }
   return {
     list: getLocalUsers()
-      .map(u => ({ id: u.id, nombre: u.displayName || u.username, racha: u.bestPenalStreak || 0, fecha: u.createdAt }))
+      .map(u => ({ id: u.id, nombre: u.displayName || u.username, racha: u.bestPenalStreak || 0, fecha: u.createdAt, avatar: u.avatar || null }))
       .filter(e => e.racha > 0),
     degraded: true
   }

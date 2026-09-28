@@ -47,7 +47,7 @@ async function cargarRankingPredicciones() {
   try {
     const data = await rankingApi('/api/ranking/predicciones')
     return (data.ranking || [])
-      .map(u => ({ id: u.id, nombre: u.displayName || u.username, puntos: u.prediccionesPoints || 0, fecha: u.createdAt }))
+      .map(u => ({ id: u.id, nombre: u.displayName || u.username, puntos: u.prediccionesPoints || 0, fecha: u.createdAt, avatar: u.avatar || null }))
       .filter(e => e.puntos > 0)
       .sort((a, b) => b.puntos - a.puntos || a.fecha - b.fecha)
   } catch (e) {
@@ -57,7 +57,7 @@ async function cargarRankingPredicciones() {
 
 function getLocalPrediccionesRanking() {
   return getLocalUsers()
-    .map(u => ({ id: u.id, nombre: u.displayName || u.username, puntos: u.prediccionesPoints || 0, fecha: u.createdAt }))
+    .map(u => ({ id: u.id, nombre: u.displayName || u.username, puntos: u.prediccionesPoints || 0, fecha: u.createdAt, avatar: u.avatar || null }))
     .filter(e => e.puntos > 0)
     .sort((a, b) => b.puntos - a.puntos || a.fecha - b.fecha)
 }
