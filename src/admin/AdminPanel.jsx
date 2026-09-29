@@ -285,6 +285,7 @@ function TeamFormModal({ team, onDone }) {
   const { closeModal, showToast } = useApp()
   const isEdit = !!team
   const [name, setName] = useState(team ? team.name : '')
+  const [short, setShort] = useState(team ? team.short : '')
   const [players, setPlayers] = useState(team ? JSON.parse(JSON.stringify(team.players || [])) : [])
   const [newPlayer, setNewPlayer] = useState('')
 
@@ -298,8 +299,8 @@ function TeamFormModal({ team, onDone }) {
   const save = async () => {
     if (!name.trim()) { showToast(t('err_nombre_valido'), 'error'); return }
     const teamObj = isEdit
-      ? { ...team, name: name.trim(), players }
-      : { id: uid('team'), name: name.trim(), short: name.trim().slice(0, 3).toUpperCase(), logo: null, players }
+      ? { ...team, name: name.trim(), short: short.trim().toUpperCase() || name.trim().slice(0, 3).toUpperCase(), players }
+      : { id: uid('team'), name: name.trim(), short: short.trim().toUpperCase() || name.trim().slice(0, 3).toUpperCase(), logo: null, players }
     const ok = await persistTeam(teamObj)
     if (ok) {
       showToast(isEdit ? t('toast_equipo_actualizado') : t('toast_equipo_creado'))
@@ -316,6 +317,8 @@ function TeamFormModal({ team, onDone }) {
       <div className="modal-title-text">{isEdit ? t('modal_editar_equipo') : t('modal_nuevo_equipo')}</div>
       <label>{t('label_nombre_equipo')}</label>
       <input value={name} onChange={e => setName(e.target.value)} placeholder={t('ph_equipo')} />
+      <label>{t('label_short_equipo')}</label>
+      <input value={short} onChange={e => setShort(e.target.value.toUpperCase())} placeholder={t('ph_short_equipo')} maxLength={3} />
       <div style={{ display: 'flex', gap: '0.5rem', margin: '0.5rem 0' }}>
         <input value={newPlayer} onChange={e => setNewPlayer(e.target.value)} placeholder={t('ph_jugador')} onKeyDown={e => { if (e.key === 'Enter') addPlayer() }} />
         <button className="btn btn-sm" onClick={addPlayer}><Plus size={14} /> {t('btn_jugador')}</button>

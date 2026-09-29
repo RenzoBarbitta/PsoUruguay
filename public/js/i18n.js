@@ -502,6 +502,8 @@ const I18N = {
     modal_nuevo_equipo: { es: 'Nuevo equipo', pt: 'Nova equipe' },
     label_nombre_equipo: { es: 'Nombre del equipo', pt: 'Nome da equipe' },
     ph_equipo: { es: 'Ej: Peñarol FC', pt: 'Ex: Peñarol FC' },
+    label_short_equipo: { es: 'Abreviatura (3 letras)', pt: 'Abreviação (3 letras)' },
+    ph_short_equipo: { es: 'Ej: PEÑ / MCT / TOR', pt: 'Ex: PEÑ / MCT / TOR' },
     err_nombre_valido: { es: 'Ingresá un nombre válido.', pt: 'Digite um nome válido.' },
     label_plantel: { es: 'Jugadores del plantel', pt: 'Jogadores do elenco' },
     btn_agregar_jugador: { es: 'Agregar jugador', pt: 'Adicionar jogador' },
