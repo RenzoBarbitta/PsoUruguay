@@ -298,9 +298,11 @@ function TeamFormModal({ team, onDone }) {
 
   const save = async () => {
     if (!name.trim()) { showToast(t('err_nombre_valido'), 'error'); return }
+    const autoShort = name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase()
+    const finalShort = short.trim().toUpperCase() || autoShort
     const teamObj = isEdit
-      ? { ...team, name: name.trim(), short: short.trim().toUpperCase() || name.trim().slice(0, 3).toUpperCase(), players }
-      : { id: uid('team'), name: name.trim(), short: short.trim().toUpperCase() || name.trim().slice(0, 3).toUpperCase(), logo: null, players }
+      ? { ...team, name: name.trim(), short: finalShort, players }
+      : { id: uid('team'), name: name.trim(), short: finalShort, logo: null, players }
     const ok = await persistTeam(teamObj)
     if (ok) {
       showToast(isEdit ? t('toast_equipo_actualizado') : t('toast_equipo_creado'))
