@@ -51,11 +51,13 @@ function WinnerCard({ e, index, onDelete, onEdit, isAdmin }) {
         ) : null}
       </div>
       <div className="palmares-actions">
-        {isAdmin && e.source === 'manual' ? (
+        {isAdmin ? (
           <>
-            <button className="btn btn-icon btn-sm" onClick={() => onEdit(e)} title={t('btn_editar')}>
-              <Check size={16} />
-            </button>
+            {e.source === 'manual' && (
+              <button className="btn btn-icon btn-sm" onClick={() => onEdit(e)} title={t('btn_editar')}>
+                <Check size={16} />
+              </button>
+            )}
             <button className="btn btn-icon btn-danger btn-sm" onClick={() => onDelete(e)} title={t('btn_eliminar')}>
               <Trash2 size={16} />
             </button>
