@@ -86,6 +86,7 @@ export default function Palmares() {
   const selEntries = entries.filter(e => e.year === selYear)
 
   const askDelete = e => {
+    if (!isAdminReal) return
     openModal(
       <ConfirmModal
         title={t('modal_eliminar_palmares')}
@@ -101,6 +102,7 @@ export default function Palmares() {
   }
 
   const askEdit = e => {
+    if (!isAdminReal) return
     openModal(<PalFormModal initialEntry={e} />)
   }
 
@@ -190,6 +192,7 @@ function PalFormModal({ initialEntry }) {
   const removePlayer = i => setPlayers(ps => ps.filter((_, idx) => idx !== i))
 
   const save = async () => {
+    if (!isAdmin) { closeModal(); showToast(t('toast_sin_permiso'), 'error'); return }
     const finalName = name.trim()
     const finalYear = String(year || '').trim()
     if (!finalName) { setError(t('err_nombre_valido')); return }

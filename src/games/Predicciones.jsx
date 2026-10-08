@@ -87,7 +87,18 @@ export default function Predicciones() {
   const [ranking, setRanking] = useState([])
   const [userPreds, setUserPreds] = useState({})
 
-  const refresh = () => { force(x => x + 1); setUserPreds(getUserPreds()) }
+  const refresh = async () => {
+    force(x => x + 1)
+    setUserPreds(getUserPreds())
+    if (AuthState.user) {
+      try {
+        const list = await cargarRankingPredicciones()
+        setRanking(list.slice(0, 10))
+      } catch {
+        // Si no hay conexión, se mantiene el ranking que tenía hasta ahora
+      }
+    }
+  }
 
   useEffect(() => {
     if (!AuthState.user) return
@@ -128,7 +139,7 @@ export default function Predicciones() {
       }
     } catch {}
     toast(t('predicciones_toast_guardado'))
-    refresh()
+    await refresh()
   }
 
   return (

@@ -312,6 +312,7 @@ const I18N = {
     toast_palmares_creado: { es: '🏆 {name} ({year}) agregado al Palmarés', pt: '🏆 {name} ({year}) adicionado aos Títulos' },
     toast_palmares_actualizado: { es: '🏆 {name} ({year}) actualizado en el Palmarés', pt: '🏆 {name} ({year}) atualizado nos Títulos' },
     toast_palmares_eliminado: { es: 'Título eliminado del Palmarés', pt: 'Título removido dos Títulos' },
+    toast_sin_permiso: { es: 'No tenés permiso para editar eso.', pt: 'Sem permissão para editar isso.' },
     confirm_del_palmares: { es: '¿Quitar "{name}" del Palmarés?', pt: 'Remover "{name}" dos Títulos?' },
     modal_eliminar_palmares: { es: 'Quitar del Palmarés', pt: 'Remover dos Títulos' },
 
@@ -504,6 +505,7 @@ const I18N = {
     ph_equipo: { es: 'Ej: Peñarol FC', pt: 'Ex: Peñarol FC' },
     label_short_equipo: { es: 'Abreviatura (3 letras)', pt: 'Abreviação (3 letras)' },
     ph_short_equipo: { es: 'Ej: PEÑ / MCT / TOR', pt: 'Ex: PEÑ / MCT / TOR' },
+    label_logo_equipo: { es: 'Logo / Escudo', pt: 'Logo / Escudo' },
     err_nombre_valido: { es: 'Ingresá un nombre válido.', pt: 'Digite um nome válido.' },
     label_plantel: { es: 'Jugadores del plantel', pt: 'Jogadores do elenco' },
     btn_agregar_jugador: { es: 'Agregar jugador', pt: 'Adicionar jogador' },

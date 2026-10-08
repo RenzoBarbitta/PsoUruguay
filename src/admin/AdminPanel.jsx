@@ -288,6 +288,42 @@ function TeamFormModal({ team, onDone }) {
   const [short, setShort] = useState(team ? team.short : '')
   const [players, setPlayers] = useState(team ? JSON.parse(JSON.stringify(team.players || [])) : [])
   const [newPlayer, setNewPlayer] = useState('')
+  const [logo, setLogo] = useState(team ? team.logo : null)
+  const teamNameForInitials = team ? team.name : ''
+
+  const handleLogoFile = (file) => {
+    if (file.size > 8 * 1024 * 1024) {
+      showToast(t('toast_logo_pesada'), 'error')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const img = new Image()
+      img.onload = () => {
+        // Redimensionar a 400x400 recortando el centro, para que el escudo
+        // se vea bien en el círculo sin deformarse ni suba de peso
+        const size = 400
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        const minSide = Math.min(img.width, img.height)
+        const sx = (img.width - minSide) / 2
+        const sy = (img.height - minSide) / 2
+        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size)
+        setLogo(canvas.toDataURL('image/webp', 0.9))
+        showToast(t('toast_logo_actualizado'))
+      }
+      img.onerror = () => showToast(t('toast_logo_error'), 'error')
+      img.src = ev.target.result
+    }
+    reader.onerror = () => showToast(t('toast_logo_leer'), 'error')
+    reader.readAsDataURL(file)
+  }
+
+  const clearLogo = () => {
+    setLogo(null)
+  }
 
   const addPlayer = () => {
     const n = newPlayer.trim()
@@ -301,8 +337,8 @@ function TeamFormModal({ team, onDone }) {
     const autoShort = name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase()
     const finalShort = short.trim().toUpperCase() || autoShort
     const teamObj = isEdit
-      ? { ...team, name: name.trim(), short: finalShort, players }
-      : { id: uid('team'), name: name.trim(), short: finalShort, logo: null, players }
+      ? { ...team, name: name.trim(), short: finalShort, players, logo }
+      : { id: uid('team'), name: name.trim(), short: finalShort, logo, players }
     const ok = await persistTeam(teamObj)
     if (ok) {
       showToast(isEdit ? t('toast_equipo_actualizado') : t('toast_equipo_creado'))
@@ -321,6 +357,39 @@ function TeamFormModal({ team, onDone }) {
       <input value={name} onChange={e => setName(e.target.value)} placeholder={t('ph_equipo')} />
       <label>{t('label_short_equipo')}</label>
       <input value={short} onChange={e => setShort(e.target.value.toUpperCase())} placeholder={t('ph_short_equipo')} maxLength={3} />
+      {/* ====== Escudo (logo) ====== */}
+      <div className="field">
+        <label style={{ display: 'block', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>{t('label_logo_equipo')}</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div
+            className="team-dot"
+            style={{ width: 64, height: 64, fontSize: '1rem', flexShrink: 0, background: 'var(--bg-surface-2)', border: '2px solid var(--border-strong)' }}
+          >
+            {logo ? <img src={logo} alt="" /> : <span style={{ fontWeight: 700, color: 'var(--accent-dark)' }}>{(teamNameForInitials || '').split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'}</span>}
+          </div>
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              id="team-logo-input"
+              onChange={(e) => {
+                const f = e.target.files && e.target.files[0]
+                if (f) handleLogoFile(f)
+              }}
+            />
+            <button className="btn btn-sm btn-primary" type="button" onClick={() => {
+              const input = document.getElementById('team-logo-input')
+              if (input) input.click()
+            }}>
+              🖼️ {logo ? t('btn_cambiar_logo') : t('btn_subir_logo')}
+            </button>
+            {logo ? <button className="btn btn-sm btn-danger" type="button" onClick={clearLogo}>{t('btn_quitar')}</button> : null}
+          </div>
+          <div style={{ marginLeft: 'auto', marginTop: 6, color: 'var(--text-muted)', fontSize: '0.7rem' }}>{t('logo_crop_note')}</div>
+        </div>
+      </div>
+
       <div style={{ display: 'flex', gap: '0.5rem', margin: '0.5rem 0' }}>
         <input value={newPlayer} onChange={e => setNewPlayer(e.target.value)} placeholder={t('ph_jugador')} onKeyDown={e => { if (e.key === 'Enter') addPlayer() }} />
         <button className="btn btn-sm" onClick={addPlayer}><Plus size={14} /> {t('btn_jugador')}</button>
