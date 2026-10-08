@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { motion } from 'motion/react'
 import { Plus, Trash2, X, Trophy, UserPlus, Check } from 'lucide-react'
 import { useApp, ConfirmModal } from '../core/app.jsx'
-import { t, EmptyState, TeamDot, initialsOf } from '../core/ui.jsx'
+import { useAuth, t, EmptyState, TeamDot, initialsOf } from '../core/ui.jsx'
 
 /* Lista completa de títulos: manuales (palmares) + derivados de títulos de clubes. */
 function palmaresEntries() {
@@ -69,7 +69,8 @@ function WinnerCard({ e, index, onDelete, onEdit, isAdmin }) {
 }
 
 export default function Palmares() {
-  const { v, openModal, showToast, isAdmin } = useAppNoAuth()
+  const { openModal, showToast } = useApp()
+  const { isAdmin, version: v } = useAuth()
   void v
   const isAdminReal = isAdmin
   const entries = palmaresEntries()
@@ -143,10 +144,6 @@ export default function Palmares() {
   )
 }
 
-/* Mini-hook local: solo necesita openModal/showToast del contexto */
-function useAppNoAuth() {
-  return useApp()
-}
 
 /* ======================================================================
    MODAL: AGREGAR/EDITAR TÍTULO AL PALMARÉS (solo admin)
