@@ -42,8 +42,8 @@ try { document.documentElement.setAttribute('data-theme', localStorage.getItem('
 <link rel="apple-touch-icon" href="/logo.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="/css/styles.css?v=1">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -80,16 +80,16 @@ try { document.documentElement.setAttribute('data-theme', localStorage.getItem('
      verbatim y expone globals (State, AuthState, tr, compute*, gameApi,
      rankingApi, persist*, TRIVIA_QUESTIONS, PASAPALABRA_QUESTIONS...)
      que la app React consume a través de window. -->
-<script src="/js/logo.js"></script>
-<script src="/js/config.js"></script>
-<script src="/js/i18n.js"></script>
-<script src="/js/competencias.js"></script>
-<script src="/js/trivia-data.js"></script>
-<script src="/js/pasapalabra-data.js"></script>
-<script src="/js/state.js"></script>
-<script src="/js/compute.js"></script>
-<script src="/js/auth.js"></script>
-<script src="/js/bridge.js"></script>
+<script src="/js/logo.js?v=1" defer></script>
+<script src="/js/config.js?v=1" defer></script>
+<script src="/js/i18n.js?v=1" defer></script>
+<script src="/js/competencias.js?v=1" defer></script>
+<script src="/js/trivia-data.js?v=1" defer></script>
+<script src="/js/pasapalabra-data.js?v=1" defer></script>
+<script src="/js/state.js?v=1" defer></script>
+<script src="/js/compute.js?v=1" defer></script>
+<script src="/js/auth.js?v=1" defer></script>
+<script src="/js/bridge.js?v=1" defer></script>
 
 <script type="module" src="/src/main.jsx"></script>
 </body>
