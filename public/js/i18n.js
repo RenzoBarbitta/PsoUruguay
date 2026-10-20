@@ -1,4 +1,4 @@
-/* ======================================================================
+﻿/* ======================================================================
    PSO URUGUAY - INTERNACIONALIZACIÓN
    Diccionarios ES / PT-BR + helpers. Se carga antes que el resto de los
    módulos para que cualquier función pueda usar tr() en tiempo de ejecución.
@@ -152,7 +152,8 @@ const I18N = {
     lang_pt_title: { es: 'Português (Brasil)', pt: 'Português (Brasil)' },
 
     /* ------- Estado / API ------- */
-    err_no_server: { es: 'Sin conexión con el servidor', pt: 'Sem conexão com o servidor' },
+        err_no_server: { es: 'Sin conexión con el servidor', pt: 'Sem conexão com o servidor' },
+    err_no_server_timeout: { es: 'El servidor tardó demasiado en responder', pt: 'O servidor demorou demais para responder' },
     err_server: { es: 'Error del servidor ({status})', pt: 'Erro do servidor ({status})' },
     toast_save_team_error: { es: 'No se pudo guardar en la base de datos', pt: 'Não foi possível salvar no banco de dados' },
     toast_save_match_error: { es: 'No se pudo guardar el partido', pt: 'Não foi possível salvar o jogo' },

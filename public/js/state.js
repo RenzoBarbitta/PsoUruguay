@@ -60,14 +60,19 @@ async function supaFetch(path, options = {}) {
     ...headers
   };
 
-  let res;
+  let controller;
   try {
+    controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     res = await fetch(url, {
       method,
       headers: h,
-      body: body !== undefined ? JSON.stringify(body) : undefined
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
   } catch (e) {
+    if (e.name === 'AbortError') throw new Error(tr('err_no_server_timeout'));
     throw new Error(tr('err_no_server'));
   }
 
@@ -590,26 +595,45 @@ function stopHeartbeat() {
   }
 }
 
+/* Lee key+value de todos los registros de un prefijo en UNA sola consulta
+   a Supabase, en lugar de hacer list + N peticiones individuales. */
+async function safeListValues(prefix) {
+  if (!online) return {};
+  try {
+    const rows = await supaFetch('/rest/v1/kv', {
+      query: { select: 'key,value', key: 'like.' + prefix + '%' }
+    });
+    const out = {};
+    if (Array.isArray(rows)) {
+      for (const r of rows) {
+        try { out[r.key] = r.value; } catch (e) {}
+      }
+    }
+    return out;
+  } catch (e) {
+    return {};
+  }
+}
+
 async function refreshFromStorage() {
   if (!online) return;
   try {
-    const teamRows = await safeList('teams:');
-    const teams = [];
-    for (const key of teamRows) {
-      const rec = await safeGet(key);
-      if (rec) { try { teams.push(JSON.parse(rec)); } catch (e) {} }
-    }
-    const matchRows = await safeList('matches:');
-    const matches = [];
-    for (const key of matchRows) {
-      const rec = await safeGet(key);
-      if (rec) { try { matches.push(JSON.parse(rec)); } catch (e) {} }
-    }
-    const settingsRaw = await safeGet('settings:main');
+    /* Todas las peticiones en paralelo: una por tipo de dato. */
+    const [teamsMap, matchesMap, settingsRaw, compsMap, palmaresMap] =
+      await Promise.all([
+        safeListValues('teams:'),
+        safeListValues('matches:'),
+        safeGet('settings:main'),
+        safeListValues('competitions:'),
+        safeListValues('palmares:')
+      ]);
+
+    const teams = Object.values(teamsMap).map(v => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
+    const matches = Object.values(matchesMap).map(v => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
     const settings = State.data.settings;
     if (settingsRaw) { try { Object.assign(settings, JSON.parse(settingsRaw)); } catch (e) {} }
-    const competitions = await getCompetitionsFromStorage();
-    const palmares = await getPalmaresFromStorage();
+    const competitions = Object.values(compsMap).map(v => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
+    const palmares = Object.values(palmaresMap).map(v => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
 
     State.data.teams = teams;
     State.data.matches = matches;
@@ -694,13 +718,8 @@ async function deleteCompetitionDB(id) {
 async function getCompetitionsFromStorage() {
   if (!online) return [];
   try {
-    const rows = await safeList('competitions:');
-    const comps = [];
-    for (const key of rows) {
-      const rec = await safeGet(key);
-      if (rec) { try { comps.push(JSON.parse(rec)); } catch (e) {} }
-    }
-    return comps;
+    const map = await safeListValues('competitions:');
+    return Object.values(map).map(v => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
   } catch (e) { return []; }
 }
 
@@ -737,12 +756,7 @@ async function deletePalmaresEntryDB(id) {
 async function getPalmaresFromStorage() {
   if (!online) return State.data.palmares || [];
   try {
-    const rows = await safeList('palmares:');
-    const out = [];
-    for (const key of rows) {
-      const rec = await safeGet(key);
-      if (rec) { try { out.push(JSON.parse(rec)); } catch (e) {} }
-    }
-    return out;
-  } catch (e) { return []; }
+    const map = await safeListValues('palmares:');
+    return Object.values(map).map(v => { try { return JSON.parse(v); } catch (e) { return null; } }).filter(Boolean);
+  } catch (e) { return State.data.palmares || []; }
 }
