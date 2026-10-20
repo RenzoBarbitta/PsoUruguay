@@ -1,51 +1,64 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { AppProvider, useApp } from './core/app.jsx'
 import { View } from './core/ui.jsx'
 import Topbar from './components/Topbar.jsx'
 import TabsNav from './components/TabsNav.jsx'
 import Inicio from './views/Inicio.jsx'
-import Fixture from './views/Fixture.jsx'
-import Tabla from './views/Tabla.jsx'
-import Estadisticas from './views/Estadisticas.jsx'
-import Planteles from './views/Planteles.jsx'
-import Palmares from './views/Palmares.jsx'
-import Seleccion from './views/Seleccion.jsx'
-import Juegos from './views/Juegos.jsx'
-import Mercado from './views/Mercado.jsx'
-import Trivia from './games/Trivia.jsx'
-import Pasapalabra from './games/Pasapalabra.jsx'
-import Penales from './games/Penales.jsx'
-import Predicciones from './games/Predicciones.jsx'
-import Perfil from './views/Perfil.jsx'
-import AdminPanel from './admin/AdminPanel.jsx'
+
+/* Vistas y juegos se cargan bajo demanda (code splitting) para que la
+   carga inicial solo traiga lo necesario (Inicio). El resto se descarga
+   cuando el usuario navega a esa pestaña. */
+const Fixture = lazy(() => import('./views/Fixture.jsx'))
+const Tabla = lazy(() => import('./views/Tabla.jsx'))
+const Estadisticas = lazy(() => import('./views/Estadisticas.jsx'))
+const Planteles = lazy(() => import('./views/Planteles.jsx'))
+const Palmares = lazy(() => import('./views/Palmares.jsx'))
+const Seleccion = lazy(() => import('./views/Seleccion.jsx'))
+const Juegos = lazy(() => import('./views/Juegos.jsx'))
+const Mercado = lazy(() => import('./views/Mercado.jsx'))
+const Trivia = lazy(() => import('./games/Trivia.jsx'))
+const Pasapalabra = lazy(() => import('./games/Pasapalabra.jsx'))
+const Penales = lazy(() => import('./games/Penales.jsx'))
+const Predicciones = lazy(() => import('./games/Predicciones.jsx'))
+const Perfil = lazy(() => import('./views/Perfil.jsx'))
+const AdminPanel = lazy(() => import('./admin/AdminPanel.jsx'))
+
+const VIEWS = {
+  inicio: Inicio,
+  fixture: Fixture,
+  tabla: Tabla,
+  estadisticas: Estadisticas,
+  planteles: Planteles,
+  palmares: Palmares,
+  seleccion: Seleccion,
+  juegos: Juegos,
+  mercado: Mercado,
+  trivia: Trivia,
+  pasapalabra: Pasapalabra,
+  penales: Penales,
+  predicciones: Predicciones,
+  perfil: Perfil,
+  admin: AdminPanel,
+}
+
+function SuspenseFallback() {
+  return (
+    <div className="view active" style={{ minHeight: 360, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.95rem' }}>
+      Cargando…
+    </div>
+  )
+}
 
 function Router() {
   const { tab } = useApp()
-  const content = (() => {
-    switch (tab) {
-      case 'inicio': return <Inicio />
-      case 'fixture': return <Fixture />
-      case 'tabla': return <Tabla />
-      case 'estadisticas': return <Estadisticas />
-      case 'planteles': return <Planteles />
-      case 'palmares': return <Palmares />
-      case 'seleccion': return <Seleccion />
-      case 'juegos': return <Juegos />
-      case 'mercado': return <Mercado />
-      case 'trivia': return <Trivia />
-      case 'pasapalabra': return <Pasapalabra />
-      case 'penales': return <Penales />
-      case 'predicciones': return <Predicciones />
-      case 'perfil': return <Perfil />
-      case 'admin': return <AdminPanel />
-      default: return <Inicio />
-    }
-  })()
+  const ViewComp = VIEWS[tab] || Inicio
 
   return (
-    <AnimatePresence mode="wait">
-      <View key={tab}>{content}</View>
+    <AnimatePresence mode="popLayout">
+      <Suspense fallback={<SuspenseFallback />}>
+        <View key={tab}><ViewComp /></View>
+      </Suspense>
     </AnimatePresence>
   )
 }
